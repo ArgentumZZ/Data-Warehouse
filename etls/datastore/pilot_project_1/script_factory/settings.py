@@ -13,6 +13,8 @@ Purpose:
     No logic should be implemented here.
 """
 
+import os
+
 # ===========================================================
 # 1. Script metadata
 # ===========================================================
@@ -27,10 +29,45 @@ script_description = "ETL pipeline for ingesting and transforming order data"
 # ===========================================================
 
 # 2.1 Options: "local", "development", "staging", "production"
-environment = "development"
+# Determined strictly by setenv.bat — no default fallback
+environment = os.environ.get("SCRIPTRUNNER_ENV")
 
 # 2.2 Frequency of ingestion: "hourly", "daily", "weekly", "monthly"
 frequency = "daily"
+
+# 2.3 Machine and runtime environment identifiers (from setenv.bat)
+machine_id = os.environ.get("ENV")                  # e.g. developer name or server name
+script_runner_env = os.environ.get("SCRIPT_RUNNER_ENV")  # legacy / additional env flag if used
+
+# 2.4 SMTP server configuration
+smtp_server = os.environ.get("SCRIPT_RUNNER_SMTP_SERVER")
+
+# 2.5 Project root and ETLs root (paths should not be in Git)
+base_dir = os.environ.get("BASEDIR")               # e.g. C:\Users\Mihail\PycharmProjects\datawarehouse
+etls_dir = os.environ.get("ETLS")                  # e.g. %BASEDIR%\ETLs
+
+# 2.6 Virtual environment activation/deactivation commands
+venv_activate = os.environ.get("SCRIPT_VIRTUAL_ENV")
+venv_deactivate = os.environ.get("SCRIPT_VIRTUAL_ENV_DEACTIVATE")
+
+# 2.7 Oracle client / SQL Server driver configuration
+oracle_path = os.environ.get("ORACLE_PATH")        # e.g. set PATH=C:\Oracle\instantclient_19_23;%PATH%
+sqlserver_driver = os.environ.get("SQLSERVER_DRIVER")  # e.g. ODBC+Driver+13+for+SQL+Server
+
+# 2.8 Optional paths: logs, working directory, config directory
+logs_dir = os.environ.get("LOGS")                  # e.g. %BASEDIR%\logs
+work_dir = os.environ.get("WORKDIR")              # e.g. %BASEDIR%\work
+config_dir = os.environ.get("CONFIGDIR")          # e.g. %BASEDIR%\config
+
+# 2.9 Logging level
+log_level = os.environ.get("LOG_LEVEL")           # e.g. INFO / DEBUG / WARNING / ERROR
+
+# 2.10 Proxy settings
+http_proxy = os.environ.get("HTTP_PROXY")
+https_proxy = os.environ.get("HTTPS_PROXY")
+
+# 2.11 Custom tools path
+custom_tools_path = os.environ.get("CUSTOM_TOOLS_PATH")
 
 
 # ===========================================================

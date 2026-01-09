@@ -87,18 +87,20 @@ class ScriptFactory:
         # Assign file to upload (ScriptWorker will set this later)
         # self.db.set_file_to_upload(self.output_csv_path)
 
-    def get_tasks(
-            self): """ Returns the ordered list of ETL tasks to be executed. Each task is a callable (function or bound method). """
+    def get_tasks(self):
+        """ Returns the ordered list of ETL tasks to be executed.
+        Each task is a callable (function or bound method).
+        """
 
-    return [self.audit.start_audit,
-            self.worker.get_credentials,
-            self.worker.make_connection,
-            self.worker.get_data,
-            self.etl_utils.transform_dataframe,
-            self.worker.upload_to_db,
-            self.audit.finish_audit
+        return [self.audit.start_audit,
+                self.worker.get_credentials,
+                self.worker.make_connection,
+                self.worker.get_data,
+                self.etl_utils.transform_dataframe,
+                self.worker.upload_to_db,
+                self.audit.finish_audit,
 
-            # Email tasks
-            # self.email.prepare_mails,
-            # self.email.send_mails
-            ]
+                # Email tasks
+                self.email.prepare_mails,
+                self.email.send_mails
+                ]
