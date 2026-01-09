@@ -1,8 +1,10 @@
 import script_factory.settings as cfg
 import common.logging as lg
+import os
 from custom_code.etl_utils import EtlUtils
-from custome_code.script_worker import ScriptWorker
-from custome_code.etl_audit_manager import EtlAuditManager
+from custom_code.script_worker import ScriptWorker
+from custom_code.etl_audit_manager import EtlAuditManager
+from custom_code.sql_queries import sql_queries
 from script_connectors.email_manager import EmailManager
 
 class ScriptFactory:
@@ -35,10 +37,14 @@ class ScriptFactory:
             self.schema = cfg.dev_schema
             self.table = cfg.dev_table
 
+        # 3. Build CSV path inside ScriptFactory output folder
+        self.csv_path = os.path.join(self.sfc.output_dir, "api_extract.csv")
+
         # 4. Create output folder
         self.output_dir = create_folders(
             [cfg.output_folder_base, generate_random_dir()],
             isfolder=True )
+
         # 5. Initialize components
         self.etl_utils = EtlUtils(self)
         self.worker = ScriptWorker(self)
@@ -48,44 +54,52 @@ class ScriptFactory:
     def init_db(self):
         """
         Initialize database connections and ensure required tables exist.
+        This prepares the PostgreSQL environment BEFORE the worker runs.
         """
 
-        # Create DB handler (PostgreSQL in this example)
+        lg.logger.info("Initializing database objects")
+
+        # 1. Create DB handler (PostgreSQL)
         self.db = DatabaseHandlerFactory("postgresql")
 
-        # Set credentials (database + schema)
+        # 2. Set credentials (database + schema)
         self.db.set_credentials(
             database=self.database,
             schema=self.schema
         )
 
-        # Log which DB is being used
-        lg.logger.info(f"Using database: {self.database} (schema: {self.schema})")
+        lg.logger.info(
+            f"Using database '{self.database}' with schema '{self.schema}'"
+        )
 
-        # Set target table
-        self.db.set_table(self.table_name, self.schema)
+        # 3. Set target table
+        self.db.set_table(
+            table=self.table,
+            schema=self.schema
+        )
 
-        # Add CREATE TABLE query
+        # 4. Register CREATE TABLE query
         self.db.add_create_table_query(
             sql_queries["create_table"].format(
                 schema=self.schema,
-                table=self.table_name
+                table=self.table
             )
         )
 
-        # Create table if missing
+        # 5. Create table if missing
         self.db.check_and_create_table()
 
-        # Create log table (ETL_RUNS)
+        # 6. Create ETL log table (ETL_RUNS)
         self.etl_utils.create_log_table(
             dbase_object=self.db,
             schema=self.schema,
-            table=self.table_name,
+            table=self.table,
             source_cols_unique=sql_queries["source_cols_unique"]
         )
 
-        # Assign file to upload (ScriptWorker will set this later)
-        # self.db.set_file_to_upload(self.output_csv_path)
+        # 7. Worker will set the CSV file later (after extraction)
+        #    so we do NOT set file_to_upload here.
+        lg.logger.info("Database initialization complete. Waiting for worker to set CSV file.")
 
     def get_tasks(self):
         """ Returns the ordered list of ETL tasks to be executed.
