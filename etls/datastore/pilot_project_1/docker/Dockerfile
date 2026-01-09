@@ -1,0 +1,74 @@
+# -----------------------------
+# 0. Use an official Python base image
+# -----------------------------
+# ARG PY_VERSION=3.11-slim
+# FROM python:${PY_VERSION}
+FROM python:3.11-slim
+
+# -----------------------------
+# 1. Build-time arguments (ARG)
+# -----------------------------
+# ARG exists ONLY during docker build
+# ARG: defines a build‑time variable
+# Can be used for installation paths, build flags, temporary directories
+# It does not exist when the container runs
+# You can override it at build time: docker build --build-arg basedir=/custom/path -t my-image .
+ARG NUMPY_VERSION=1.26.0
+ARG basedir=/myapp
+# Good practice: echo ARGs for debugging
+RUN echo "Using basedir: $basedir"
+RUN echo "Using numpy version: $NUMPY_VERSION"
+# WORKDIR $basedir
+
+# -----------------------------
+# 2. Runtime environment variables (ENV)
+# -----------------------------
+# ENV defines a run‑time environment variable
+# It exists inside the running container and needed when your script needs to read the value (e.g. mode, API keys, config, log level)
+# Your Python code can read it using os.getenv()
+# You can override it at runtime: docker run -e APP_ENV=dev my-image
+# ENV BASEDIR=$basedir
+ENV DATA_DIR=/app/data
+ENV CONFIG_DIR=/app/config
+# ENV LOG_DIR=/app/logs
+
+# -----------------------------
+# 3. Create working directory
+# -----------------------------
+# Use ARG here — valid during build
+RUN mkdir -p $basedir
+# Set working directory inside the container
+WORKDIR $basedir
+
+# -----------------------------
+# 4. Install individual libraries
+# -----------------------------
+RUN pip install numpy==$NUMPY_VERSION
+
+# -----------------------------
+# 5. Install dependencies (cached layer)
+# -----------------------------
+# Copy dependency list first (better for caching)
+COPY requirements.txt .
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# -----------------------------
+# 6. Copy project files
+# -----------------------------
+COPY docker_test.py .
+# OR copy the entire project (not just one file)
+# COPY . .
+
+# -----------------------------
+# 7. Default command
+# -----------------------------
+# Command to run your script
+# CMD ["python", "docker_test.py"]
+
+# the executable that always runs
+ENTRYPOINT ["python", "docker_test.py"]
+
+# In the terminal
+# docker build -t my-python-test .
+# docker run --rm my-python-test
