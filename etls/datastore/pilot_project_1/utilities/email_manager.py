@@ -1,4 +1,13 @@
-# email_manager.py
+"""
+email_manager.py
+
+Purpose:
+    Provide a self-contained email builder and sender used by the ETL framework.
+    This module defines:
+        - A minimal MailInput class for constructing email messages
+        - HTML rendering helpers
+        - EmailManager for preparing and sending ETL summary emails
+"""
 
 import common.logging as lg
 
