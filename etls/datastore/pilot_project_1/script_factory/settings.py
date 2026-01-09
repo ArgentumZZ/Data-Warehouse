@@ -100,8 +100,8 @@ prod_table = "fact_orders"
 # ===========================================================
 
 dev_database = "dwh_dev"
-dev_schema = "dwh_dev"
-dev_table = "fact_orders_dev"
+dev_schema = "gleif"
+dev_table = "lei_records"
 
 
 # ===========================================================

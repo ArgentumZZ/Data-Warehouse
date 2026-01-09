@@ -8,18 +8,24 @@
 sql_queries = {}
 
 source_cols_create = '''       
-            id                  int,
-            fxcm_customer_id    int,
-            account_id          text,
-            account_number      text,
-            notification        text,
-            notification_read   int,
-            timestamp           timestamptz,
-            notification_type   text,
-
+            lei_id          TEXT,
+            data_json       TEXT,   
     '''
 
 source_cols_unique = '''id'''
+
+sql_queries['create_table'] = '''
+        CREATE TABLE IF NOT EXISTS {schema}.{table} (
+        {table}_key                     bigserial,
+        etl_runs_key                    bigint,
+        ''' + source_cols_create + '''
+        created_at                      timestamptz default current_timestamp,
+        modified_at                     timestamptz default current_timestamp,
+        unique(''' + source_cols_unique + ''')
+        );
+
+        CREATE INDEX ON {schema}.{table}(''' + source_cols_unique + ''');
+    '''
 
 sql_queries['get_data'] = '''
                           SELECT id, \
@@ -94,17 +100,7 @@ trigger_cols_general_list = (
 # sql_queries['query_columns_list']  = [value.strip() for value in query_columns_list]
 
 
-sql_queries['create_table'] = '''
-        CREATE TABLE IF NOT EXISTS {schema}.{table} (
-        {table}_key                     bigserial,
-        etl_runs_key                    bigint,
-        ''' + source_cols_create + '''
-        created_at                      timestamptz default current_timestamp,
-        modified_at                     timestamptz default current_timestamp,
-        unique(''' + source_cols_unique + ''')
-        );
-        CREATE INDEX ON {schema}.{table}(''' + source_cols_unique + ''');
-    '''
+
 
 sql_queries['on_conflict_action'] = 'ON CONFLICT (' + source_cols_unique + ') DO UPDATE SET '
 

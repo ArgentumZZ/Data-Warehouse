@@ -1,11 +1,16 @@
 import script_factory.settings as cfg
-import common.logging as lg
+
 import os
+import psycopg2
+
 from custom_code.etl_utils import EtlUtils
 from custom_code.script_worker import ScriptWorker
 from custom_code.etl_audit_manager import EtlAuditManager
 from custom_code.sql_queries import sql_queries
-from script_connectors.email_manager import EmailManager
+from utilities.email_manager import EmailManager
+from utilities.file_utils import create_folders, generate_random_dir
+import utilities.logging_manager as lg
+
 
 class ScriptFactory:
     """
@@ -14,8 +19,7 @@ class ScriptFactory:
     - Build a list of tasks (functions)
     - Instantiate ScriptWorker, EtlUtils, EtlAuditManager
     - Expose settings to them
-    - Return tasks toto script_runner
-
+    - Upload CSV to PostgreSQL directly (no DB handler)
     """
 
     def __init__(self):
@@ -37,84 +41,89 @@ class ScriptFactory:
             self.schema = cfg.dev_schema
             self.table = cfg.dev_table
 
-        # 3. Build CSV path inside ScriptFactory output folder
-        self.csv_path = os.path.join(self.sfc.output_dir, "api_extract.csv")
-
-        # 4. Create output folder
-        self.output_dir = create_folders(
-            [cfg.output_folder_base, generate_random_dir()],
-            isfolder=True )
-
-        # 5. Initialize components
+        # 4. Initialize components
         self.etl_utils = EtlUtils(self)
-        self.worker = ScriptWorker(self)
-        self.audit = EtlAuditManager(self, self.worker, self.database, "audit")
+        self.script_worker = ScriptWorker(self)
+        self.etl_audit_manager = EtlAuditManager(self, self.script_worker, self.database, "audit")
         self.email = EmailManager(self)
 
-    def init_db(self):
+        # 5. Create output folder - Added index [0] to ensure we get the string path
+        result = create_folders(
+            [cfg.output_folder_base, generate_random_dir()],
+            isfolder=True)
+
+        # If it returns a tuple, take the first element; otherwise take the result
+        self.output_dir = result[0] if isinstance(result, tuple) else result
+
+        # 6. Build CSV path inside that folder
+        self.csv_path = os.path.join(self.output_dir, "api_extract.csv")
+
+        lg.logger.info(f"CSV will be saved to: {self.csv_path}")
+
+    # ----------------------------------------------------------------------
+    # NEW: Direct PostgreSQL uploader (no DB handler, no factory)
+    # ----------------------------------------------------------------------
+    def upload_csv_to_postgres(self):
         """
-        Initialize database connections and ensure required tables exist.
-        This prepares the PostgreSQL environment BEFORE the worker runs.
+        Uploads the CSV file produced by ScriptWorker directly into PostgreSQL.
         """
+        lg.logger.info("Uploading CSV to PostgreSQL...")
 
-        lg.logger.info("Initializing database objects")
-
-        # 1. Create DB handler (PostgreSQL)
-        self.db = DatabaseHandlerFactory("postgresql")
-
-        # 2. Set credentials (database + schema)
-        self.db.set_credentials(
-            database=self.database,
-            schema=self.schema
+        conn = psycopg2.connect(
+            host="localhost",
+            port=5432,
+            database="postgres",
+            user="postgres",
+            password="postgres"
         )
+        cur = conn.cursor()
 
-        lg.logger.info(
-            f"Using database '{self.database}' with schema '{self.schema}'"
-        )
-
-        # 3. Set target table
-        self.db.set_table(
-            table=self.table,
-            schema=self.schema
-        )
-
-        # 4. Register CREATE TABLE query
-        self.db.add_create_table_query(
-            sql_queries["create_table"].format(
-                schema=self.schema,
-                table=self.table
+        with open(self.csv_path, "r", encoding="utf-8") as f:
+            # We explicitly name the columns here: (lei_id, data_json)
+            # This allows 'inserted_at' to be auto-filled by the DB
+            cur.copy_expert(
+                sql=f"""
+                    COPY {self.schema}.{self.table} (lei_id, data_json)
+                    FROM STDIN
+                    WITH (
+                        FORMAT CSV,
+                        HEADER,
+                        DELIMITER ';',
+                        QUOTE '"',
+                        ESCAPE '\\'
+                    );
+                """,
+                file=f
             )
-        )
 
-        # 5. Create table if missing
-        self.db.check_and_create_table()
+        conn.commit()
+        cur.close()
+        conn.close()
 
-        # 6. Create ETL log table (ETL_RUNS)
-        self.etl_utils.create_log_table(
-            dbase_object=self.db,
-            schema=self.schema,
-            table=self.table,
-            source_cols_unique=sql_queries["source_cols_unique"]
-        )
+        lg.logger.info("CSV upload to PostgreSQL completed successfully.")
 
-        # 7. Worker will set the CSV file later (after extraction)
-        #    so we do NOT set file_to_upload here.
-        lg.logger.info("Database initialization complete. Waiting for worker to set CSV file.")
-
+    # ----------------------------------------------------------------------
+    # Task list
+    # ----------------------------------------------------------------------
     def get_tasks(self):
-        """ Returns the ordered list of ETL tasks to be executed.
-        Each task is a callable (function or bound method).
+        """
+        Returns the ordered list of ETL tasks to be executed.
+        ScriptWorker writes CSV → ScriptFactory uploads CSV.
         """
 
-        return [self.audit.start_audit,
-                self.worker.get_credentials,
-                self.worker.make_connection,
-                self.worker.get_data,
-                self.etl_utils.transform_dataframe,
-                self.worker.upload_to_db,
-                self.audit.finish_audit,
+        return [
+            # self.etl_audit_manager.start_audit,
+            # self.script_worker.get_credentials,
+            self.script_worker.make_connection,
+            # self.script_worker.get_data,
+            # self.etl_utils.transform_dataframe,
 
-                # Email tasks
-                self.email.prepare_mails,
-                self.email.send_mails
-                ]
+            # NEW: Upload CSV directly to PostgreSQL
+            self.upload_csv_to_postgres,
+
+            # self.etl_audit_manager.finish_audit,
+
+            # Email tasks
+            # self.email.prepare_mails,
+            # self.email.send_mails
+        ]

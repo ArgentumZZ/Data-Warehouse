@@ -9,7 +9,7 @@ Purpose:
         - EmailManager for preparing and sending ETL summary emails
 """
 
-import common.logging as lg
+import utilities.logging_manager as lg
 
 
 class EmailManager:

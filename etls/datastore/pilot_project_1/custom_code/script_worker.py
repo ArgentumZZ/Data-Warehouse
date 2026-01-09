@@ -3,7 +3,7 @@ import configparser, csv, os
 import pandas as pd
 from typing import Any, Dict, Optional
 from pathlib import Path
-import etls.datastore.pilot_project_1.utilities.logging_manager as lg
+import utilities.logging_manager as lg
 
 
 # Import custom libraries
@@ -75,9 +75,6 @@ class ScriptWorker:
             quoting=csv.QUOTE_NONE,
             header=True
         )
-
-        # 5. Register CSV for downstream tasks
-        self.sfc.add_output("csv_path", csv_path)
 
     # ---------------------------
     # 3. Extract, Transform, Save
