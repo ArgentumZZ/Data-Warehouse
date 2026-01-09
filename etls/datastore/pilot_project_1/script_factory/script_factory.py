@@ -63,6 +63,15 @@ class ScriptFactory:
     # ----------------------------------------------------------------------
     # NEW: Direct PostgreSQL uploader (no DB handler, no factory)
     # ----------------------------------------------------------------------
+
+    def init_db_data(self):
+        # 0. maybe run the load_data function that combines all below
+        # 1. Set/get credentials
+        # 2. Create schema (get from settings)
+        # 3. Create table (get parametrized from sql_queries.py)
+        # 4. Upload the CSV from self.csv_path into PostgreSQL (merge into)
+        pass
+
     def upload_csv_to_postgres(self):
         """
         Uploads the CSV file produced by ScriptWorker directly into PostgreSQL.

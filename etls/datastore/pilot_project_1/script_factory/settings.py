@@ -91,8 +91,8 @@ error_recipients = email_recipients["error_only"]
 # ===========================================================
 
 prod_database = "dwh_prod"
-prod_schema = "dwh"
-prod_table = "fact_orders"
+prod_schema = "gleif"
+prod_table = "lei_records"
 
 
 # ===========================================================
