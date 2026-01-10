@@ -1,5 +1,9 @@
 # import libraries
+from pydoc import describe
+
 import psycopg2
+import pandas as pd
+from io import StringIO
 from psycopg2 import DatabaseError
 from psycopg2.extensions import connection as PGConnection
 import configparser, os
@@ -218,76 +222,103 @@ class PostgresConnector:
         Create a PostgreSQL schema if it does not already exist.
 
         Args:
-            schema:
-                Name of the schema to create (e.g. 'shift', 'figment')
+            schema: Name of the schema to create (e.g. 'shift', 'figment')
         """
 
         # 1. Idempotent: does nothing if schema already exists
-        sql = f"CREATE SCHEMA IF NOT EXISTS {schema};"
+        query = f"CREATE SCHEMA IF NOT EXISTS {schema};"
 
         # 2. Execute and commit
-        self.run_query(query=sql, commit=True, description=f"Create schema '{schema}'")
+        lg.info("Creating schema if not exists: %s", schema)
+        self.run_query(query=query, commit=True)
 
-    def create_table(self):
+    def create_table(self, query: str, schema: str, table: str) -> None:
         """
-        IDEMPOTENT: CREATE TABLE IF NOT EXISTS
-        :return:
+        Create a PostgreSQL table if it does not already exist (in the format <schema>.<table>).
+
+        Args:
+            query: CREATE TABLE IF NOT EXISTS {schema}.{table} (...)
+            schema: Name of the schema (e.g. 'shift', 'figment')
+            table: Name of the table
         """
-        pass
+
+        # 1. Idempotent: does nothing if the <schema>.<table> already exists
+        # The input query has format query = CREATE TABLE IF NOT EXISTS {schema}.{table} ()
+        query = query.format(schema=schema, table=table)
+
+        # 2. Execute and commit
+        lg.info(f"Creating table if not exists: {schema}.{table}")
+        self.run_query(query=query, commit=True)
+
 
     # ---------------------------------------------------------
-    # TEMPORARY TABLE + MERGE LOGIC
+    # UPLOAD TO DB (using a TEMPORARY TABLE + MERGE INTO LOGIC)
     # ---------------------------------------------------------
-    def create_temporary_table(self):
+    def upload_to_db(self,
+                    csv_path: str,
+                    schema: str,
+                    table: str,
+                    on_clause: str = '',
+                    update_clause: str = '',
+                    insert_columns: str = '',
+                    insert_values: str = '') -> None:
         """
-        CREATE TEMPORARY TABLE
-        :return:
+        Upload a CSV to PostgreSQL by:
+
+        1. Creating a temporary table (temp_<table>).
+        2. Loading the CSV into the temporary table.
+        3. MERGE INTO target table for updates/inserts.
+        4. DROP the temporary table.
+
+        Args:
+            csv_path: Path to the CSV file
+            schema: Target schema
+            table: Target table name
+            on_clause: SQL ON condition for MERGE (attributes from the unique constraint)
+            update_clause: SQL SET clause for updates (non-unique attributes)
+            insert_columns: Columns for INSERT (list all attributes)
+            insert_values: Values for INSERT (list all attributes coming from the source)
         """
-        pass
 
-    def load_temporary_table(self):
-        """
-        Load raw data into a temp table
-        :return:
-        """
-        pass
+        # 1. Open a database connection (the temporary table will live in this session)
+        with self.get_connection(self.db_config) as conn:
+            with conn.cursor() as cur:
 
-    def merge_into_target(self):
-        """
-        Merge into target atomically
-        :return:
-        """
-        merge_sql = f"""
-            MERGE INTO {target_table} AS t
-            USING {temp_table} AS s
-            ON {on_clause}
-            WHEN MATCHED THEN
-                UPDATE SET {update_clause}
-            WHEN NOT MATCHED THEN
-                INSERT ({insert_cols})
-                VALUES ({insert_vals});
-            """
+                # 2. Create a temporary table
+                temp_table = f"temp_{table}"
+                create_temp_query = f"""
+                CREATE TEMP TABLE {temp_table} 
+                (LIKE {schema}.{table} INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES)
+                """
 
-        pass
+                lg.info(f"Creating temporary table: {temp_table}.")
+                cur.execute(create_temp_query)
 
-    # ---------------------------------------------------------
-    # HIGH-LEVEL OPERATION
-    # ---------------------------------------------------------
-    def load_data(cfg_path: str, schema: str, table: str, rows: list[tuple]):
-        cfg = self.load_db_config(cfg_path)
-        conn = get_connection(cfg)
+                # 3. Load CSV into temporary table using copy_from
+                lg.info("Loading CSV into temporary table.")
+                with open(csv_path, "r", encoding="utf-8") as f:
+                    # skip the header row
+                    next(f)
+                    cur.copy_from(f, temp_table, sep=',')
 
-        try:
-            create_schema(conn, schema)
-            create_table(conn, schema, table)
+                # 4. MERGE INTO target table
+                merge_query = f"""
+                    MERGE INTO {schema}.{table} AS t
+                    USING {temp_table} AS s
+                        ON {on_clause}
+                    WHEN MATCHED THEN 
+                        UPDATE SET {update_clause}
+                    WHEN NOT MATCHED THEN
+                        INSERT ({insert_columns})
+                        VALUES ({insert_values});
+                    """
+                lg.info("Merging temp table into target table.")
+                cur.execute(merge_query)
 
-            temp_table = "tmp_load"
-            create_temp_table(conn, temp_table)
-            load_temp_table(conn, temp_table, rows)
+                # 5. Explicitly drop the temporary table
+                lg.info(f"Dropping temporary table {temp_table}")
+                drop_query = f"DROP TABLE {temp_table}"
+                cur.execute(drop_query)
 
-            merge_into_target(conn, temp_table, f"{schema}.{table}")
-
-        finally:
-            conn.close()
-
-
+            # 6. Commit once at the end
+            conn.commit()
