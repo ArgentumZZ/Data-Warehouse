@@ -2,13 +2,16 @@
 sql_queries = {}
 
 # 2. Create a source_cols_create variable with columns and data types
-source_columns_create = '''       
-            lei_id          TEXT,
-            data_json       TEXT,   
+source_columns_create = '''
+            id              TEXT,
+            type            TEXT,
+            attributes	    TEXT,
+            relationships	TEXT,
+            links           TEXT,    
     '''
 
 # 3. Create a source_cols_unique variable with unique columns
-source_columns_unique = '''lei_id'''
+source_columns_unique = '''id, type, attributes, relationships,links'''
 
 # 4. Create table query
 sql_queries['create_table'] = '''
@@ -70,8 +73,8 @@ normal_cols_list = [col for col in source_cols_general_list
 # Construct the UPDATE clause for MERGE
 # ------------------------------
 sql_queries['update_clause'] = (
-    ", ".join([f"t.{col} = s.{col}" for col in normal_cols_list])  # Update normal columns
-    + ", t.modified_at = CURRENT_TIMESTAMP"                        # Always update timestamp
+    ", ".join([f"{col} = s.{col}" for col in normal_cols_list])  # Update normal columns
+    + " modified_at = CURRENT_TIMESTAMP"                        # Always update timestamp
 )
 
 
