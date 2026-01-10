@@ -12,12 +12,12 @@ source_cols_create = '''
             data_json       TEXT,   
     '''
 
-source_cols_unique = '''id'''
+source_cols_unique = '''lei_id'''
 
 sql_queries['create_table'] = '''
         CREATE TABLE IF NOT EXISTS {schema}.{table} (
         {table}_key                     bigserial,
-        etl_runs_key                    bigint,
+        -- etl_runs_key                    bigint,
         ''' + source_cols_create + '''
         created_at                      timestamptz default current_timestamp,
         modified_at                     timestamptz default current_timestamp,

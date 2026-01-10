@@ -12,33 +12,28 @@ import utilities.logging_manager as lg
 
 class PostgresConnector:
     """
-    Imports & Constants
+    PostgreSQL Connector for managing connections, executing queries,
+    and performing common ETL tasks.
 
-    Config Loader (reads .cfg or .ini)
-
-    Connection Factory (returns psycopg2/asyncpg connection)
-
-    DDL Helpers (create schema, create table)
-
-    DML Helpers (load temp table, merge into target)
-
-    High‑level ETL Operations (orchestrated steps)
-
+    Features:
+    ---------
+    1. Config Loader: Read DB credentials from .cfg/.ini files.
+    2. Connection Factory: Return psycopg2 connection objects.
+    3. Query Execution: Run SQL with optional results and commit.
+    4. DDL Helpers: Create schemas and tables if not exists.
+    5. DML / ETL Helpers: Upload CSVs via temporary tables and merge into targets.
     """
 
     def __init__(self,
-                 cfg_path: str,
                  section: str):
-        self.cfg_path = cfg_path
         self.section = section
         # Load DB config and store it for later use
-        self.db_config = self.load_db_config(cfg_path, section)
+        self.db_config = self.load_db_config(section)
 
     # ---------------------------------------------------------
     # CONFIG LOADER
     # ---------------------------------------------------------
     def load_db_config(self,
-                       cfg_path: str,
                        section: str) -> Dict[str, str]:
         """
         Load a specific credential name from .cfg file.
@@ -67,8 +62,10 @@ class PostgresConnector:
         """
 
         # 1. Ensure the config file exists before reading
+        # os.environ['BASEDIR'] defined in setenv.bat
+        cfg_path = os.path.join(os.environ['BASEDIR'], "config\local\db_config.cfg")
         if not os.path.isfile(cfg_path):
-            raise FileNotFoundError(f"Config fine not found: {cfg_path}.")
+            raise FileNotFoundError(f"Config file not found: {cfg_path}.")
 
         parser = configparser.ConfigParser()
 
@@ -206,12 +203,12 @@ class PostgresConnector:
 
         except DatabaseError:
             # Catch and log database-related errors (SQL syntax, constraint violations, etc.)
-            lg.exception("Database error while executing query")
+            lg.info("Database error while executing query")
             raise
 
         except Exception:
             # Catch and log any unexpected non-database errors, then re-raise
-            lg.exception("Unexpected error while executing query")
+            lg.info("Unexpected error while executing query")
             raise
 
     # ---------------------------------------------------------
@@ -232,7 +229,7 @@ class PostgresConnector:
         lg.info("Creating schema if not exists: %s", schema)
         self.run_query(query=query, commit=True)
 
-    def create_table(self, query: str, schema: str, table: str) -> None:
+    def create_table(self, query: str) -> None:
         """
         Create a PostgreSQL table if it does not already exist (in the format <schema>.<table>).
 
@@ -244,10 +241,10 @@ class PostgresConnector:
 
         # 1. Idempotent: does nothing if the <schema>.<table> already exists
         # The input query has format query = CREATE TABLE IF NOT EXISTS {schema}.{table} ()
-        query = query.format(schema=schema, table=table)
+        # query = query.format(schema=schema, table=table)
 
         # 2. Execute and commit
-        lg.info(f"Creating table if not exists: {schema}.{table}")
+        # lg.info(f"Creating table if not exists: {schema}.{table}")
         self.run_query(query=query, commit=True)
 
 

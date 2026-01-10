@@ -5,7 +5,6 @@ from typing import Any, Dict, Optional
 from pathlib import Path
 import utilities.logging_manager as lg
 
-
 # Import custom libraries
 
 class ScriptWorker:

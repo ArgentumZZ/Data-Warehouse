@@ -10,6 +10,7 @@ from custom_code.sql_queries import sql_queries
 from utilities.email_manager import EmailManager
 from utilities.file_utils import create_folders, generate_random_dir
 import utilities.logging_manager as lg
+from script_connectors.postgresql_connector import PostgresConnector
 
 
 class ScriptFactory:
@@ -47,6 +48,9 @@ class ScriptFactory:
         self.etl_audit_manager = EtlAuditManager(self, self.script_worker, self.database, "audit")
         self.email = EmailManager(self)
 
+        # Create an instance of the connector
+        self.pg_connector = PostgresConnector(section="postgresql: postgres_dev")
+
         # 5. Create output folder - Added index [0] to ensure we get the string path
         result = create_folders(
             [cfg.output_folder_base, generate_random_dir()],
@@ -65,12 +69,14 @@ class ScriptFactory:
     # ----------------------------------------------------------------------
 
     def init_db_data(self):
-        # 0. maybe run the load_data function that combines all below
-        # 1. Set/get credentials
-        # 2. Create schema (get from settings)
-        # 3. Create table (get parametrized from sql_queries.py)
-        # 4. Upload the CSV from self.csv_path into PostgreSQL (merge into)
-        pass
+        # 1. Create schema (get from settings)
+        # self.chema and self.table depend on environment
+        self.pg_connector.create_schema(schema=self.schema)
+        # 2. Create table (get parametrized from sql_queries.py)
+        self.pg_connector.create_table(query=sql_queries['create_table'].format(schema=self.schema,
+                                                                                table=self.table))
+
+
 
     def upload_csv_to_postgres(self):
         """
@@ -127,7 +133,8 @@ class ScriptFactory:
             # self.script_worker.get_data,
             # self.etl_utils.transform_dataframe,
 
-            # NEW: Upload CSV directly to PostgreSQL
+            # NEW: Upload CSV directly to PostgreSQL,
+            self.init_db_data,
             self.upload_csv_to_postgres,
 
             # self.etl_audit_manager.finish_audit,

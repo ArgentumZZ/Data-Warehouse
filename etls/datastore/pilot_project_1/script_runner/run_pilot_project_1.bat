@@ -25,5 +25,3 @@ echo The ENVIRONMENT IS: ENVIRONMENT=%SCRIPTRUNNER_ENV%
 
 echo Running ETL...
 python "%SCRIPT_DIR%script_runner.py"
-
-pause
