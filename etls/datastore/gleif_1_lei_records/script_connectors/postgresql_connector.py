@@ -251,7 +251,7 @@ class PostgresConnector:
     # ---------------------------------------------------------
     # UPLOAD TO DB (using a TEMPORARY TABLE + MERGE INTO LOGIC)
     # ---------------------------------------------------------
-    def upload_to_db(self,
+    def upload_to_pg(self,
                     csv_path: str,
                     schema: str,
                     table: str,

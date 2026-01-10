@@ -101,18 +101,17 @@ class ScriptFactory:
         }
 
         task_3 = {
-            "func": partial(
-        self.pg_connector.upload_to_db,
-        csv_path=self.csv_path,
-        schema=self.schema,
-        table=self.table,
-        on_clause=sql_queries['on_clause'],
-        update_clause=sql_queries['update_clause'],
-        insert_columns=sql_queries['insert_columns'],
-        insert_values=sql_queries['insert_values']
-        ),
+            "func": partial(self.pg_connector.upload_to_pg,
+                            csv_path=self.csv_path,
+                            schema=self.schema,
+                            table=self.table,
+                            on_clause=sql_queries['on_clause'],
+                            update_clause=sql_queries['update_clause'],
+                            insert_columns=sql_queries['insert_columns'],
+                            insert_values=sql_queries['insert_values']
+                            ),
 
-        "name": "upload_to_db",
+        "name": "upload_to_pg",
         "depends_on": None,
         "enabled": True
 
