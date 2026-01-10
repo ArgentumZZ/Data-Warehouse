@@ -65,11 +65,11 @@ class EmailManager:
     # -------------------------------------------------------
     def __init__(self, factory):
         self.factory = factory
-        self.cfg = factory.cfg
+        self.settings = factory.settings
 
-        self.recipients_admin = self.cfg.recipients_list_admin
-        self.recipients_business = self.cfg.recipients_list_business
-        self.recipients_error = self.cfg.error_recipients
+        self.recipients_admin = self.settings.recipients_list_admin
+        self.recipients_business = self.settings.recipients_list_business
+        self.recipients_error = self.settings.error_recipients
 
         self.mails = []
 
