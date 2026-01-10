@@ -52,8 +52,60 @@ sql_queries['create_comments'] = '''
 ##############################################################
 ## This code from here is template and must not be changed! ##
 ##############################################################
+# 1. Construct MERGE ON clause using target (t) and source (s) unique columns
+sql_queries['on_clause'] = " AND ".join([f"t.{col.strip()} = s.{col.strip()}" for col in source_cols_unique.split(',')])
 
-# From table definition:
+# 2. UPDATE CLAUSE for MERGE INTO query
+# ------------------------------
+# Extract all column names from source_cols_create
+# ------------------------------
+source_cols_general_list = [
+    line.split()[0]                                         # Take the first word as column name
+    for line in source_cols_create.strip().split('\n')      # Split into lines
+    if line.strip() and not line.strip().startswith('--')   # Skip empty lines & comments
+]
+
+# ------------------------------
+# Identify "normal" columns (non-unique)
+# ------------------------------
+normal_cols_list = [col for col in source_cols_general_list
+    if col not in [u.strip() for u in source_cols_unique.split(',')]
+]
+
+# ------------------------------
+# Construct the UPDATE clause for MERGE
+# ------------------------------
+sql_queries['update_clause'] = (
+    ", ".join([f"t.{col} = s.{col}" for col in normal_cols_list])  # Update normal columns
+    + ", t.modified_at = CURRENT_TIMESTAMP"                        # Always update timestamp
+)
+
+
+# III. New Snowflake syntax
+# Create the SQL that updates the columns on conflict
+normal_cols_list = [col for col in source_cols_general_list if col.strip() not in source_cols_unique.split(',')]
+sql_queries['snowflake_on_conflict_update'] = (
+                                    "target.etl_runs_key = source.etl_runs_key, " +
+                                    ",".join([f"target.{col} = source.{col}" for col in normal_cols_list]) +
+                                    ", target.modified_at = current_timestamp"
+                                    )
+
+# --- Prepare INSERT clause for MERGE ---
+# Extract normal columns from CREATE TABLE, skip comments
+cols = [line.split()[0] for line in source_cols_create.strip().split('\n') if line.strip() and not line.strip().startswith('--')]
+
+# Add timestamps
+cols += ['created_at', 'modified_at']
+
+# INSERT columns (target)
+sql_queries['insert_columns'] = ', '.join(cols)
+
+# INSERT values (source + current timestamps)
+sql_queries['insert_values'] = ', '.join([f"s.{c}" for c in cols[:-2]] + ['current_timestamp', 'current_timestamp'])
+
+
+
+"""# From table definition:
 
 source_cols_trigger_exclude = ''''''
 
@@ -70,36 +122,6 @@ trigger_cols_general_list = (
 trigger_cols_general_list = (
 [col for col in source_cols_general_list if col.strip() not in source_cols_trigger_exclude.split(',')])
 
-# From query code:
-#
-# # Find the index of the "select" word
-# select_index = sql_queries['get_data'].lower().find("select".lower())
-#
-# # Remove "select" and everything after it
-# if select_index >= 0:
-#     query_filtered = sql_queries['get_data'][select_index+6:]
-#
-# # Find the index of the "from" word
-# from_index = query_filtered.lower().find("from".lower())
-#
-# # Remove "from" and everything after it
-# if from_index >= 0:
-#     query_filtered = query_filtered[:from_index]
-#
-# # Strip leading and trailing whitespace from the filtered query
-# query_filtered = query_filtered.strip()
-#
-# # Split the filtered query by commas to create a list of columns
-# query_columns_list = query_filtered.split(',')
-#
-# # Replace each element in the list with its value from the dot position until the end e.g. remove alias
-# for i in range(len(query_columns_list)):
-#     query_columns_list[i] = query_columns_list[i].split('.')[-1]
-#
-# # Remove leading and trailing whitespace from each value and create a list of values
-# sql_queries['query_columns_list']  = [value.strip() for value in query_columns_list]
-
-
 
 
 sql_queries['on_conflict_action'] = 'ON CONFLICT (' + source_cols_unique + ') DO UPDATE SET '
@@ -110,6 +132,7 @@ sql_queries['on_conflict_update'] = "etl_runs_key = excluded.etl_runs_key, " \
     ["{col} = excluded.{col}".format(col=x) for x in source_cols_general_list])) \
                                     + ", modified_at = current_timestamp"
 
-sql_queries['source_cols_unique'] = source_cols_unique
+
 # Create the formatted list of columns used to trigger a log
 sql_queries['column_list_trigger'] = (",".join(["{{type}}.{col}".format(col=x) for x in trigger_cols_general_list]))
+"""

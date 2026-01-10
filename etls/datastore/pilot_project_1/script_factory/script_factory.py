@@ -1,5 +1,5 @@
 import script_factory.settings as cfg
-
+from functools import partial
 import os
 import psycopg2
 
@@ -77,53 +77,12 @@ class ScriptFactory:
                                                                                 table=self.table))
 
 
-
-    def upload_csv_to_postgres(self):
-        """
-        Uploads the CSV file produced by ScriptWorker directly into PostgreSQL.
-        """
-        lg.logger.info("Uploading CSV to PostgreSQL...")
-
-        conn = psycopg2.connect(
-            host="localhost",
-            port=5432,
-            database="postgres",
-            user="postgres",
-            password="postgres"
-        )
-        cur = conn.cursor()
-
-        with open(self.csv_path, "r", encoding="utf-8") as f:
-            # We explicitly name the columns here: (lei_id, data_json)
-            # This allows 'inserted_at' to be auto-filled by the DB
-            cur.copy_expert(
-                sql=f"""
-                    COPY {self.schema}.{self.table} (lei_id, data_json)
-                    FROM STDIN
-                    WITH (
-                        FORMAT CSV,
-                        HEADER,
-                        DELIMITER ';',
-                        QUOTE '"',
-                        ESCAPE '\\'
-                    );
-                """,
-                file=f
-            )
-
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        lg.logger.info("CSV upload to PostgreSQL completed successfully.")
-
     # ----------------------------------------------------------------------
     # Task list
     # ----------------------------------------------------------------------
     def get_tasks(self):
         """
         Returns the ordered list of ETL tasks to be executed.
-        ScriptWorker writes CSV → ScriptFactory uploads CSV.
         """
 
         return [
@@ -135,7 +94,15 @@ class ScriptFactory:
 
             # NEW: Upload CSV directly to PostgreSQL,
             self.init_db_data,
-            self.upload_csv_to_postgres,
+            self.pg_connector.upload_to_db(csv_path=self.csv_path,
+            schema=self.schema,
+            table=self.table,
+            on_clause=sql_queries['on_clause'],
+            update_clause=sql_queries['update_clause'],
+            insert_columns=sql_queries['insert_columns'],
+            insert_values=sql_queries['insert_values']
+        ),
+            # self.upload_csv_to_postgres,
 
             # self.etl_audit_manager.finish_audit,
 
