@@ -1,3 +1,3 @@
-class SalesforceConnector:
+class SnowflakeConnector:
     # to be implemened
     pass

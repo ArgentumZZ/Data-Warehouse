@@ -6,6 +6,7 @@ from typing import List, Tuple, Optional, Any, Union
 from datetime import timezone, timedelta
 
 # Custom libraries
+import utilities.logging_manager as lg
 
 class EtlAuditManager:
     """
@@ -48,7 +49,7 @@ class EtlAuditManager:
         self.prev_max_version: str = "0.0"
 
         # Initialize specialized database handler for Postgres
-        self.dbase_postgres_audit = DatabaseHandlerFactory('postgresql')
+        # self.dbase_postgres_audit = DatabaseHandlerFactory('postgresql')
         lg.logger.info('Etl_runs object is instantiated')
 
     def etl_runs_table_create_table_query(self) -> str:
@@ -174,7 +175,7 @@ class EtlAuditManager:
             self.get_query_daterange(prev_max_date_query, max_days_to_load, increment_sdt)
 
         # 3. Prepare environment and source list formatting
-        envir = os.environ.get('SCRIPT_RUNNER_ENV')
+        envir = os.environ.get('MACHINE_SCRIPT_RUNNER_ENV')
         sources_str = '","'.join(sources)
 
         # 4. Insert the initial audit record and retrieve the run key

@@ -1,32 +1,34 @@
-#This is the “engine”.
+import sys
+import os
 
-# It:
-
-# imports ScriptFactory
-
-# gets the list of tasks
-
-# runs them in order
-
-# logs success/failure
-
-# handles exceptions
-
-# triggers email alerts
-
-# This is the “executor”.
-
+# The .bat file now handles the PYTHONPATH, so we can import directly
 from script_factory.script_factory import ScriptFactory
-import common.logging as lg
+import utilities.logging_manager as lg
 
 def main():
-    factory = ScriptFactory()
-    tasks = factory.get_tasks()
+    lg.info("Starting ETL run")
+    success = True  # Track if everything worked
 
-    for task in tasks:
-        lg.logger.info(f"Running task: {task.__name__}")
-        task()
+    try:
+        factory = ScriptFactory()
+        tasks = factory.get_tasks()
+
+        for task in tasks:
+            lg.info(f"Running task: {task.__name__}")
+            try:
+                task()
+            except Exception as e:
+                lg.error(f"Task {task.__name__} failed: {e}")
+                success = False
+                break  # Stop if a critical task (like connection) fails
+
+        if success:
+            lg.info("ETL run completed successfully")
+        else:
+            lg.error("ETL run finished with errors.")
+
+    except Exception as e:
+        lg.error(f"Critical error during initialization: {e}")
 
 if __name__ == "__main__":
     main()
-

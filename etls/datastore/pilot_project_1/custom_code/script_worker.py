@@ -1,9 +1,9 @@
 # Import libraries
-import configparser
+import configparser, csv, os
+import pandas as pd
 from typing import Any, Dict, Optional
 from pathlib import Path
-import etls.datastore.pilot_project_1.script_connectors.logging_manager as lg
-
+import utilities.logging_manager as lg
 
 # Import custom libraries
 
@@ -47,7 +47,33 @@ class ScriptWorker:
         Use the specific .py connector to get the credentials from .cfg file and
         make a connection by passing the schema, db and the credentials
         """
-        pass
+        import requests
+
+        url = "https://api.gleif.org/api/v1/lei-records/529900W18LQJJN6SJ336"
+
+        payload = {}
+        headers = {
+            'Accept': 'application/vnd.api+json'
+        }
+
+        # 1. Call API
+        response = requests.request("GET", url, headers=headers, data=payload)
+        data = response.json()
+
+        # 2. Convert to DataFrame
+        df = pd.DataFrame(data)
+
+        # 4. Write CSV
+        df.to_csv(
+            self.sfc.csv_path,
+            sep=";",
+            encoding="utf-8",
+            index=False,
+            escapechar="\\",
+            doublequote=False,
+            quoting=csv.QUOTE_NONE,
+            header=True
+        )
 
     # ---------------------------
     # 3. Extract, Transform, Save
