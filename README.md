@@ -1,3 +1,28 @@
+## Data Warehouse
+
+- **Data Warehouse**
+  - Extracts, Transforms and Load data from different source into a PostgresSQL database.
+  - Data quality checks
+- **Main folders**
+  - dags - Different DAG files for Airflow.
+  - script_connectors folder - Different source connectors.
+  - utilities folder - Utilities files.
+  - tests folder - Tests.
+  - warehouse folder - dim and fact tables.
+  - data_quality_checks folder - Custom data quality checks.
+  - aggregations - Different aggregations.
+- **Main files**
+  - etl_audit_manager - audit table.
+  - etl_utils - general ETL utils functions.
+  - script_worker - custom functions for a given project. 
+    - connect to source, transform, load.
+  - sql_queries - SQL queries that are parametrized.
+  - alter_tables.sql - To track executed SQL queries. 
+  - script_factory - A file that builds the tasks for the project.
+  - script_runner - Run the tasks in script_factory.
+  - .bat/.sh files to run script_runner.
+
+___
 ## 📝 Project To‑Do Plan
 
 - **Partial Task Functions**
