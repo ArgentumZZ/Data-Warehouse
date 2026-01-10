@@ -80,7 +80,7 @@ class ScriptFactory:
     # ----------------------------------------------------------------------
     # Task list
     # ----------------------------------------------------------------------
-    def get_tasks(self):
+    def init_tasks(self):
         """
         Initialize a list of parametrized tasks.
         Returns the ordered list of ETL tasks to be executed.
@@ -88,16 +88,20 @@ class ScriptFactory:
 
         task_1 = {
             "func"          : partial(self.script_worker.make_connection),
-            "name"          : "make_connection",
-            "depends_on"    : None,
-            "enabled"       : True
+            "task_name"     : "make_connection",
+            "description"   : "Making a DB connection",
+            "enabled"       : True,
+            "retries"       : 1,
+            "depends_on"    : None
         }
 
         task_2 = {
             "func"          : partial(self.init_db_data),
-            "name"          : "init_db_data",
-            "depends_on"    : None,
-            "enabled"       : True
+            "task_name"     : "init_db_data",
+            "description"   : "Initialize database data.",
+            "enabled"       : True,
+            "retries"       : 1,
+            "depends_on"    : None
         }
 
         task_3 = {
@@ -110,11 +114,11 @@ class ScriptFactory:
                             insert_columns=sql_queries['insert_columns'],
                             insert_values=sql_queries['insert_values']
                             ),
-
-        "name": "upload_to_pg",
-        "depends_on": None,
-        "enabled": True
-
+        "task_name"     : "upload_to_pg",
+        "description"   : "Upload data to PostgreSQL DB.",
+        "enabled"       : True,
+        "retries"       : 1,
+        "depends_on"    : None
         }
 
         return [
