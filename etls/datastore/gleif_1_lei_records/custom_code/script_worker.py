@@ -50,20 +50,28 @@ class ScriptWorker:
         import requests
 
         url = "https://api.gleif.org/api/v1/lei-records/529900W18LQJJN6SJ336"
+        lg.info(f"The URL is: {url}")
 
         payload = {}
-        headers = {
-            'Accept': 'application/vnd.api+json'
-        }
+        headers = {'Accept': 'application/vnd.api+json'}
+        lg.info(f"The headers: {headers}")
 
         # 1. Call API
         response = requests.request("GET", url, headers=headers, data=payload)
-        data = response.json()
+        data_json = response.json()
 
-        # 2. Convert to DataFrame
-        df = pd.DataFrame(data)
+        # 2. Extract keys from the 'data' object
+        # In your JSON, 'data' is a dictionary, not a list
+        data_content = data_json.get('data', {})
+        data_keys = list(data_content.keys())
 
-        # 4. Write CSV
+        lg.info(f"Keys found in 'data': {data_keys}")
+
+        # 3. Convert to DataFrame
+        df = pd.DataFrame(data_content)
+        lg.info(f"The df: {df}")
+
+        # 4. Write to CSV
         df.to_csv(
             self.sfc.csv_path,
             sep=";",

@@ -82,26 +82,51 @@ class ScriptFactory:
     # ----------------------------------------------------------------------
     def get_tasks(self):
         """
+        Initialize a list of parametrized tasks.
         Returns the ordered list of ETL tasks to be executed.
         """
+
+        task_1 = {
+            "func"          : partial(self.script_worker.make_connection),
+            "name"          : "make_connection",
+            "depends_on"    : None,
+            "enabled"       : True
+        }
+
+        task_2 = {
+            "func"          : partial(self.init_db_data),
+            "name"          : "init_db_data",
+            "depends_on"    : None,
+            "enabled"       : True
+        }
+
+        task_3 = {
+            "func": partial(self.pg_connector.upload_to_pg,
+                            csv_path=self.csv_path,
+                            schema=self.schema,
+                            table=self.table,
+                            on_clause=sql_queries['on_clause'],
+                            update_clause=sql_queries['update_clause'],
+                            insert_columns=sql_queries['insert_columns'],
+                            insert_values=sql_queries['insert_values']
+                            ),
+
+        "name": "upload_to_pg",
+        "depends_on": None,
+        "enabled": True
+
+        }
 
         return [
             # self.etl_audit_manager.start_audit,
             # self.script_worker.get_credentials,
-            self.script_worker.make_connection,
+            task_1,
             # self.script_worker.get_data,
             # self.etl_utils.transform_dataframe,
 
             # NEW: Upload CSV directly to PostgreSQL,
-            self.init_db_data,
-            self.pg_connector.upload_to_db(csv_path=self.csv_path,
-            schema=self.schema,
-            table=self.table,
-            on_clause=sql_queries['on_clause'],
-            update_clause=sql_queries['update_clause'],
-            insert_columns=sql_queries['insert_columns'],
-            insert_values=sql_queries['insert_values']
-        ),
+            task_2,
+            task_3
             # self.upload_csv_to_postgres,
 
             # self.etl_audit_manager.finish_audit,

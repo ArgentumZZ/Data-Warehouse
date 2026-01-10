@@ -1,7 +1,5 @@
 # import libraries
-from pydoc import describe
-
-import psycopg2
+import psycopg2, io
 import pandas as pd
 from io import StringIO
 from psycopg2 import DatabaseError
@@ -251,7 +249,7 @@ class PostgresConnector:
     # ---------------------------------------------------------
     # UPLOAD TO DB (using a TEMPORARY TABLE + MERGE INTO LOGIC)
     # ---------------------------------------------------------
-    def upload_to_db(self,
+    def upload_to_pg(self,
                     csv_path: str,
                     schema: str,
                     table: str,
@@ -283,22 +281,39 @@ class PostgresConnector:
 
                 # 2. Create a temporary table
                 temp_table = f"temp_{table}"
+                lg.info(f"Temporary table: {temp_table}")
+
                 create_temp_query = f"""
                 CREATE TEMP TABLE {temp_table} 
-                (LIKE {schema}.{table} INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES)
+                (LIKE {schema}.{table} INCLUDING CONSTRAINTS INCLUDING INDEXES INCLUDING DEFAULTS); 
                 """
 
-                lg.info(f"Creating temporary table: {temp_table}.")
+                lg.info(f"Executing create temporary query: {create_temp_query}")
                 cur.execute(create_temp_query)
 
-                # 3. Load CSV into temporary table using copy_from
-                lg.info("Loading CSV into temporary table.")
-                with open(csv_path, "r", encoding="utf-8") as f:
-                    # skip the header row
-                    next(f)
-                    cur.copy_from(f, temp_table, sep=',')
+                # 3. Read the CSV (Pandas automatically detects the columns from the header row)
+                df = pd.read_csv(csv_path, sep=';')
 
-                # 4. MERGE INTO target table
+                # 4. Get the columns that actually exist in the CSV
+                df_columns = df.columns.tolist()
+                lg.info(f"The dataframe columns: {df_columns}")
+
+                # 5. Use an in-memory buffer to stream the data to Postgres
+                # This is much faster than running individual INSERT statements
+                buffer = io.StringIO()
+                df.to_csv(buffer, index=False, header=False, sep=';')
+                buffer.seek(0)  # Go back to the start of the virtual file
+
+                # 6. Execute the copy
+                lg.info(f"Loading {len(df)} rows into {temp_table}...")
+                try:
+                    cur.copy_from(buffer, temp_table, sep=';', columns=df_columns)
+                    lg.info("Load successful.")
+                except Exception as e:
+                    lg.error(f"Failed to load CSV via Pandas buffer: {e}")
+                    raise
+
+                # 7. MERGE INTO target table
                 merge_query = f"""
                     MERGE INTO {schema}.{table} AS t
                     USING {temp_table} AS s
@@ -312,10 +327,10 @@ class PostgresConnector:
                 lg.info("Merging temp table into target table.")
                 cur.execute(merge_query)
 
-                # 5. Explicitly drop the temporary table
+                # 8. Explicitly drop the temporary table
                 lg.info(f"Dropping temporary table {temp_table}")
                 drop_query = f"DROP TABLE {temp_table}"
                 cur.execute(drop_query)
 
-            # 6. Commit once at the end
+            # 9. Commit once at the end
             conn.commit()
