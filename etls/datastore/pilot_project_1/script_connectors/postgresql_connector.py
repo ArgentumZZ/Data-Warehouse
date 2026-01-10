@@ -1,8 +1,10 @@
 # import libraries
 import psycopg2
+from psycopg2 import DatabaseError
 from psycopg2.extensions import connection as PGConnection
 import configparser, os
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+import utilities.logging_manager as lg
 
 class PostgresConnector:
     """
@@ -38,14 +40,11 @@ class PostgresConnector:
         Load a specific credential name from .cfg file.
 
         Args:
-            cfg_path:
-                Path to the configuration file (e.g. "config/local/db.cfg").
-            section:
-                The section name inside the config file that contains the
-                PostgreSQL credentials (e.g. "postgresql_prod").
+            cfg_path: Path to the configuration file (e.g. "config/local/db.cfg").
+            section: The section name inside the config file that contains the PostgreSQL credentials
+            (e.g. "postgresql_prod").
 
-        Returns:
-            A dictionary containing the key/value pairs from the section
+        Returns: A dictionary containing the key/value pairs from the section
 
         Raises:
             FileNotFoundError:
@@ -128,43 +127,88 @@ class PostgresConnector:
     # ---------------------------------------------------------
     def run_query(self,
                   query: str,
+                  params: Optional[Tuple[Any, ...]] = None,
                   get_result: bool = True,
                   commit: bool = False) -> List[Any]:
-        """ Execute a SQL statement with optional result fetching and optional commit.
+        """
+        Execute a SQL statement with optional result fetching and optional commit.
 
         Args:
-            sql:
-                SQL query to execute.
-            get_result:
-                If True, fetch and return rows.
-            commit:
-                If True, commit the transaction after execution.
+            query: SQL query to execute.
+            params: Parameters for the SQL query
+            get_result: If True, fetch and return rows (empty if none).
+            commit: If True, commit the transaction after execution.
 
-        Returns: A list of rows if get_result=True and the query returns data, otherwise an empty list. """
+        Returns: A list of rows if get_result=True and the query returns data, otherwise an empty list.
 
-        # 1. Open a new database connection.
+        COMMIT RULES (PostgreSQL):
 
-        with self.get_connection(self.db_config) as conn:
-            try:
-                # Create a cursor for executing SQL
+        CREATE SCHEMA
+        ✅ COMMIT
+        Creates database structure
+        Rolled back otherwise
+
+        CREATE TABLE / ALTER TABLE / DROP TABLE
+        ✅ COMMIT
+        Modifies schema
+        Rolled back otherwise
+
+        INSERT
+        ✅ COMMIT
+        Adds new rows
+        Rolled back otherwise
+
+        UPDATE
+        ✅ COMMIT
+        Modifies existing rows
+        Rolled back otherwise
+
+        DELETE
+        ✅ COMMIT
+        Removes rows
+        Rolled back otherwise
+
+        SELECT
+        ❌ DO NOT COMMIT
+        Read-only
+        Commit has no effect
+        """
+
+        # 1. Open a new PostgreSQL database connection.
+        try:
+            with self.get_connection(self.db_config) as conn:
+
+                # 1.1. Create a cursor for executing SQL
                 with conn.cursor() as cur:
-                    # Execute the SQL statement
-                    cur.execute(query)
+                    # 1.2. Execute the SQL statement
+                    cur.execute(query, params)
 
-                    # Commit only when explicitly requested
+                    # 1.3. Commit only when explicitly requested
                     if commit:
                         conn.commit()
 
-                    # Fetch rows only when requested and when querty returns data
-                    if get_result:
-                        return cur.fetchall()
+                    # 1.4. Warn if a write query was executed without commit
+                    if not commit and cur.description is None:
+                        lg.warning("Write/DDL query executed without commit")
+
+                    # 1.5. Fetch rows only when requested and when query returns data
+                    # Detect if results exist before fetching
+                    if get_result and cur.description:
+                        rows = cur.fetchall()
+                        lg.info(f"Returned {len(rows)} rows.")
+                        return rows
 
                     return []
 
-            except Exception:
-                # Roll back the transaction on any failure
-                conn.rollback()
-                raise
+        except DatabaseError:
+            # Catch and log database-related errors (SQL syntax, constraint violations, etc.)
+            lg.exception("Database error while executing query")
+            raise
+
+        except Exception:
+            # Catch and log any unexpected non-database errors, then re-raise
+            lg.exception("Unexpected error while executing query")
+            raise
 
     # ---------------------------------------------------------
     # DDL HELPERS
