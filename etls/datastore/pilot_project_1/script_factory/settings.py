@@ -30,14 +30,14 @@ script_description = "ETL pipeline for ingesting and transforming order data"
 
 # 2.1 Options: "local", "development", "staging", "production"
 # Determined strictly by setenv.bat — no default fallback
-environment = os.environ.get("SCRIPTRUNNER_ENV")
+environment = os.environ.get("SCRIPT_RUNNER_ENV")
 
 # 2.2 Frequency of ingestion: "hourly", "daily", "weekly", "monthly"
 frequency = "daily"
 
 # 2.3 Machine and runtime environment identifiers (from setenv.bat)
-machine_id = os.environ.get("ENV")                  # e.g. developer name or server name
-script_runner_env = os.environ.get("SCRIPT_RUNNER_ENV")  # legacy / additional env flag if used
+machine_env = os.environ.get("MACHINE_ENV")                  # e.g. developer name or server name
+machine_script_runner_env = os.environ.get("MACHINE_SCRIPT_RUNNER_ENV")  # legacy / additional env flag if used
 
 # 2.4 SMTP server configuration
 smtp_server = os.environ.get("SCRIPT_RUNNER_SMTP_SERVER")
@@ -45,7 +45,6 @@ smtp_server = os.environ.get("SCRIPT_RUNNER_SMTP_SERVER")
 # 2.5 Project root and ETLs root (paths should not be in Git)
 base_dir = os.environ.get("BASEDIR")               # Base directory (e.g. C:\Users\Mihail\PycharmProjects\datawarehouse)
 etls_dir = os.environ.get("ETLS")                  # Directory of etls folder (e.g. %BASEDIR%\ETLs)
-config_dir = os.environ.get("CONFIG_DIR")          # Directory of the configuration file
 
 # 2.6 Virtual environment activation/deactivation commands
 venv_activate = os.environ.get("SCRIPT_VIRTUAL_ENV")
@@ -58,7 +57,7 @@ sqlserver_driver = os.environ.get("SQLSERVER_DRIVER")  # e.g. ODBC+Driver+13+for
 # 2.8 Optional paths: logs, working directory, config directory
 logs_dir = os.environ.get("LOGS")                  # e.g. %BASEDIR%\logs
 work_dir = os.environ.get("WORKDIR")              # e.g. %BASEDIR%\work
-config_dir = os.environ.get("CONFIGDIR")          # e.g. %BASEDIR%\config
+config_dir = os.environ.get("CONFIG_DIR")          # Directory of the configuration file
 
 # 2.9 Logging level
 log_level = os.environ.get("LOG_LEVEL")           # e.g. INFO / DEBUG / WARNING / ERROR

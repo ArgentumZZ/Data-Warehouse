@@ -21,7 +21,7 @@ echo The BASEDIR IS: BASEDIR=%BASEDIR%
 echo The ETL IS: ETLS=%ETLS%
 
 :: Print active environment (e.g. DEV / QA / PROD)
-echo The ENVIRONMENT IS: ENVIRONMENT=%SCRIPTRUNNER_ENV%
+echo The ENVIRONMENT IS: ENVIRONMENT=%SCRIPT_RUNNER_ENV%
 
 echo Running ETL...
 python "%SCRIPT_DIR%script_runner.py"
