@@ -19,8 +19,8 @@ import os
 # 1. Script metadata
 # ===========================================================
 
-script_name = "orders_ingestion"
-script_version = "1.0.0"
+script_name = "GLEIF 1 ORDERS"
+script_version = "1.0"
 script_description = "ETL pipeline for ingesting and transforming order data"
 
 
@@ -43,8 +43,9 @@ script_runner_env = os.environ.get("SCRIPT_RUNNER_ENV")  # legacy / additional e
 smtp_server = os.environ.get("SCRIPT_RUNNER_SMTP_SERVER")
 
 # 2.5 Project root and ETLs root (paths should not be in Git)
-base_dir = os.environ.get("BASEDIR")               # e.g. C:\Users\Mihail\PycharmProjects\datawarehouse
-etls_dir = os.environ.get("ETLS")                  # e.g. %BASEDIR%\ETLs
+base_dir = os.environ.get("BASEDIR")               # Base directory (e.g. C:\Users\Mihail\PycharmProjects\datawarehouse)
+etls_dir = os.environ.get("ETLS")                  # Directory of etls folder (e.g. %BASEDIR%\ETLs)
+config_dir = os.environ.get("CONFIG_DIR")          # Directory of the configuration file
 
 # 2.6 Virtual environment activation/deactivation commands
 venv_activate = os.environ.get("SCRIPT_VIRTUAL_ENV")

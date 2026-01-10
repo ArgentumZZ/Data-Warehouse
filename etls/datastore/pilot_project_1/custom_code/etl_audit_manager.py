@@ -175,7 +175,7 @@ class EtlAuditManager:
             self.get_query_daterange(prev_max_date_query, max_days_to_load, increment_sdt)
 
         # 3. Prepare environment and source list formatting
-        envir = os.environ.get('SCRIPT_RUNNER_ENV')
+        envir = os.environ.get('MACHINE_SCRIPT_RUNNER_ENV')
         sources_str = '","'.join(sources)
 
         # 4. Insert the initial audit record and retrieve the run key

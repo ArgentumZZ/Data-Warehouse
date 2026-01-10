@@ -1,4 +1,4 @@
-import script_factory.settings as cfg
+import script_factory.settings as settings
 from functools import partial
 import os
 import psycopg2
@@ -27,20 +27,20 @@ class ScriptFactory:
         lg.logger.info("Initializing ScriptFactory")
 
         # 1. Load settings
-        self.cfg = cfg
+        self.settings = settings
 
         # 2. Determine environment
-        self.environment = cfg.environment
+        self.environment = settings.environment
 
         # 3. Load environment-specific DB/Schema/Table
         if self.environment == 'production':
-            self.database = cfg.prod_database
-            self.schema = cfg.prod_schema
-            self.table = cfg.prod_table
+            self.database = settings.prod_database
+            self.schema = settings.prod_schema
+            self.table = settings.prod_table
         else:
-            self.database = cfg.dev_database
-            self.schema = cfg.dev_schema
-            self.table = cfg.dev_table
+            self.database = settings.dev_database
+            self.schema = settings.dev_schema
+            self.table = settings.dev_table
 
         # 4. Initialize components
         self.etl_utils = EtlUtils(self)
@@ -53,7 +53,7 @@ class ScriptFactory:
 
         # 5. Create output folder - Added index [0] to ensure we get the string path
         result = create_folders(
-            [cfg.output_folder_base, generate_random_dir()],
+            [settings.output_folder_base, generate_random_dir()],
             isfolder=True)
 
         # If it returns a tuple, take the first element; otherwise take the result

@@ -62,8 +62,8 @@ class PostgresConnector:
         """
 
         # 1. Ensure the config file exists before reading
-        # os.environ['BASEDIR'] defined in setenv.bat
-        cfg_path = os.path.join(os.environ['BASEDIR'], "config\local\db_config.cfg")
+        # os.environ['CONFIG_DIR'] defined in setenv.bat
+        cfg_path = os.path.join(os.environ['CONFIG_DIR'])
         if not os.path.isfile(cfg_path):
             raise FileNotFoundError(f"Config file not found: {cfg_path}.")
 
