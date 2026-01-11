@@ -1,16 +1,14 @@
 """
-error_utils.py
-
 Purpose:
     Define custom exception classes for ETL-specific and data-warehouse-specific
     error handling. Each exception includes guidance on when it should be raised,
     providing semantic clarity and predictable control flow across the pipeline.
 """
 
-
 # ---------------------------------------------------------------------------
 # Base classes
 # ---------------------------------------------------------------------------
+
 
 class ETLError(Exception):
     """
@@ -51,7 +49,7 @@ class ConfigurationError(ETLError):
     pass
 
 
-class EnvironmentError(ETLError):
+class EnvironmentErrorETL(ETLError):
     """
     Raised when required environment variables or system resources are missing.
 
@@ -119,7 +117,7 @@ class FileNotFoundErrorETL(ETLError):
     pass
 
 
-class DirectoryNotFoundErrorETL(ETLError):
+class DirectoryNotFoundError(ETLError):
     """
     Raised when an expected directory is missing.
 
