@@ -6,7 +6,7 @@ Purpose:
 """
 
 # ---------------------------------------------------------------------------
-# Base classes
+# Base class
 # ---------------------------------------------------------------------------
 
 
@@ -106,18 +106,10 @@ class MissingDataError(ETLError):
 # File & path errors
 # ---------------------------------------------------------------------------
 
-class FileNotFoundErrorETL(ETLError):
-    """
-    Raised when an expected file is missing.
-
-    When to raise:
-        - Input file not found.
-        - Expected output file missing after a step.
-    """
-    pass
+# Use FileNotFoundError: when an expected file is missing, input file isn't found or expected output file missing after a step.
 
 
-class DirectoryNotFoundError(ETLError):
+class DirectoryNotFound(ETLError):
     """
     Raised when an expected directory is missing.
 
@@ -167,17 +159,6 @@ class NetworkError(RetryableError):
     pass
 
 
-class TimeoutErrorETL(RetryableError):
-    """
-    Raised when an operation times out but may succeed on retry.
-
-    When to raise:
-        - API/database timeout.
-        - Long-running job exceeded allowed time.
-    """
-    pass
-
-
 # ---------------------------------------------------------------------------
 # Execution & orchestration errors
 # ---------------------------------------------------------------------------
@@ -211,66 +192,5 @@ class PipelineHaltError(ETLError):
     When to raise:
         - Business rule requires halting the pipeline.
         - Safety condition triggered.
-    """
-    pass
-
-
-# ---------------------------------------------------------------------------
-# Data warehouse–specific errors
-# ---------------------------------------------------------------------------
-
-class SurrogateKeyError(ETLError):
-    """
-    Raised when surrogate key generation or lookup fails.
-
-    When to raise:
-        - Missing surrogate key in dimension lookup.
-        - Duplicate surrogate keys detected.
-    """
-    pass
-
-
-class SCDType2Error(ETLError):
-    """
-    Raised when SCD Type 2 logic encounters invalid or inconsistent state.
-
-    When to raise:
-        - Overlapping validity ranges.
-        - Missing current record.
-        - Multiple current records detected.
-    """
-    pass
-
-
-class LateArrivingDataError(ETLError):
-    """
-    Raised when late-arriving data cannot be processed safely.
-
-    When to raise:
-        - Late facts violate business rules.
-        - Dimension history cannot be updated safely.
-    """
-    pass
-
-
-class IdempotencyViolationError(ETLError):
-    """
-    Raised when a step that must be idempotent detects inconsistent state.
-
-    When to raise:
-        - Rerun produces different results.
-        - Duplicate loads detected.
-        - MERGE logic violates idempotency guarantees.
-    """
-    pass
-
-
-class ReferentialIntegrityError(ETLError):
-    """
-    Raised when fact tables reference missing dimension keys.
-
-    When to raise:
-        - Missing dimension rows.
-        - Broken foreign key relationships.
     """
     pass
