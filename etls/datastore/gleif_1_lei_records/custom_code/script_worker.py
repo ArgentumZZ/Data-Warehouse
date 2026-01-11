@@ -42,7 +42,7 @@ class ScriptWorker:
     # ---------------------------
     # 2. Extract, Transform, Save
     # ---------------------------
-    def get_data(self):
+    def get_data(self, file_path: str):
         """
         Create a DB/API connection using loaded credentials.
         Use the specific .py connector to get the credentials from .cfg file and
@@ -82,7 +82,7 @@ class ScriptWorker:
 
         # 4. Write to CSV
         df.to_csv(
-            self.sfc.file_path,
+            file_path=file_path,
             sep=";",
             encoding="utf-8",
             index=False,

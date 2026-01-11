@@ -23,10 +23,9 @@ class PostgresConnector:
     """
 
     def __init__(self,
-                 section: str):
+                 section: str) -> None:
         self.section = section
-        # Load DB config and store it for later use
-        self.db_config = self.load_db_config(section)
+
 
     # ---------------------------------------------------------
     # CONFIG LOADER
@@ -175,7 +174,7 @@ class PostgresConnector:
 
         # 1. Open a new PostgreSQL database connection.
         try:
-            with self.get_connection(self.db_config) as conn:
+            with self.get_connection(self.load_db_config(self.section)) as conn:
 
                 # 1.1. Create a cursor for executing SQL
                 with conn.cursor() as cur:
@@ -245,6 +244,12 @@ class PostgresConnector:
         # lg.info(f"Creating table if not exists: {schema}.{table}")
         self.run_query(query=query, commit=True)
 
+    def init_schema_and_table(self, query: str, schema: str, table: str) -> None:
+        # 1. Create schema
+        self.create_schema(schema=schema)
+
+        # 2. Create table (parametrize the query from sql_queries.py)
+        self.create_table(query=query.format(schema=schema, table=table))
 
     # ---------------------------------------------------------
     # UPLOAD TO DB (using a TEMPORARY TABLE + MERGE INTO LOGIC)
@@ -276,7 +281,7 @@ class PostgresConnector:
         """
 
         # 1. Open a database connection (the temporary table will live in this session)
-        with self.get_connection(self.db_config) as conn:
+        with self.get_connection(self.load_db_config(self.section)) as conn:
             with conn.cursor() as cur:
 
                 # 2. Create a temporary table

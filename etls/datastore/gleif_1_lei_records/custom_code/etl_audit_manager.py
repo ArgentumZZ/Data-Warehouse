@@ -6,7 +6,7 @@ from datetime import timezone, timedelta
 
 # Custom libraries
 import utilities.logging_manager as lg
-from script.connectors.postgresql import PostgresConnector
+from script_connectors.postgresql_connector import PostgresConnector
 
 class EtlAuditManager:
     """
@@ -48,16 +48,17 @@ class EtlAuditManager:
         self.prev_max_date: Optional[datetime.datetime] = None
         self.prev_max_version: str = "0.0"
 
-        # Initialize specialized database handler for Postgres
-        # self.dbase_postgres_audit = PostgresConnector('postgresql')
-        lg.logger.info('Etl_runs object is instantiated')
+        # Initialize PostgreConnector
+        self.pg_connector = PostgresConnector('postgresql: dev')
+        lg.logger.info('Ettl Audit Manager object is instantiated')
 
-    def etl_runs_table_create_table_query(self) -> str:
+    @staticmethod
+    def create_audit_etl_runs_table() -> str:
         """
-        Generates the SQL DDL for the etl_runs audit table.
+        CREATE TABLE statement for the audit table.
 
         Returns:
-            str: The SQL string for table creation and column commenting.
+            str: String formated SQL query.
         """
         return f"""
                 CREATE TABLE IF NOT EXISTS audit.etl_runs (
@@ -82,24 +83,26 @@ class EtlAuditManager:
                 );
                 """
 
-    def init_db_data(self) -> None:
+    '''def init_db_data(self) -> None:
         """
         Initializes the database connection and ensures the audit table exists.
         """
+        self.pg_connector.run_query(query=EtlAuditManager.create_audit_etl_runs_table())
+
         # 1. Configure credentials for the audit schema
-        self.dbase_postgres_audit.set_credentials(self.credentials, self.audit_schema)
+        # self.dbase_postgres_audit.set_credentials(self.credentials, self.audit_schema)
 
         # 2. Register audit table name
         # self.audit_table_name = 'etl_runs'
 
         # 2. Configure the audit table in the database helper
-        self.dbase_postgres_audit.set_table(self.audit_table_name, self.audit_schema)
+        # self.dbase_postgres_audit.set_table(self.audit_table_name, self.audit_schema)
 
         # 3. Provide the DDL and ensure table exists
-        self.dbase_postgres_audit.add_create_table_query(self.etl_runs_table_create_table_query())
-        self.dbase_postgres_audit.check_and_create_table()
+        # self.dbase_postgres_audit.add_create_table_query(self.create_audit_etl_runs_table())
+        # self.dbase_postgres_audit.check_and_create_table()'''
 
-    def get_number_of_records(self,
+    '''def get_number_of_records(self,
                               dbase_object: Any,
                               delimiter: str) -> None:
         """
@@ -129,7 +132,7 @@ class EtlAuditManager:
         self.num_records = len(df)
 
         # 4. Log the result for visibility in ETL execution logs
-        # gl.logger.info(f"ETL record count from {file_path}: {self.num_records}")
+        # gl.logger.info(f"ETL record count from {file_path}: {self.num_records}")'''
 
     def create_etl_runs_table_record(
             self,
@@ -138,6 +141,8 @@ class EtlAuditManager:
             target_database: str,
             target_table: str,
             prev_max_date_query: str,
+            script_version: str,
+            # default parameters must be at the end
             max_days_to_load: int = 365,
             staging_date_query: str = '',
             increment_sdt: bool = False
@@ -159,28 +164,23 @@ class EtlAuditManager:
             increment_sdt: Whether to increment the start date by one day.
         """
 
-        # 1. Normalize load type and ensure audit table is initialized
+        # 1. Create the audit.etl_runs schema and table (if they don't exist)
+        self.pg_connector.create_schema(schema='audit')
+        self.pg_connector.run_query(query=EtlAuditManager.create_audit_etl_runs_table())
+
+        # 2. Normalize load type and ensure audit table is initialized
         self.load_type = load_type.upper()
-        self.init_db_data()
-
-        # 2. Determine the ETL date window
-        if staging_date_query:
-            # 2a. Use explicit staging table timestamps when provided
-            # gl.logger.info('Using staging_date_query to determine min/max dates.')
-            rslt = self.sfc.dbase_postgres.engine.execute_sql_query(staging_date_query, get_result=True)
-            self.sdt, self.edt = rslt[0][0], rslt[0][1]
-            self.data_min_date, self.data_max_date = self.sdt, self.edt
-        else:
-            # 2b. Otherwise derive the date window from audit history
-            self.get_query_daterange(prev_max_date_query, max_days_to_load, increment_sdt)
-
-        # 3. Prepare environment and source list formatting
-        envir = os.environ.get('MACHINE_SCRIPT_RUNNER_ENV')
         sources_str = '","'.join(sources)
 
+        # 3. Determine the ETL date window
+        self.determine_date_window(staging_date_query=staging_date_query,
+                                   prev_max_date_query=prev_max_date_query,
+                                   max_days_to_load=max_days_to_load,
+                                   increment_sdt=increment_sdt)
+
         # 4. Insert the initial audit record and retrieve the run key
-        query = f"""
-            INSERT INTO {self.audit_schema}.etl_runs (
+        insert_query = f"""
+            INSERT INTO audit.etl_runs (
                 load_type, 
                 sources, 
                 target_database, 
@@ -190,7 +190,8 @@ class EtlAuditManager:
                 script_execution_start_time, 
                 environment, 
                 status, 
-                script_version)
+                script_version
+                )
             VALUES 
             ('{self.load_type}', 
             '{{"{sources_str}"}}', 
@@ -198,17 +199,18 @@ class EtlAuditManager:
             '{target_table}', 
             '{self.sdt.strftime("%Y.%m.%d %H:%M:%S")}', 
             '{self.edt.strftime("%Y.%m.%d %H:%M:%S")}', 
-             current_timestamp, 
-             '{envir}', 
+             CURRENT_TIMESTAMP, 
+             '{os.environ.get('MACHINE_SCRIPT_RUNNER_ENV')}', 
              'In Progress', 
-             {'version'}
-             -- '{gl.user_data['version']}'
+             '{script_version}'
              )
             RETURNING etl_runs_key;
         """
 
         # 5. Execute the insert and store the generated primary key
-        self.etl_runs_key = self.dbase_postgres_audit.engine.execute_sql_query(query, get_result=True)[0][0]
+        # self.etl_runs_key = self.dbase_postgres_audit.engine.execute_sql_query(insert_query, get_result=True)[0][0]
+
+        self.etl_runs_key = self.pg_connector.run_query(query=insert_query, commit=True, get_result=True)[0][0]
 
     def update_etl_runs_table_record(self, dbase_object_upload: Any, delimiter: str) -> None:
         """
@@ -273,6 +275,24 @@ class EtlAuditManager:
             return None
 
         return max_dates_version[0][0], max_dates_version[0][1]
+
+    def determine_date_window(
+            self,
+            staging_date_query,
+            prev_max_date_query,
+            max_days_to_load,
+            increment_sdt
+    ):
+        if staging_date_query:
+            rslt = self.sfc.dbase_postgres.engine.execute_sql_query(
+                staging_date_query,
+                get_result=True
+            )
+            self.sdt, self.edt = rslt[0][0], rslt[0][1]
+            self.data_min_date = self.sdt
+            self.data_max_date = self.edt
+        else:
+            self.get_query_daterange(prev_max_date_query, max_days_to_load, increment_sdt)
 
     def get_query_daterange(self, prev_max_date_query: str, max_days_to_load: int, increment_sdt: bool) -> None:
         """

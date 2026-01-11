@@ -72,6 +72,11 @@ class ScriptFactory:
         # Create an instance of the connector
         self.pg_connector = PostgresConnector(section=self.database)
 
+        # Create schema and table
+        self.pg_connector.init_schema_and_table(query=sql_queries['create_table'],
+                                                schema=self.schema,
+                                                table=self.table)
+
         # 5. Create an output folder - Added index [0] to ensure we get the string path
         result = create_folders(
             [settings.output_folder_base, generate_random_dir()],
@@ -84,19 +89,6 @@ class ScriptFactory:
         self.file_path = os.path.join(self.output_dir, self.file_name)
 
         lg.logger.info(f"CSV will be saved to: {self.file_path}")
-
-    # ----------------------------------------------------------------------
-    # NEW: Direct PostgresSQL uploader (no DB handler, no factory)
-    # ----------------------------------------------------------------------
-
-    def init_db_data(self):
-        # 1. Create schema
-        self.pg_connector.create_schema(schema=self.schema)
-
-        # 2. Create table (parametrize the query from sql_queries.py)
-        self.pg_connector.create_table(query=sql_queries['create_table'].format(schema=self.schema,
-                                                                                table=self.table))
-
 
     # ----------------------------------------------------------------------
     # Task list
@@ -114,18 +106,33 @@ class ScriptFactory:
         self.max_days_to_load = settings.max_days_to_load
 
         task_1 = {
-            "func"          : partial(self.script_worker.get_data),
-            "task_name"     : "get_data",
-            "description"   : "Extract data from the source.",
+            "func"          : partial(self.etl_audit_manager.create_etl_runs_table_record,
+                                script_version=self.info['script_version'],
+                                load_type=settings.load_type,
+                                max_days_to_load=settings.max_days_to_load,
+                                sources=settings.sources,
+                                target_database='datastore',
+                                target_table=f'{self.schema}.{self.table}',
+                                prev_max_date_query=f"""SELECT data_max_date
+                                                            FROM audit.etl_runs
+                                                            WHERE etl_runs_key=(SELECT max(etl_runs_key) 
+                                                                    FROM audit.etl_runs 
+                                                                    WHERE target_table='{self.schema}.{self.table}'
+                                                                    AND status='Complete')
+                                                       """
+                            ),
+            "task_name"     : "create_etl_runs_record",
+            "description"   : "Creating the etl_runs table record for the current execution of the tasks",
             "enabled"       : True,
             "retries"       : 1,
             "depends_on"    : None
         }
 
         task_2 = {
-            "func"          : partial(self.init_db_data),
-            "task_name"     : "init_db_data",
-            "description"   : "Initialize database data.",
+            "func"          : partial(self.script_worker.get_data,
+                                      file_path=self.file_path),
+            "task_name"     : "get_data",
+            "description"   : "Extract data from the source.",
             "enabled"       : True,
             "retries"       : 1,
             "depends_on"    : None
@@ -149,20 +156,13 @@ class ScriptFactory:
         }
 
         return [
-            # self.etl_audit_manager.start_audit,
-            # self.script_worker.get_credentials,
-            task_1,
-            # self.script_worker.get_data,
-            # self.etl_utils.transform_dataframe,
-
-            # NEW: Upload CSV directly to Postgres,
-            task_2,
-            task_3
-            # self.upload_csv_to_postgres,
-
-            # self.etl_audit_manager.finish_audit,
-
+            task_1,  # self.etl_audit_manager.create_etl_runs_table_record,
+            # create_trigger,
+            # create_comments,
+            task_2,  # self.script_worker.get_data,
+            task_3   # self.pg_connector.upload_to_pg
+            # self.etl_audit_manager.update_etl_runs_table_record
             # Email tasks
-            # self.email.prepare_mails,
-            # self.email.send_mails
+            # self.prepare_mails,
+            # self.send_all
         ]

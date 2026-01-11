@@ -112,6 +112,9 @@ load_type = "I"
 # 6.2 Maximum number of days allowed for incremental loads
 max_days_to_load = 365
 
+# 6.3 Source for the project
+sources = ''
+
 # ===========================================================
 # 7. Project options
 # ===========================================================
