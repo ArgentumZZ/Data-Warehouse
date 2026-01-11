@@ -4,15 +4,15 @@
   - Extracts, Transforms and Load data from different source into a PostgresSQL database.
   - Data quality checks
 - **Main folders**
-  - dags - Different DAG files for Airflow.
-  - script_connectors folder - Different source connectors.
-  - utilities folder - Utilities files.
-  - tests folder - Tests.
-  - warehouse folder - dim and fact tables.
-  - data_quality_checks folder - Custom data quality checks.
-  - aggregations - Different aggregations.
+  - dags - DAG files for Airflow (in progress).
+  - script_connectors folder - Different source connectors (in progress).
+  - utilities folder - Utilities files (in progress).
+  - tests folder - Tests (in progress).
+  - warehouse folder - dim and fact tables (in progress).
+  - data_quality_checks folder - Custom data quality checks (in progress).
+  - aggregations - Data aggregations (in progress).
 - **Main files**
-  - etl_audit_manager - audit table.
+  - etl_audit_manager - audit table (in progress).
   - etl_utils - general ETL utils functions.
   - script_worker - custom functions for a given project. 
     - connect to source, transform, load.
