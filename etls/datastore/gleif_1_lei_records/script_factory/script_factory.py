@@ -1,8 +1,10 @@
+# import libraries
 import script_factory.settings as settings
 from functools import partial
 import os
 import psycopg2
 
+# import custom libraries
 from custom_code.etl_utils import EtlUtils
 from custom_code.script_worker import ScriptWorker
 from custom_code.etl_audit_manager import EtlAuditManager
@@ -20,27 +22,46 @@ class ScriptFactory:
     - Build a list of tasks (functions)
     - Instantiate ScriptWorker, EtlUtils, EtlAuditManager
     - Expose settings to them
-    - Upload CSV to PostgreSQL directly (no DB handler)
+    - Upload CSV to PostgresSQL directly (no DB handler)
     """
 
     def __init__(self):
         lg.logger.info("Initializing ScriptFactory")
 
-        # 1. Load settings
-        self.settings = settings
+        # 1. General script information
+        self.info = {
+            'script_name'           : settings.script_name,
+            'script_version'        : settings.script_version,
+            'script_description'    : settings.script_description,
+            'script_frequency'      : settings.script_frequency,
+            'email_recipients'      : settings.email_recipients
+        }
 
-        # 2. Determine environment
+        # 2. Load settings and determine environment
+        self.settings = settings
         self.environment = settings.environment
 
-        # 3. Load environment-specific DB/Schema/Table
+        # 3. Load environment specific parameters
         if self.environment == 'production':
             self.database = settings.prod_database
             self.schema = settings.prod_schema
             self.table = settings.prod_table
+            self.file_name = settings.prod_file_name
+            delete_log = settings.delete_log
+            delete_mail_logfile = settings.delete_mail_logfile
+            delete_output = settings.delete_output
+            send_mail_report = settings.send_mail_report
+            send_mail_log_report = settings.send_mail_log_report
         else:
             self.database = settings.dev_database
             self.schema = settings.dev_schema
             self.table = settings.dev_table
+            self.file_name = settings.dev_file_name
+            delete_log = settings.delete_log
+            delete_mail_logfile = settings.delete_mail_logfile
+            delete_output = settings.delete_output
+            send_mail_report = settings.send_mail_report
+            send_mail_log_report = settings.send_mail_log_report
 
         # 4. Initialize components
         self.etl_utils = EtlUtils(self)
@@ -49,9 +70,9 @@ class ScriptFactory:
         self.email = EmailManager(self)
 
         # Create an instance of the connector
-        self.pg_connector = PostgresConnector(section="postgresql: postgres_dev")
+        self.pg_connector = PostgresConnector(section=self.database)
 
-        # 5. Create output folder - Added index [0] to ensure we get the string path
+        # 5. Create an output folder - Added index [0] to ensure we get the string path
         result = create_folders(
             [settings.output_folder_base, generate_random_dir()],
             isfolder=True)
@@ -60,12 +81,12 @@ class ScriptFactory:
         self.output_dir = result[0] if isinstance(result, tuple) else result
 
         # 6. Build CSV path inside that folder
-        self.csv_path = os.path.join(self.output_dir, "api_extract.csv")
+        self.file_path = os.path.join(self.output_dir, self.file_name)
 
-        lg.logger.info(f"CSV will be saved to: {self.csv_path}")
+        lg.logger.info(f"CSV will be saved to: {self.file_path}")
 
     # ----------------------------------------------------------------------
-    # NEW: Direct PostgreSQL uploader (no DB handler, no factory)
+    # NEW: Direct PostgresSQL uploader (no DB handler, no factory)
     # ----------------------------------------------------------------------
 
     def init_db_data(self):
@@ -86,10 +107,17 @@ class ScriptFactory:
         Returns the ordered list of ETL tasks to be executed.
         """
 
+        # Load type
+        self.load_type = settings.load_type
+
+
+        # Maximum number of days to load
+        self.max_days_to_load = settings.max_days_to_load
+
         task_1 = {
-            "func"          : partial(self.script_worker.make_connection),
-            "task_name"     : "make_connection",
-            "description"   : "Making a DB connection",
+            "func"          : partial(self.script_worker.get_data),
+            "task_name"     : "get_data",
+            "description"   : "Getting data from the source.",
             "enabled"       : True,
             "retries"       : 1,
             "depends_on"    : None
@@ -106,7 +134,7 @@ class ScriptFactory:
 
         task_3 = {
             "func": partial(self.pg_connector.upload_to_pg,
-                            csv_path=self.csv_path,
+                            file_path=self.file_path,
                             schema=self.schema,
                             table=self.table,
                             on_clause=sql_queries['on_clause'],
@@ -115,7 +143,7 @@ class ScriptFactory:
                             insert_values=sql_queries['insert_values']
                             ),
         "task_name"     : "upload_to_pg",
-        "description"   : "Upload data to PostgreSQL DB.",
+        "description"   : "Upload data to Postgres DB.",
         "enabled"       : True,
         "retries"       : 1,
         "depends_on"    : None
@@ -128,7 +156,7 @@ class ScriptFactory:
             # self.script_worker.get_data,
             # self.etl_utils.transform_dataframe,
 
-            # NEW: Upload CSV directly to PostgreSQL,
+            # NEW: Upload CSV directly to Postgres,
             task_2,
             task_3
             # self.upload_csv_to_postgres,

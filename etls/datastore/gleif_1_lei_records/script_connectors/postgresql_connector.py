@@ -250,7 +250,7 @@ class PostgresConnector:
     # UPLOAD TO DB (using a TEMPORARY TABLE + MERGE INTO LOGIC)
     # ---------------------------------------------------------
     def upload_to_pg(self,
-                    csv_path: str,
+                    file_path: str,
                     schema: str,
                     table: str,
                     on_clause: str = '',
@@ -266,7 +266,7 @@ class PostgresConnector:
         4. DROP the temporary table.
 
         Args:
-            csv_path: Path to the CSV file
+            file_path: Path to the CSV file
             schema: Target schema
             table: Target table name
             on_clause: SQL ON condition for MERGE (attributes from the unique constraint)
@@ -292,7 +292,7 @@ class PostgresConnector:
                 cur.execute(create_temp_query)
 
                 # 3. Read the CSV (Pandas automatically detects the columns from the header row)
-                df = pd.read_csv(csv_path, sep=';')
+                df = pd.read_csv(file_path, sep=';')
 
                 # 4. Get the columns that actually exist in the CSV
                 df_columns = df.columns.tolist()

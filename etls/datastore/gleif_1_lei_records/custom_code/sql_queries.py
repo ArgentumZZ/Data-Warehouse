@@ -43,7 +43,7 @@ sql_queries['get_data'] = '''
 
 # 6. Create comments query
 sql_queries['create_comments'] = '''
-        COMMENT ON TABLE {schema}.{table} IS 'Table sourced from EMI';
+        COMMENT ON TABLE {schema}.{table} IS 'Table sourced from ...';
         COMMENT ON COLUMN {schema}.{table}.{table}_key IS 'Serial key generated for each record in the table.';
         COMMENT ON COLUMN {schema}.{table}.etl_runs_key IS 'Serial key of the ETL run.';
         '''

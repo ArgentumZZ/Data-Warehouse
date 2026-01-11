@@ -3,9 +3,10 @@ import configparser, csv, os
 import pandas as pd
 from typing import Any, Dict, Optional
 from pathlib import Path
-import utilities.logging_manager as lg
+import requests
 
 # Import custom libraries
+import utilities.logging_manager as lg
 
 class ScriptWorker:
     """
@@ -22,7 +23,7 @@ class ScriptWorker:
 
     def __init__(self, sfc: Any):
 
-        self.sfc = sfc   # pointer to the script factory class (to be implemented)
+        self.sfc = sfc   # pointer to the script factory class
         self.credentials: Optional[Dict[str, str]] = None
         self.connection = None
         self.data = None
@@ -39,32 +40,40 @@ class ScriptWorker:
         pass
 
     # ---------------------------
-    # 2. Connection
+    # 2. Extract, Transform, Save
     # ---------------------------
-    def make_connection(self):
+    def get_data(self):
         """
         Create a DB/API connection using loaded credentials.
         Use the specific .py connector to get the credentials from .cfg file and
         make a connection by passing the schema, db and the credentials
-        """
-        import requests
 
+        1. After making a connection, run queries or API calls to fetch raw data.
+        (using a parametrized sql_query from sql_queries.py).
+        2. Apply custom business logic transformations.
+        3. Save transformed data to CSV/Parquet for DB upload.
+        """
+
+        # The URL
         url = "https://api.gleif.org/api/v1/lei-records/529900W18LQJJN6SJ336"
         lg.info(f"The URL is: {url}")
 
+        # The payload
         payload = {}
+        lg.info(f"The payload: {payload}")
+
+        # The headers
         headers = {'Accept': 'application/vnd.api+json'}
         lg.info(f"The headers: {headers}")
 
-        # 1. Call API
+        # 1. Call the API, convert to json
         response = requests.request("GET", url, headers=headers, data=payload)
         data_json = response.json()
 
         # 2. Extract keys from the 'data' object
-        # In your JSON, 'data' is a dictionary, not a list
+        # In the JSON, 'data' is a dictionary, not a list
         data_content = data_json.get('data', {})
         data_keys = list(data_content.keys())
-
         lg.info(f"Keys found in 'data': {data_keys}")
 
         # 3. Convert to DataFrame
@@ -73,7 +82,7 @@ class ScriptWorker:
 
         # 4. Write to CSV
         df.to_csv(
-            self.sfc.csv_path,
+            self.sfc.file_path,
             sep=";",
             encoding="utf-8",
             index=False,
@@ -83,22 +92,6 @@ class ScriptWorker:
             header=True
         )
 
-    # ---------------------------
-    # 3. Extract, Transform, Save
-    # ---------------------------
-    def get_data(self):
-        """
-        1. After making a connection, get the data from the source by
-        using a parametrized sql_query from sql_queries.py
-        2. Make custom transformations
-        3. Save the file to csv/parquet to DB upload
-        :return:
-        """
-
-        """Run queries or API calls to fetch raw data."""
-        """Apply business logic transformations."""
-        """Save transformed data to CSV/Parquet."""
-        pass
 
     # ---------------------------
     # 4. Upload
