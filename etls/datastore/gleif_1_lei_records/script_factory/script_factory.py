@@ -106,7 +106,7 @@ class ScriptFactory:
         self.max_days_to_load = settings.max_days_to_load
 
         task_1 = {
-            "func"          : partial(self.etl_audit_manager.create_etl_runs_table_record,
+            "func"          : partial(self.etl_audit_manager.insert_audit_etl_runs_record,
                                 script_version=self.info['script_version'],
                                 load_type=settings.load_type,
                                 max_days_to_load=settings.max_days_to_load,
@@ -155,13 +155,28 @@ class ScriptFactory:
             "depends_on"    : None
         }
 
+        task_4 = {
+            "func"          : partial(self.etl_audit_manager.update_etl_runs_table_record,
+                                status= 'Complete',
+                                # num_records = self.script_worker.num_of_records,
+                                # file_path = self.file_path,
+                                # delimiter = ','
+
+                            ),
+            "task_name"     : "upload_to_pg",
+            "description"   : "Upload data to Postgres DB.",
+            "enabled"       : True,
+            "retries"       : 1,
+            "depends_on"    : None
+        }
+
         return [
             task_1,  # self.etl_audit_manager.create_etl_runs_table_record,
             # create_trigger,
             # create_comments,
             task_2,  # self.script_worker.get_data,
-            task_3   # self.pg_connector.upload_to_pg
-            # self.etl_audit_manager.update_etl_runs_table_record
+            task_3,  # self.pg_connector.upload_to_pg
+            task_4   # self.etl_audit_manager.update_etl_runs_table_record
             # Email tasks
             # self.prepare_mails,
             # self.send_all

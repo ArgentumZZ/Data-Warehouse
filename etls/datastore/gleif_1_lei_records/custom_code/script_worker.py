@@ -27,6 +27,7 @@ class ScriptWorker:
         self.credentials: Optional[Dict[str, str]] = None
         self.connection = None
         self.data = None
+        self.num_of_records = None
         lg.info("Script worker instantiated!")
 
     # ---------------------------
@@ -80,9 +81,11 @@ class ScriptWorker:
         df = pd.DataFrame(data_content)
         lg.info(f"The df: {df}")
 
+        self.num_of_records = len(df)
+
         # 4. Write to CSV
         df.to_csv(
-            file_path=file_path,
+            path_or_buf=file_path,
             sep=";",
             encoding="utf-8",
             index=False,
