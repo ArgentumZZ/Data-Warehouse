@@ -1,12 +1,12 @@
-import os
-import datetime
-import csv
+# import libraries
+import os, datetime, csv
 import pandas as pd
 from typing import List, Tuple, Optional, Any, Union
 from datetime import timezone, timedelta
 
 # Custom libraries
 import utilities.logging_manager as lg
+from script.connectors.postgresql import PostgresConnector
 
 class EtlAuditManager:
     """
@@ -26,7 +26,7 @@ class EtlAuditManager:
 
         Args:
             sfp: Pointer to the script factory class.
-            scop: Pointer to the script custom object.
+            swc: Pointer to the script worker object.
             credentials: DB credentials for the audit table.
             schema: Database schema where the audit table resides.
         """
@@ -49,7 +49,7 @@ class EtlAuditManager:
         self.prev_max_version: str = "0.0"
 
         # Initialize specialized database handler for Postgres
-        # self.dbase_postgres_audit = DatabaseHandlerFactory('postgresql')
+        # self.dbase_postgres_audit = PostgresConnector('postgresql')
         lg.logger.info('Etl_runs object is instantiated')
 
     def etl_runs_table_create_table_query(self) -> str:
@@ -60,7 +60,7 @@ class EtlAuditManager:
             str: The SQL string for table creation and column commenting.
         """
         return f"""
-                CREATE TABLE IF NOT EXISTS {self.audit_schema}.etl_runs (
+                CREATE TABLE IF NOT EXISTS audit.etl_runs (
                     etl_runs_key                    BIGSERIAL PRIMARY KEY,
                     load_type                       TEXT,
                     sources                         TEXT[],

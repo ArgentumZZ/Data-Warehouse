@@ -90,10 +90,10 @@ class ScriptFactory:
     # ----------------------------------------------------------------------
 
     def init_db_data(self):
-        # 1. Create schema (get from settings)
-        # self.chema and self.table depend on environment
+        # 1. Create schema
         self.pg_connector.create_schema(schema=self.schema)
-        # 2. Create table (get parametrized from sql_queries.py)
+
+        # 2. Create table (parametrize the query from sql_queries.py)
         self.pg_connector.create_table(query=sql_queries['create_table'].format(schema=self.schema,
                                                                                 table=self.table))
 
@@ -110,14 +110,13 @@ class ScriptFactory:
         # Load type
         self.load_type = settings.load_type
 
-
         # Maximum number of days to load
         self.max_days_to_load = settings.max_days_to_load
 
         task_1 = {
             "func"          : partial(self.script_worker.get_data),
             "task_name"     : "get_data",
-            "description"   : "Getting data from the source.",
+            "description"   : "Extract data from the source.",
             "enabled"       : True,
             "retries"       : 1,
             "depends_on"    : None
@@ -133,20 +132,20 @@ class ScriptFactory:
         }
 
         task_3 = {
-            "func": partial(self.pg_connector.upload_to_pg,
-                            file_path=self.file_path,
-                            schema=self.schema,
-                            table=self.table,
-                            on_clause=sql_queries['on_clause'],
-                            update_clause=sql_queries['update_clause'],
-                            insert_columns=sql_queries['insert_columns'],
-                            insert_values=sql_queries['insert_values']
+            "func"          : partial(self.pg_connector.upload_to_pg,
+                                file_path=self.file_path,
+                                schema=self.schema,
+                                table=self.table,
+                                on_clause=sql_queries['on_clause'],
+                                update_clause=sql_queries['update_clause'],
+                                insert_columns=sql_queries['insert_columns'],
+                                insert_values=sql_queries['insert_values']
                             ),
-        "task_name"     : "upload_to_pg",
-        "description"   : "Upload data to Postgres DB.",
-        "enabled"       : True,
-        "retries"       : 1,
-        "depends_on"    : None
+            "task_name"     : "upload_to_pg",
+            "description"   : "Upload data to Postgres DB.",
+            "enabled"       : True,
+            "retries"       : 1,
+            "depends_on"    : None
         }
 
         return [
