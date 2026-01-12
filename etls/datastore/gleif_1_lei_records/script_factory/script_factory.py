@@ -79,7 +79,7 @@ class ScriptFactory:
         self.email = EmailManager(self)
 
         # Create an instance of the connector
-        self.pg_connector = PostgresConnector(section=self.database)
+        self.pg_connector = PostgresConnector(credential_name=self.database)
 
         # Create schema and table
         self.pg_connector.init_schema_and_table(query=sql_queries['create_table'],

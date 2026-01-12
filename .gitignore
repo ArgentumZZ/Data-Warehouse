@@ -3,3 +3,5 @@
 **/config/
 **/logs/
 **/output/
+__pycache__/
+*.pyc
