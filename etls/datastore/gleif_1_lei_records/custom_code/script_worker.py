@@ -132,8 +132,29 @@ class ScriptWorker:
                       on_clause,
                       update_clause,
                       insert_columns,
-                      insert_values):
+                      insert_values) -> None:
+        """
+        1. Try to the upload_to_pg function from the postgresql_connector Class
+        2. If the upload is ok, set the status of the run to 'Complete'
+        3. If the upload isn't ok, set the status of the run to 'Error'
+        4. Then, run the update_etl_runs_table_record function to update the audit.etl_runs record
+            to status='Error'
+
+        :param database_connector: An instance of self.pg_connector = PostgresConnector(section=self.database)
+        :param etl_audit_manager: An instance of self.etl_audit_manager = EtlAuditManager(self, self.script_worker, self.database)
+        :param file_path: A parameter of upload_to_pg from PostgresConnector
+        :param schema: A parameter of upload_to_pg from PostgresConnector
+        :param table: A parameter of upload_to_pg from PostgresConnector
+        :param on_clause: A parameter of upload_to_pg from PostgresConnector
+        :param update_clause: A parameter of upload_to_pg from PostgresConnector
+        :param insert_columns: A parameter of upload_to_pg from PostgresConnector
+        :param insert_values: A parameter of upload_to_pg from PostgresConnector
+        :return: None
+        """
+
+
         try:
+            # 1. Try to the upload_to_pg function from the postgresql_connector Class
             database_connector.upload_to_pg(file_path=file_path,
                                             schema=schema,
                                             table=table,
@@ -141,14 +162,17 @@ class ScriptWorker:
                                             update_clause=update_clause,
                                             insert_columns=insert_columns,
                                             insert_values=insert_values)
+
+            # 2. If the upload is ok, set the status of the run to 'Complete'
             self.status = 'Complete'
         except Exception as e:
+            # 3. If the upload isn't ok, set the status of the run to 'Error'
             self.status = 'Error'
             lg.error(f"Upload did not go through. Error: {e}.")
-            # raise Exception(f"Upload did not go through. Error: {e}.")
 
+            # 4. Try to run the update_etl_runs_table_record function
             try:
                 etl_audit_manager.update_etl_runs_table_record(status=self.status)
-            except Exception as e:
-                lg.error(f"Update did not go through. Error: {e}")
-                raise Exception(f"Update did not go through. Error: {e}")
+            except Exception as ex:
+                lg.error(f"Update did not go through. Error: {ex}")
+            raise e
