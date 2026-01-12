@@ -18,8 +18,9 @@ title %~n0
 :: 3. Get the directory where this .bat sits
 set "SCRIPT_DIR=%~dp0"
 
-:: 4. Add the 'pilot_project_1' folder to PYTHONPATH
-:: %~dp0.. points to the parent of the script_runner folder
+:: 4. Add the project folder to PYTHONPATH
+:: %~dp0.. points to the parent of the script_runner folder (:: %~dp0.. = project_folder/)
+:: %~dp0 = project_folder/script_runner/
 set "PYTHONPATH=%SCRIPT_DIR%..;%PYTHONPATH%"
 
 
