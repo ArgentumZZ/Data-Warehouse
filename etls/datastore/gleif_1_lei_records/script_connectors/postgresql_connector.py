@@ -23,30 +23,30 @@ class PostgresConnector:
     """
 
     def __init__(self,
-                 section: str) -> None:
-        self.section = section
+                 credential_name: str) -> None:
+        self.credential_name = credential_name
 
 
     # ---------------------------------------------------------
     # CONFIG LOADER
     # ---------------------------------------------------------
     def load_db_config(self,
-                       section: str) -> Dict[str, str]:
+                       credential_name: str) -> Dict[str, str]:
         """
         Load a specific credential name from .cfg file.
 
         Args:
             cfg_path: Path to the configuration file (e.g. "config/local/db.cfg").
-            section: The section name inside the config file that contains the PostgreSQL credentials
+            credential_name: The credential_name name inside the config file that contains the PostgreSQL credentials
             (e.g. "postgresql_prod").
 
-        Returns: A dictionary containing the key/value pairs from the section
+        Returns: A dictionary containing the key/value pairs from the credential_name
 
         Raises:
             FileNotFoundError:
                 If the config file does not exist.
             ValueError:
-                If the section does not exist or is empty.
+                If the credential_name does not exist or is empty.
 
         Example config file:
 
@@ -70,12 +70,12 @@ class PostgresConnector:
         if not parser.read(cfg_path):
             raise ValueError(f"Config file '{cfg_path}' could not be read.")
 
-        # 3. Ensure the requested section exists
-        if section not in parser:
-            raise ValueError(f"Credential: {section} not found in config file!")
+        # 3. Ensure the requested credential_name exists
+        if credential_name not in parser:
+            raise ValueError(f"Credential: {credential_name} not found in config file!")
 
-        # 4. Convert the section into a Python dictionary
-        cfg = dict(parser[section])
+        # 4. Convert the credential_name into a Python dictionary
+        cfg = dict(parser[credential_name])
         return cfg
 
     # ---------------------------------------------------------
@@ -174,7 +174,7 @@ class PostgresConnector:
 
         # 1. Open a new PostgreSQL database connection.
         try:
-            with self.get_connection(self.load_db_config(self.section)) as conn:
+            with self.get_connection(self.load_db_config(self.credential_name)) as conn:
 
                 # 1.1. Create a cursor for executing SQL
                 with conn.cursor() as cur:
@@ -281,7 +281,7 @@ class PostgresConnector:
         """
 
         # 1. Open a database connection (the temporary table will live in this session)
-        with self.get_connection(self.load_db_config(self.section)) as conn:
+        with self.get_connection(self.load_db_config(self.credential_name)) as conn:
             with conn.cursor() as cur:
 
                 # 2. Create a temporary table

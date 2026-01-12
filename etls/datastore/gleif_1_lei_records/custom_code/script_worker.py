@@ -26,6 +26,9 @@ class ScriptWorker:
 
         self.sfc = sfc   # pointer to the script factory class
         self.num_of_records = None
+        self.status = None
+        self.data_min_date = None
+        self.data_max_date = None
         lg.info("Script worker instantiated!")
 
     # ---------------------------
@@ -119,9 +122,57 @@ class ScriptWorker:
             self.sfc.etl_audit_manager.data_max_date = self.sfc.etl_audit_manager.sdt
 
 
-    # ---------------------------
-    # 4. Upload
-    # ---------------------------
-    def upload_to_db(self):
-        """Upload saved file to target database."""
-        pass
+    # 3. Upload to DWH
+    def upload_to_dwh(self,
+                      database_connector,
+                      etl_audit_manager,
+                      file_path,
+                      schema,
+                      table,
+                      on_clause,
+                      update_clause,
+                      insert_columns,
+                      insert_values) -> None:
+        """
+        1. Try to the upload_to_pg function from the postgresql_connector Class
+        2. If the upload is ok, set the status of the run to 'Complete'
+        3. If the upload isn't ok, set the status of the run to 'Error'
+        4. Then, run the update_etl_runs_table_record function to update the audit.etl_runs record
+            to status='Error'
+
+        :param database_connector: An instance of self.pg_connector = PostgresConnector(section=self.database)
+        :param etl_audit_manager: An instance of self.etl_audit_manager = EtlAuditManager(self, self.script_worker, self.database)
+        :param file_path: A parameter of upload_to_pg from PostgresConnector
+        :param schema: A parameter of upload_to_pg from PostgresConnector
+        :param table: A parameter of upload_to_pg from PostgresConnector
+        :param on_clause: A parameter of upload_to_pg from PostgresConnector
+        :param update_clause: A parameter of upload_to_pg from PostgresConnector
+        :param insert_columns: A parameter of upload_to_pg from PostgresConnector
+        :param insert_values: A parameter of upload_to_pg from PostgresConnector
+        :return: None
+        """
+
+
+        try:
+            # 1. Try to the upload_to_pg function from the postgresql_connector Class
+            database_connector.upload_to_pg(file_path=file_path,
+                                            schema=schema,
+                                            table=table,
+                                            on_clause=on_clause,
+                                            update_clause=update_clause,
+                                            insert_columns=insert_columns,
+                                            insert_values=insert_values)
+
+            # 2. If the upload is ok, set the status of the run to 'Complete'
+            self.status = 'Complete'
+        except Exception as e:
+            # 3. If the upload isn't ok, set the status of the run to 'Error'
+            self.status = 'Error'
+            lg.error(f"Upload did not go through. Error: {e}.")
+
+            # 4. Try to run the update_etl_runs_table_record function
+            try:
+                etl_audit_manager.update_etl_runs_table_record(status=self.status)
+            except Exception as ex:
+                lg.error(f"Update did not go through. Error: {ex}")
+            raise e
