@@ -64,7 +64,7 @@ class EtlAuditManager:
                 CREATE TABLE IF NOT EXISTS audit.etl_runs (
                     etl_runs_key                    BIGSERIAL PRIMARY KEY,
                     load_type                       TEXT,
-                    sources                         TEXT[],
+                    sources                         TEXT,
                     target_database                 TEXT,
                     target_table                    TEXT,
                     start_load_date                 TIMESTAMPTZ,
@@ -83,49 +83,71 @@ class EtlAuditManager:
                 );
                 """
 
-    def _calculate_etl_window(self, prev_max_date_query: str, max_days_to_load: int, increment_sdt: bool):
+    def _calculate_etl_window(self,
+                              prev_max_date_query: str,
+                              max_days_to_load: int,
+                              increment_sdt: bool,
+                              load_type: str,
+                              forced_sdt: str):
         """
-        Consolidated helper to fetch previous run history and calculate
-        the SDT (Start) and EDT (End) for the current run.
+        Helper function used to fetch previous run history and calculate
+        the sdt (start date time=start_load_date) and edt (end date time=end_load_date) for the current run.
         """
-        # 1. FETCH PREVIOUS HIGH-WATER MARK
-        # We query the audit table or target table to find the latest date we successfully loaded.
-        prev_rslt = self.pg_connector.run_query(prev_max_date_query, get_result=True)
 
-        # Check if the query actually returned a date
-        if prev_rslt and prev_rslt[0][0]:
-            self.prev_max_date = prev_rslt[0][0]
+        # 1. Get the latest successfully loaded data max date
+        result_data_max_date = self.pg_connector.run_query(query=prev_max_date_query, commit=False, get_result=True)
+        lg.info(f"Result data max date: {result_data_max_date}")
+
+        # 2. Check if the query actually returned a date
+        if result_data_max_date and result_data_max_date[0][0]:
+
+            # 3. Assign it to a variable
+            self.prev_max_date = result_data_max_date[0][0]
+            lg.info(f"The Previous max date: {self.prev_max_date}")
             # If the query also returns a version string, store it; otherwise default to "0.0"
-            self.prev_max_version = str(prev_rslt[0][1] if len(prev_rslt[0]) > 1 else "0.0")
+            # self.prev_max_version = str(prev_rslt[0][1] if len(prev_rslt[0]) > 1 else "0.0")
         else:
-            # If no previous records exist (first time running), set to None
+            # 4. If no previous records exist (first time running), set to None
             self.prev_max_date = None
-            self.prev_max_version = "0.0"
+            lg.info(f"The Previous max date: {self.prev_max_date}")
+            # self.prev_max_version = "0.0"
 
-        # 2. REFERENCE CURRENT TIME
-        # We generate "now" in UTC to ensure consistency across different servers/timezones.
+        # 5. Generate a current reference timestamp
         now_utc = datetime.datetime.now(timezone.utc)
+        lg.info(f"The NOW UTC: {now_utc}")
 
-        # 3. DETERMINE SDT (Start Date Time)
-        # This logic decides where the "bottom" of our data window is.
-        if self.load_type == 'I' and self.prev_max_date:
-            # INCREMENTAL LOAD: Start exactly where we left off last time.
-            # If increment_sdt is True, we add 1 day (standard if data is daily-partitioned).
+        lg.info(f"Running in {load_type} mode.")
+        # 6. Determine sdt (start date time) for F and I modes
+        if load_type == 'F':
+            # if we pass a date in .bat file (=forced_sdt)
+            if forced_sdt:
+                forced_sdt = datetime.datetime.strptime(forced_sdt, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+                lg.info(f"Forced sdt (F mode): {forced_sdt}")
+
+                self.sdt = forced_sdt # this should become the new start date
+                lg.info(f"The sdt (F mode): {self.sdt}")
+            elif self.prev_max_date:  # if not start from the previous max_date
+                self.sdt = self.prev_max_date
+                lg.info(f"The sdt (F mode): {self.sdt}")
+            else:
+                # elif self.prev_max_date is None:
+                raise ValueError("F mode requires either a forced_sdt or a previous max date.")
+
+            # Determine edt (F mode loads exactly X days)
+            self.edt = self.sdt + timedelta(days=max_days_to_load)
+            lg.info(f"The edt (F mode): {self.edt}")
+
+        elif load_type == 'I' and self.prev_max_date:
+            # Incremental load: Start from where we left off last time.
+            # If increment_sdt is True, we add 1 day (standard if data is daily-partitioned, e.g. for ftp projects).
             self.sdt = self.prev_max_date + timedelta(days=1) if increment_sdt else self.prev_max_date
-        else:
-            # FULL LOAD (or first run): We don't care about history.
-            # We "generate" a start date of today at 00:00:00 (Midnight).
-            self.sdt = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+            lg.info(f"The sdt (I mode): {self.sdt}")
 
-        # 4. DETERMINE EDT (End Date Time)
-        # This logic decides the "top" of our data window.
-
-        # First, calculate the furthest possible date we are allowed to load based on 'max_days_to_load'
-        max_window_end = self.sdt + timedelta(days=max_days_to_load)
-
-        # Use min() to pick the earlier of "Right Now" or "Max Allowed Window".
-        # This prevents the script from trying to load data from the future.
-        self.edt = min(now_utc, max_window_end)
+            # 6D. Determine EDT (incremental cannot load future data)
+            max_window_end = self.sdt + timedelta(days=max_days_to_load)
+            self.edt = min(now_utc, max_window_end)
+            lg.info(f"The edt (I mode): {self.edt}")
+        return self.sdt, self.edt
 
     def insert_audit_etl_runs_record(
             self,
@@ -135,38 +157,59 @@ class EtlAuditManager:
             target_table: str,
             prev_max_date_query: str,
             script_version: str,
+            forced_sdt,
             max_days_to_load: int = 365,
             increment_sdt: bool = False
     ) -> None:
-        """Main entry point to start an audit record."""
-        # Setup table
+        """Insert a new record in the audit table."""
+
+        # 1. If running for a first time, create the schema and the table
         self.pg_connector.create_schema(schema='audit')
         self.pg_connector.run_query(query=EtlAuditManager.create_audit_etl_runs_table())
 
+        #
         self.load_type = load_type.upper()
-        sources # _str = '","'.join(sources)
+        sources_string = ", ".join(sources)
 
         # Use the single consolidated helper
-        self._calculate_etl_window(prev_max_date_query, max_days_to_load, increment_sdt)
+        self.sdt, self.edt = self._calculate_etl_window(prev_max_date_query=prev_max_date_query,
+                                                        max_days_to_load=max_days_to_load,
+                                                        increment_sdt=increment_sdt,
+                                                        load_type=self.load_type,
+                                                        forced_sdt=forced_sdt)
 
         # Sync actuals
-        self.data_min_date, self.data_max_date = self.sdt, self.edt
+        # self.data_min_date, self.data_max_date = self.sdt, self.edt
 
         # Insert record
         insert_query = f"""
             INSERT INTO audit.etl_runs (
-                load_type, sources, target_database, target_table, 
-                start_load_date, end_load_date, script_execution_start_time, 
-                environment, status, script_version
+                load_type, 
+                sources, 
+                target_database, 
+                target_table, 
+                start_load_date, 
+                end_load_date, 
+                script_execution_start_time, 
+                environment, 
+                status, 
+                script_version
             )
             VALUES (
-                '{self.load_type}', '{{"{sources}"}}', '{target_database}', '{target_table}', 
-                '{self.sdt.strftime("%Y-%m-%d %H:%M:%S")}', '{self.edt.strftime("%Y-%m-%d %H:%M:%S")}', 
-                CURRENT_TIMESTAMP, '{os.environ.get('MACHINE_SCRIPT_RUNNER_ENV', 'DEV')}', 
-                'In Progress', '{script_version}'
+                '{self.load_type}', 
+                '{sources_string}', 
+                '{target_database}', 
+                '{target_table}', 
+                '{self.sdt.strftime("%Y-%m-%d %H:%M:%S")}', 
+                '{self.edt.strftime("%Y-%m-%d %H:%M:%S")}', 
+                CURRENT_TIMESTAMP, 
+                '{os.environ.get('MACHINE_SCRIPT_RUNNER_ENV')}', 
+                'In Progress', 
+                '{script_version}'
             )
             RETURNING etl_runs_key;
         """
+
         self.etl_runs_key = self.pg_connector.run_query(query=insert_query, commit=True, get_result=True)[0][0]
 
     def update_etl_runs_table_record(self, status: str):

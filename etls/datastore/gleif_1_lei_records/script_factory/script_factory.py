@@ -1,8 +1,7 @@
 # import libraries
-import script_factory.settings as settings
+# import script_factory.settings as settings
 from functools import partial
-import os
-import psycopg2
+import os, sys, psycopg2, datetime
 
 # import custom libraries
 from custom_code.etl_utils import EtlUtils
@@ -13,6 +12,7 @@ from utilities.email_manager import EmailManager
 from utilities.file_utils import create_folders, generate_random_dir
 import utilities.logging_manager as lg
 from script_connectors.postgresql_connector import PostgresConnector
+from utilities.argument_parser import parse_arguments
 
 
 class ScriptFactory:
@@ -25,7 +25,11 @@ class ScriptFactory:
     - Upload CSV to PostgresSQL directly (no DB handler)
     """
 
-    def __init__(self):
+    def __init__(self,
+                 forced_sdt: str,
+                 load_type: str,
+                 max_days_to_load: int,
+                 settings):
         lg.logger.info("Initializing ScriptFactory")
 
         # 1. General script information
@@ -36,6 +40,11 @@ class ScriptFactory:
             'script_frequency'      : settings.script_frequency,
             'email_recipients'      : settings.email_recipients
         }
+
+        # forced_sdt, load_type, max_days_to_load = parse_arguments(sys.argv, settings)
+        self.forced_sdt = forced_sdt
+        self.load_type = load_type
+        self.max_days_to_load = max_days_to_load
 
         # 2. Load settings and determine environment
         self.settings = settings
@@ -98,21 +107,26 @@ class ScriptFactory:
         Initialize a list of parametrized tasks.
         Returns the ordered list of ETL tasks to be executed.
         """
+        # forced_sdt, load_type, max_days_to_load = parse_arguments(settings)
+        # Forced sdt
+        # self.forced_sdt = forced_sdt
 
         # Load type
-        self.load_type = settings.load_type
+        # self.load_type = load_type
 
         # Maximum number of days to load
-        self.max_days_to_load = settings.max_days_to_load
+        # self.max_days_to_load = max_days_to_load
+
 
         task_1 = {
             "func"          : partial(self.etl_audit_manager.insert_audit_etl_runs_record,
                                 script_version=self.info['script_version'],
-                                load_type=settings.load_type,
-                                max_days_to_load=settings.max_days_to_load,
-                                sources=settings.sources,
+                                load_type=self.load_type,
+                                max_days_to_load=self.max_days_to_load,
+                                sources=self.settings.sources,
                                 target_database='datastore',
                                 target_table=f'{self.schema}.{self.table}',
+                                forced_sdt=self.forced_sdt,
                                 prev_max_date_query=f"""SELECT data_max_date
                                                             FROM audit.etl_runs
                                                             WHERE etl_runs_key=(SELECT max(etl_runs_key) 

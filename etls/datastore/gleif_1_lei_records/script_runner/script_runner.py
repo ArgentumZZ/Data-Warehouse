@@ -1,7 +1,10 @@
 import time
 import utilities.logging_manager as lg
+import sys
 
 from script_factory.script_factory import ScriptFactory
+import script_factory.settings as settings
+from utilities.argument_parser import parse_arguments
 
 def main():
     lg.info("Starting ETL run")
@@ -13,7 +16,13 @@ def main():
     try:
         # 1. INITIALIZATION
         # Create the factory instance and fetch the list of task dictionaries
-        factory = ScriptFactory()
+        forced_sdt, load_type, max_days_to_load = parse_arguments(sys.argv, settings)
+
+        factory = ScriptFactory(
+            forced_sdt=forced_sdt,
+            load_type=load_type,
+            max_days_to_load=max_days_to_load,
+            settings=settings)
         tasks = factory.init_tasks()
 
         for task in tasks:
