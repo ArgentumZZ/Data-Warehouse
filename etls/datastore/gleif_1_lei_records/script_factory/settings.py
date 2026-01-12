@@ -113,7 +113,7 @@ load_type = "I"
 max_days_to_load = 365
 
 # 6.3 Source for the project
-sources = ['gleif.lei_records, gleif.abara']
+sources = ['gleif.lei_records']
 
 # ===========================================================
 # 7. Project options

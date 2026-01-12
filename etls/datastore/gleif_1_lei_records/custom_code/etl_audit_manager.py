@@ -33,14 +33,14 @@ class EtlAuditManager:
         self.swc = swc
 
         # State tracking for the current ETL run
-        """self.etl_runs_key: Optional[int] = None
+        self.etl_runs_key: Optional[int] = None
         self.sdt: Optional[datetime.datetime] = None  # Start Date Time
         self.edt: Optional[datetime.datetime] = None  # End Date Time
         self.data_min_date: Optional[datetime.datetime] = None
         self.data_max_date: Optional[datetime.datetime] = None
         self.load_type: Optional[str] = None
         self.num_records: Optional[int] = None
-        self.prev_max_date: Optional[datetime.datetime] = None"""
+        self.prev_max_date: Optional[datetime.datetime] = None
 
         # Initialize PostgreConnector
         self.pg_connector = PostgresConnector(section=credentials)
@@ -98,13 +98,10 @@ class EtlAuditManager:
             # 3. Assign it to a variable
             self.prev_max_date = result_data_max_date[0][0]
             lg.info(f"The Previous max date: {self.prev_max_date}")
-            # If the query also returns a version string, store it; otherwise default to "0.0"
-            # self.prev_max_version = str(prev_rslt[0][1] if len(prev_rslt[0]) > 1 else "0.0")
         else:
             # 4. If no previous records exist (first time running), set to None
             self.prev_max_date = None
             lg.info(f"The Previous max date: {self.prev_max_date}")
-            # self.prev_max_version = "0.0"
 
         # 5. Generate a current reference timestamp
         now_utc = datetime.datetime.now(timezone.utc)
@@ -236,7 +233,7 @@ class EtlAuditManager:
                 num_records = {self.num_records},
                 prev_max_date = {prev_date_val},
                 modified_at = CURRENT_TIMESTAMP(0)
-            WHERE etl_runs_key = {self.etl_runs_key}
+            WHERE etl_runs_key = {self.etl_runs_key};
         """
 
         # 5. Run the update query

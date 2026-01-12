@@ -16,12 +16,12 @@ source_columns_unique = '''id, type, attributes, relationships,links'''
 # 4. Create table query
 sql_queries['create_table'] = '''
         CREATE TABLE IF NOT EXISTS {schema}.{table} (
-        {table}_key                     bigserial,
-        -- etl_runs_key                    bigint,
+        {table}_key                     BIGSERIAL,
+        etl_runs_key                    BIGINT,
         ''' + source_columns_create + '''
-        created_at                      timestamptz default current_timestamp,
-        modified_at                     timestamptz default current_timestamp,
-        unique(''' + source_columns_unique + ''')
+        created_at                      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        modified_at                     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(''' + source_columns_unique + ''')
         );
 
         CREATE INDEX ON {schema}.{table}(''' + source_columns_unique + ''');
@@ -73,22 +73,17 @@ normal_cols_list = [col for col in source_cols_general_list
 # ------------------------------------------------------------
 # Construct the UPDATE clause for MERGE
 # ------------------------------------------------------------
-# Later need to add "target.etl_runs_key = source.etl_runs_key, "
-sql_queries['update_clause'] = (
-    ", ".join([f"{col} = s.{col}" for col in normal_cols_list])  # Update normal columns
-    + " modified_at = CURRENT_TIMESTAMP"                        # Always update timestamp
-)
+update_parts = ["etl_runs_key = s.etl_runs_key"] + \
+               [f"{col} = s.{col}" for col in normal_cols_list] + \
+               ["modified_at = CURRENT_TIMESTAMP(0)"]
 
+sql_queries['update_clause'] = ", ".join(update_parts)
 
 # 7.3. INSERT for MERGE INTO
 # Extract normal columns from CREATE TABLE, skip comments
 cols = [line.split()[0] for line in source_columns_create.strip().split('\n') if line.strip() and not line.strip().startswith('--')]
 
-# Add timestamps
-cols += ['created_at', 'modified_at']
+# Include etl_runs_key in the column list and the source values
+sql_queries['insert_columns'] = 'etl_runs_key, ' + ', '.join(cols) + ', created_at, modified_at'
 
-# INSERT columns (target)
-sql_queries['insert_columns'] = ', '.join(cols)
-
-# INSERT values (source + current timestamps)
-sql_queries['insert_values'] = ', '.join([f"s.{c}" for c in cols[:-2]] + ['current_timestamp', 'current_timestamp'])
+sql_queries['insert_values'] = 's.etl_runs_key, ' + ', '.join([f"s.{c}" for c in cols]) + ', current_timestamp, current_timestamp'
