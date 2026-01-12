@@ -81,16 +81,17 @@ class ScriptWorker:
 
 
         if len(df):
-            # process and transform
+            # process df and transform
             self.num_of_records = len(df)
 
-            from datetime import datetime
 
-            # so these must be datetime objects
-            #df[time_column] = pd.to_datetime(df[time_column])
+            # if there is a time column in the df, calculate min and max for that specific extract interval
+            # df[time_column] = pd.to_datetime(df[time_column])
             # self.data_min_date = df[time_column].min()
             # self.data_max_date = df[time_column].max()
 
+            # if there are no time columns, we can set them manually
+            # so these must be datetime objects
             self.data_min_date = self.sfc.etl_audit_manager.sdt
             self.data_max_date = self.sfc.etl_audit_manager.edt
             # self.data_min_date = datetime.strptime("2025-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")

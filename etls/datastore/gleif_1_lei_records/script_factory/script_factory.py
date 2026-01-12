@@ -75,7 +75,7 @@ class ScriptFactory:
         # 4. Initialize components
         self.etl_utils = EtlUtils(self)
         self.script_worker = ScriptWorker(self)
-        self.etl_audit_manager = EtlAuditManager(self, self.script_worker, self.database, "audit")
+        self.etl_audit_manager = EtlAuditManager(self, self.script_worker, self.database)
         self.email = EmailManager(self)
 
         # Create an instance of the connector

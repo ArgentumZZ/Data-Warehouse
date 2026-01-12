@@ -19,8 +19,7 @@ class EtlAuditManager:
     def __init__(self,
                  sfc: Any,
                  swc: Any,
-                 credentials: Any,
-                 schema: str):
+                 credentials: Any):
         """
         Initializes the audit manager with script factory and database details.
 
@@ -28,28 +27,23 @@ class EtlAuditManager:
             sfp: Pointer to the script factory class.
             swc: Pointer to the script worker object.
             credentials: DB credentials for the audit table.
-            schema: Database schema where the audit table resides.
         """
         self.version: str = '1.0'
         self.sfc = sfc
         self.swc = swc
-        self.credentials = credentials
-        self.audit_schema: str = schema
-        self.audit_table_name: str = 'etl_runs'
 
         # State tracking for the current ETL run
-        self.etl_runs_key: Optional[int] = None
+        """self.etl_runs_key: Optional[int] = None
         self.sdt: Optional[datetime.datetime] = None  # Start Date Time
         self.edt: Optional[datetime.datetime] = None  # End Date Time
         self.data_min_date: Optional[datetime.datetime] = None
         self.data_max_date: Optional[datetime.datetime] = None
         self.load_type: Optional[str] = None
         self.num_records: Optional[int] = None
-        self.prev_max_date: Optional[datetime.datetime] = None
-        self.prev_max_version: str = "0.0"
+        self.prev_max_date: Optional[datetime.datetime] = None"""
 
         # Initialize PostgreConnector
-        self.pg_connector = PostgresConnector('postgresql: dev')
+        self.pg_connector = PostgresConnector(section=credentials)
         lg.logger.info('Etl Audit Manager object is instantiated')
 
     @staticmethod
@@ -78,8 +72,8 @@ class EtlAuditManager:
                     script_version                  TEXT DEFAULT NULL,
                     num_records                     BIGINT DEFAULT NULL,
                     prev_max_date                   TIMESTAMPTZ DEFAULT NULL,
-                    created_at                      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                    modified_at                     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+                    created_at                      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP(0),
+                    modified_at                     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP(0) 
                 );
                 """
 
@@ -167,18 +161,17 @@ class EtlAuditManager:
         self.pg_connector.create_schema(schema='audit')
         self.pg_connector.run_query(query=EtlAuditManager.create_audit_etl_runs_table())
 
-        #
-        self.load_type = load_type.upper()
+        # 2. Process some of the variables
         sources_string = ", ".join(sources)
 
-        # Use the single consolidated helper
+        # 3. Use the internal consolidation helper
         self.sdt, self.edt = self._calculate_etl_window(prev_max_date_query=prev_max_date_query,
                                                         max_days_to_load=max_days_to_load,
                                                         increment_sdt=increment_sdt,
-                                                        load_type=self.load_type,
+                                                        load_type=load_type,
                                                         forced_sdt=forced_sdt)
 
-        # Insert record
+        # 4. Insert the record
         insert_query = f"""
             INSERT INTO audit.etl_runs (
                 load_type, 
@@ -193,13 +186,13 @@ class EtlAuditManager:
                 script_version
             )
             VALUES (
-                '{self.load_type}', 
+                '{load_type}', 
                 '{sources_string}', 
                 '{target_database}', 
                 '{target_table}', 
                 '{self.sdt.strftime("%Y-%m-%d %H:%M:%S")}', 
                 '{self.edt.strftime("%Y-%m-%d %H:%M:%S")}', 
-                CURRENT_TIMESTAMP, 
+                CURRENT_TIMESTAMP(0), 
                 '{os.environ.get('MACHINE_SCRIPT_RUNNER_ENV')}', 
                 'In Progress', 
                 '{script_version}'
@@ -207,37 +200,45 @@ class EtlAuditManager:
             RETURNING etl_runs_key;
         """
 
+
+        # 5. Run the insert query
+        lg.info(f"Running the INSERT INTO query: {insert_query}")
         self.etl_runs_key = self.pg_connector.run_query(query=insert_query, commit=True, get_result=True)[0][0]
 
     def update_etl_runs_table_record(self, status: str):
         """
-        Fetches the count from the worker object at the moment
-        this method is called, then updates the DB.
+        1. Fetch the number of records in the df.
+        2. Get the data min/max dates.
+        3. Update audit.etl_runs.
         """
-        # 1. Pull the count from the worker dynamically
-        # This ensures we get '17' (after the run) instead of '0' (before the run)
+        # 1. Fetch the number of records in the df
         self.num_records = getattr(self.swc, 'num_of_records', 0)
         lg.logger.info(f"Final count pulled from worker: {self.num_records}")
 
+        # 2. Get the data min/max dates.
         self.data_min_date = getattr(self.swc, 'data_min_date')
         lg.logger.info(f"Data min date: {self.data_min_date}")
 
         self.data_max_date = getattr(self.swc, 'data_max_date')
         lg.logger.info(f"Data max date: {self.data_max_date}")
 
-        # 2. Format dates for SQL
+        # 3. Format dates for SQL
         prev_date_val = f"'{self.prev_max_date.strftime('%Y-%m-%d %H:%M:%S')}'" if self.prev_max_date else "NULL"
 
-        # 3. Update Query
-        query = f"""
-            UPDATE audit.etl_runs SET  
+        # 4. Update Query
+        update_query = f"""
+            UPDATE audit.etl_runs 
+            SET  
                 data_min_date = '{self.data_min_date.strftime("%Y-%m-%d %H:%M:%S")}',
                 data_max_date = '{self.data_max_date.strftime("%Y-%m-%d %H:%M:%S")}',
-                script_execution_end_time = CURRENT_TIMESTAMP,
+                script_execution_end_time = CURRENT_TIMESTAMP(0),
                 status = '{status}',
                 num_records = {self.num_records},
                 prev_max_date = {prev_date_val},
-                modified_at = CURRENT_TIMESTAMP
+                modified_at = CURRENT_TIMESTAMP(0)
             WHERE etl_runs_key = {self.etl_runs_key}
         """
-        self.pg_connector.run_query(query, commit=True)
+
+        # 5. Run the update query
+        lg.info(f"Running the UPDATE query: {update_query}")
+        self.pg_connector.run_query(query=update_query, commit=True, get_result=False)
