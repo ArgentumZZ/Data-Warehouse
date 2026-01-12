@@ -19,14 +19,14 @@ class EtlAuditManager:
     def __init__(self,
                  sfc: Any,
                  swc: Any,
-                 credentials: Any):
+                 credential_name: Any):
         """
-        Initializes the audit manager with script factory and database details.
+        Initializes the audit manager with script factory, script worker and database credential names.
 
         Args:
             sfp: Pointer to the script factory class.
             swc: Pointer to the script worker object.
-            credentials: DB credentials for the audit table.
+            credential_name: DB credentials where to create the audit table (DWH DEV or PROD credentials).
         """
         self.version: str = '1.0'
         self.sfc = sfc
@@ -43,7 +43,7 @@ class EtlAuditManager:
         self.prev_max_date: Optional[datetime.datetime] = None
 
         # Initialize PostgreConnector
-        self.pg_connector = PostgresConnector(section=credentials)
+        self.pg_connector = PostgresConnector(credential_name=credential_name)
         lg.logger.info('Etl Audit Manager object is instantiated')
 
     @staticmethod
@@ -206,7 +206,7 @@ class EtlAuditManager:
         """
         1. Fetch the number of records in the df.
         2. Get the data min/max dates.
-        3. Update audit.etl_runs.
+        3. Update audit.etl_runs record.
         """
         # 1. Fetch the number of records in the df
         self.num_records = getattr(self.swc, 'num_of_records', 0)

@@ -79,7 +79,7 @@ class ScriptFactory:
         self.email = EmailManager(self)
 
         # Create an instance of the connector
-        self.pg_connector = PostgresConnector(section=self.database)
+        self.pg_connector = PostgresConnector(credential_name=self.database)
 
         # Create schema and table
         self.pg_connector.init_schema_and_table(query=sql_queries['create_table'],
@@ -120,14 +120,14 @@ class ScriptFactory:
 
         task_1 = {
             "func"          : partial(self.etl_audit_manager.insert_audit_etl_runs_record,
-                                script_version=self.info['script_version'],
-                                load_type=self.load_type,
-                                max_days_to_load=self.max_days_to_load,
-                                sources=self.settings.sources,
-                                target_database='datastore',
-                                target_table=f'{self.schema}.{self.table}',
-                                forced_sdt=self.forced_sdt,
-                                prev_max_date_query=f"""SELECT data_max_date
+                                      script_version=self.info['script_version'],
+                                      load_type=self.load_type,
+                                      max_days_to_load=self.max_days_to_load,
+                                      sources=self.settings.sources,
+                                      target_database='datastore',
+                                      target_table=f'{self.schema}.{self.table}',
+                                      forced_sdt=self.forced_sdt,
+                                      prev_max_date_query=f"""SELECT data_max_date
                                                             FROM audit.etl_runs
                                                             WHERE etl_runs_key=(SELECT max(etl_runs_key) 
                                                                     FROM audit.etl_runs 
@@ -153,32 +153,30 @@ class ScriptFactory:
         }
 
         task_3 = {
-            "func"          : partial(self.pg_connector.upload_to_pg,
-                                file_path=self.file_path,
-                                schema=self.schema,
-                                table=self.table,
-                                on_clause=sql_queries['on_clause'],
-                                update_clause=sql_queries['update_clause'],
-                                insert_columns=sql_queries['insert_columns'],
-                                insert_values=sql_queries['insert_values']
+            "func"          : partial(self.script_worker.upload_to_dwh,
+                                      database_connector=self.pg_connector,
+                                      etl_audit_manager=self.etl_audit_manager,
+                                      file_path=self.file_path,
+                                      schema=self.schema,
+                                      table=self.table,
+                                      on_clause=sql_queries['on_clause'],
+                                      update_clause=sql_queries['update_clause'],
+                                      insert_columns=sql_queries['insert_columns'],
+                                      insert_values=sql_queries['insert_values']
                             ),
-            "task_name"     : "upload_to_pg",
-            "description"   : "Upload data to Postgres DB.",
-            "enabled"       : True,
-            "retries"       : 1,
-            "depends_on"    : None
+            "task_name": "upload_to_pg",
+            "description": "Upload data to Postgres DB.",
+            "enabled": True,
+            "retries": 1,
+            "depends_on": None
         }
 
         task_4 = {
             "func"          : partial(self.etl_audit_manager.update_etl_runs_table_record,
-                                status= 'Complete',
-                                # num_records = self.script_worker.num_of_records,
-                                # file_path = self.file_path,
-                                # delimiter = ','
-
-                            ),
-            "task_name"     : "upload_to_pg",
-            "description"   : "Upload data to Postgres DB.",
+                                      status='Complete'
+                                      ),
+            "task_name"     : "update_etl_runs_table_record",
+            "description"   : "Update audit.etl_runs record.",
             "enabled"       : True,
             "retries"       : 1,
             "depends_on"    : None
