@@ -26,6 +26,9 @@ class ScriptWorker:
 
         self.sfc = sfc   # pointer to the script factory class
         self.num_of_records = None
+        self.status = None
+        self.data_min_date = None
+        self.data_max_date = None
         lg.info("Script worker instantiated!")
 
     # ---------------------------
@@ -119,9 +122,33 @@ class ScriptWorker:
             self.sfc.etl_audit_manager.data_max_date = self.sfc.etl_audit_manager.sdt
 
 
-    # ---------------------------
-    # 4. Upload
-    # ---------------------------
-    def upload_to_db(self):
-        """Upload saved file to target database."""
-        pass
+    # 3. Upload to DWH
+    def upload_to_dwh(self,
+                      database_connector,
+                      etl_audit_manager,
+                      file_path,
+                      schema,
+                      table,
+                      on_clause,
+                      update_clause,
+                      insert_columns,
+                      insert_values):
+        try:
+            database_connector.upload_to_pg(file_path=file_path,
+                                            schema=schema,
+                                            table=table,
+                                            on_clause=on_clause,
+                                            update_clause=update_clause,
+                                            insert_columns=insert_columns,
+                                            insert_values=insert_values)
+            self.status = 'Complete'
+        except Exception as e:
+            self.status = 'Error'
+            lg.error(f"Upload did not go through. Error: {e}.")
+            # raise Exception(f"Upload did not go through. Error: {e}.")
+
+            try:
+                etl_audit_manager.update_etl_runs_table_record(status=self.status)
+            except Exception as e:
+                lg.error(f"Update did not go through. Error: {e}")
+                raise Exception(f"Update did not go through. Error: {e}")

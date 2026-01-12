@@ -153,6 +153,25 @@ class ScriptFactory:
         }
 
         task_3 = {
+            "func": partial(self.script_worker.upload_to_dwh,
+                            database_connector=self.pg_connector,
+                            etl_audit_manager=self.etl_audit_manager,
+                            file_path=self.file_path,
+                            schema=self.schema,
+                            table=self.table,
+                            on_clause=sql_queries['on_clause'],
+                            update_clause=sql_queries['update_clause'],
+                            insert_columns=sql_queries['insert_columns'],
+                            insert_values=sql_queries['insert_values']
+                            ),
+            "task_name": "upload_to_pg",
+            "description": "Upload data to Postgres DB.",
+            "enabled": True,
+            "retries": 1,
+            "depends_on": None
+        }
+
+        """task_3 = {
             "func"          : partial(self.pg_connector.upload_to_pg,
                                 file_path=self.file_path,
                                 schema=self.schema,
@@ -167,22 +186,18 @@ class ScriptFactory:
             "enabled"       : True,
             "retries"       : 1,
             "depends_on"    : None
-        }
+        }"""
 
-        task_4 = {
+        """task_4 = {
             "func"          : partial(self.etl_audit_manager.update_etl_runs_table_record,
-                                status= 'Complete',
-                                # num_records = self.script_worker.num_of_records,
-                                # file_path = self.file_path,
-                                # delimiter = ','
-
-                            ),
-            "task_name"     : "upload_to_pg",
-            "description"   : "Upload data to Postgres DB.",
+                                      status='Complete'
+                                      ),
+            "task_name"     : "update_etl_runs_table_record",
+            "description"   : "Update audit.etl_runs record.",
             "enabled"       : True,
             "retries"       : 1,
             "depends_on"    : None
-        }
+        }"""
 
         return [
             task_1,  # self.etl_audit_manager.create_etl_runs_table_record,
@@ -190,7 +205,7 @@ class ScriptFactory:
             # create_comments,
             task_2,  # self.script_worker.get_data,
             task_3,  # self.pg_connector.upload_to_pg
-            task_4   # self.etl_audit_manager.update_etl_runs_table_record
+            # task_4   # self.etl_audit_manager.update_etl_runs_table_record
             # Email tasks
             # self.prepare_mails,
             # self.send_all

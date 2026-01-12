@@ -206,7 +206,7 @@ class EtlAuditManager:
         """
         1. Fetch the number of records in the df.
         2. Get the data min/max dates.
-        3. Update audit.etl_runs.
+        3. Update audit.etl_runs record.
         """
         # 1. Fetch the number of records in the df
         self.num_records = getattr(self.swc, 'num_of_records', 0)
