@@ -57,7 +57,7 @@ def main():
 
             # The loop range is (retries + 1).
             # If retries=1, the loop runs for attempt 0 (initial) and attempt 1 (retry).
-            for attempt in range(t_retries + 1):
+            for attempt in range(1, t_retries + 1):
                 try:
                     if attempt > 0:
                         lg.info(f"Retrying task '{t_name}'... (Attempt {attempt} of {t_retries})")

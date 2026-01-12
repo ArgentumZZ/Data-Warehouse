@@ -1,15 +1,18 @@
 import datetime
+import utilities.logging_manager as lg
 
 def parse_arguments(argv, settings):
+    lg.info("DEBUG sys.argv:", argv)
     forced_sdt = None
     load_type = None
     max_days_to_load = None
 
     for argument in argv[1:]:
 
-        # 1. Date argument (YYYY-MM-DD)
+        # 1. Date argument (YYYY-MM-DD) — validate but keep as string
         try:
-            forced_sdt = datetime.datetime.strptime(argument, "%Y-%m-%d").date()
+            datetime.datetime.strptime(argument, "%Y-%m-%d")  # validation only
+            forced_sdt = argument  # keep original string
             continue
         except ValueError:
             pass
@@ -34,12 +37,5 @@ def parse_arguments(argv, settings):
 
     if max_days_to_load is None:
         max_days_to_load = settings.max_days_to_load
-
-    # Convert forced_sdt to UTC datetime
-    if forced_sdt:
-        forced_sdt = datetime.datetime.combine(
-            forced_sdt,
-            datetime.time.min
-        ).replace(tzinfo=datetime.timezone.utc)
 
     return forced_sdt, load_type, max_days_to_load

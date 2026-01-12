@@ -1,6 +1,14 @@
 :: 1. Turn off command echoing so only our explicit echo statements are shown
 @echo off
 
+:: forces variables to be evaluated when used, not when parsed
+setlocal enabledelayedexpansion
+set "ARG1=%~1"
+set "ARG2=%~2"
+
+echo ARG1 = "!ARG1!"
+echo ARG2 = "!ARG2!"
+
 :: 2. Set the console window title to the name of this .bat file (without extension)
 title %~n0
 
@@ -24,4 +32,9 @@ echo The ETL IS: ETLS=%ETLS%
 echo The ENVIRONMENT IS: ENVIRONMENT=%SCRIPT_RUNNER_ENV%
 
 echo Running ETL...
-python "%SCRIPT_DIR%script_runner.py"
+:: %* means “all arguments passed to the .bat file”
+:: python "%SCRIPT_DIR%script_runner.py" %*
+::python "%SCRIPT_DIR%script_runner.py" "%~1" "%~2"
+python "%SCRIPT_DIR%script_runner.py" "!ARG1!" "!ARG2!"
+
+

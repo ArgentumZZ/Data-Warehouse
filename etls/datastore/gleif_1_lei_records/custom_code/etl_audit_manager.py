@@ -178,9 +178,6 @@ class EtlAuditManager:
                                                         load_type=self.load_type,
                                                         forced_sdt=forced_sdt)
 
-        # Sync actuals
-        # self.data_min_date, self.data_max_date = self.sdt, self.edt
-
         # Insert record
         insert_query = f"""
             INSERT INTO audit.etl_runs (
