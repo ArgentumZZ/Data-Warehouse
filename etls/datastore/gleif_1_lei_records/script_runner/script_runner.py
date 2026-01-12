@@ -1,7 +1,10 @@
 import time
 import utilities.logging_manager as lg
+import sys
 
 from script_factory.script_factory import ScriptFactory
+import script_factory.settings as settings
+from utilities.argument_parser import parse_arguments
 
 def main():
     lg.info("Starting ETL run")
@@ -13,7 +16,14 @@ def main():
     try:
         # 1. INITIALIZATION
         # Create the factory instance and fetch the list of task dictionaries
-        factory = ScriptFactory()
+        forced_sdt, load_type, max_days_to_load = parse_arguments(sys.argv, settings)
+
+        factory = ScriptFactory(
+            forced_sdt=forced_sdt,
+            load_type=load_type,
+            max_days_to_load=max_days_to_load,
+            settings=settings
+        )
         tasks = factory.init_tasks()
 
         for task in tasks:
@@ -48,7 +58,7 @@ def main():
 
             # The loop range is (retries + 1).
             # If retries=1, the loop runs for attempt 0 (initial) and attempt 1 (retry).
-            for attempt in range(t_retries + 1):
+            for attempt in range(1, t_retries + 1):
                 try:
                     if attempt > 0:
                         lg.info(f"Retrying task '{t_name}'... (Attempt {attempt} of {t_retries})")
