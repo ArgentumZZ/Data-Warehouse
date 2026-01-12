@@ -1,19 +1,55 @@
-# logging_manager.py
+# import libraries
+import logging, os, sys
+from datetime import datetime
 
-import logging
-import sys
-
-# 1. Create a global logger
-# Get (or create) the shared ETL logger
+# 1. # Create (or retrieve) a single shared logger named "etl" that all modules will use
 logger = logging.getLogger("etl")
 
-# Only log INFO and above (INFO, WARNING, ERROR, CRITICAL)
+# 2. Set the minimum severity level this logger will record (ignore DEBUG, keep INFO and above - WARNING, ERROR, CRITICAL)
 logger.setLevel(logging.INFO)
 
-# 2. Add a console handler if none exists
+# 3. Add handlers if none exist
 if not logger.handlers:
-    # Create a handler that sends log output to the terminal (stdout/stderr)
-    h = logging.StreamHandler()  # output to console
+
+    # 4. Console handler (StreamHandler)
+    # Create a handler that prints log messages to the terminal
+    console_handler = logging.StreamHandler()
+
+    # 5. Formatter defining how console log lines should look (timestamp, level, file, line, message)
+    console_formatter = logging.Formatter(
+        "%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d]: %(message)s",
+        "%Y-%m-%d %H:%M:%S"
+    )
+
+    # 6. Apply the formatter to the console handler
+    console_handler.setFormatter(console_formatter)
+
+    # 7. Register the console handler with the shared "etl" logger
+    logger.addHandler(console_handler)
+
+    # 8. File handler (FileHandler)
+
+    # os.path.dirname(path) returns the folder that contains the given path.
+    # If input: C:/project/utilities/logging_manager.py, then output: C:/project/utilities
+    # 9. Determine the absolute path of the folder containing this file (utilities/)
+    current_dir = os.path.dirname(os.path.abspath(__file__))     # .../utilities
+    project_dir = os.path.dirname(current_dir)                  # .../project
+
+    # 10. Build the path to the shared logs directory: project/metadata/logs
+    log_dir = os.path.join(project_dir, "metadata", "logs")  # .../metadata/logs
+
+    print("Current working directory:", os.getcwd())
+    print("Log dir:", log_dir)
+
+    # Create directory if it doesn't exist (manually created)
+    # os.makedirs(log_dir, exist_ok=True)
+
+    # 11. Build timestamped filename
+    log_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    log_file = os.path.join(log_dir, f"{log_timestamp}_etl.log")
+
+    # 12. Create file handler
+    file_handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
 
     # Define log format:
     # %(asctime)s -> timestamp
@@ -21,13 +57,16 @@ if not logger.handlers:
     # %(filename)s -> name of the Python file
     # %(lineno)d -> line number where logger was called
     # %(message)s -> actual log message
-    h.setFormatter(logging.Formatter(
+    file_formatter = logging.Formatter(
         "%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d]: %(message)s",
         "%Y-%m-%d %H:%M:%S"
-    ))
+    )
 
-    # Attach the configured handler to the "etl" logger
-    logger.addHandler(h)
+    # 13. Attach the file formatter to the handler
+    file_handler.setFormatter(file_formatter)
+
+    # 14. Attach the configured handler to the "etl" logger
+    logger.addHandler(file_handler)
 
 
 # ---------------------------------------------------------
