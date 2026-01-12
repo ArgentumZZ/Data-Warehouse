@@ -2,7 +2,7 @@ import datetime
 import utilities.logging_manager as lg
 
 def parse_arguments(argv, settings):
-    lg.info("DEBUG sys.argv:", argv)
+    lg.info(f"DEBUG sys.argv: {argv}")
     forced_sdt = None
     load_type = None
     max_days_to_load = None
@@ -18,7 +18,9 @@ def parse_arguments(argv, settings):
             pass
 
         # 2. config=F*
-        if argument.lower().startswith("config=f"):
+        if argument.startswith("config=F"):
+
+            # Override the load_type to F
             load_type = "F"
 
             # Extract everything after the F

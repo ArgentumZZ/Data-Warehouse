@@ -121,7 +121,7 @@ class EtlAuditManager:
         if load_type == 'F':
             # if we pass a date in .bat file (=forced_sdt)
             if forced_sdt:
-                forced_sdt = datetime.datetime.strptime(forced_sdt, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+                forced_sdt = datetime.datetime.strptime(forced_sdt, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                 lg.info(f"Forced sdt (F mode): {forced_sdt}")
 
                 self.sdt = forced_sdt # this should become the new start date

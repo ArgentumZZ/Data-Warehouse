@@ -22,7 +22,8 @@ def main():
             forced_sdt=forced_sdt,
             load_type=load_type,
             max_days_to_load=max_days_to_load,
-            settings=settings)
+            settings=settings
+        )
         tasks = factory.init_tasks()
 
         for task in tasks:

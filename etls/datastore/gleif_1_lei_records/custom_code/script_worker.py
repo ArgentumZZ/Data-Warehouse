@@ -24,9 +24,6 @@ class ScriptWorker:
     def __init__(self, sfc: Any):
 
         self.sfc = sfc   # pointer to the script factory class
-        self.credentials: Optional[Dict[str, str]] = None
-        self.connection = None
-        self.data = None
         self.num_of_records = None
         lg.info("Script worker instantiated!")
 
@@ -82,6 +79,9 @@ class ScriptWorker:
         lg.info(f"The df: {df}")
 
         self.num_of_records = len(df)
+
+        # self.data_min_date = df[].min()
+        # self.data_max_date = df[].max()
 
         # 4. Write to CSV
         df.to_csv(
