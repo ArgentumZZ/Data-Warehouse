@@ -35,19 +35,19 @@ if not logger.handlers:
     current_dir = os.path.dirname(os.path.abspath(__file__))     # .../utilities
     project_dir = os.path.dirname(current_dir)                  # .../project
 
-    # 10. Build the path to the shared logs directory: project/metadata/logs
+    # 10. Build the path to the shared logs directory: project/metadata/logs and build a logs folder
     log_dir = os.path.join(project_dir, "metadata", "logs")  # .../metadata/logs
 
     print("Current working directory:", os.getcwd())
     print("Log dir:", log_dir)
 
-    # Create directory if it doesn't exist (manually created)
-    # os.makedirs(log_dir, exist_ok=True)
+    # Create directory if it doesn't exist
+    os.makedirs(log_dir, exist_ok=True)
 
     # 11. Build timestamped filename
     log_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_file = os.path.join(log_dir, f"{log_timestamp}_etl.log")
-
+    
     # 12. Create file handler
     file_handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
 
