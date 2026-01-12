@@ -47,7 +47,48 @@ if not logger.handlers:
     # 11. Build timestamped filename
     log_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_file = os.path.join(log_dir, f"{log_timestamp}_etl.log")
-    
+
+    #################################################################
+    # Delete _etl.log files older than 7 days
+    retention_days = 7
+    now = datetime.now().timestamp()
+
+    for file_name in os.listdir(log_dir):
+        # file_name: 2026-01-12_18-44-30_etl.log
+        # print(f"The file name: {file_name}")
+
+        # file_path:  C:\Users\Mihail\PycharmProjects\datawarehouse\etls\datastore\gleif_1_lei_records\metadata\logs\2026-01-12_18-44-30_etl.log
+        file_path = os.path.join(log_dir, file_name)
+        # print(f"The file path: {file_path}")
+
+        # Skip anything that isn't a file
+        if not os.path.isfile(file_path):
+            continue
+
+        # SAFETY CHECK — only delete ETL log files
+        # Expected: True for "2026-01-12_18-44-30_etl.log"
+        # Expected: False for "readme.txt", "temp.tmp", "config.json"
+        if not file_name.endswith("_etl.log"):
+            continue
+
+        # Get file modification time
+        file_modification_time = os.path.getmtime(file_path)
+        # file_modification_time: 1768237278.4399505
+        # print(f"The file modification time: {file_modification_time}")
+
+        # If file is older than retention period, delete it
+        age_in_days = (now - file_modification_time) / 86400    # 86400 seconds in a day
+
+        if age_in_days > retention_days:
+            try:
+                # Removes the file at the given path
+                os.remove(file_path)
+            except Exception as e:
+                # If deletion fails, log the error but continue
+                print(f"Failed to delete old log {file_path}: {e}")
+    #################################################################
+
+
     # 12. Create file handler
     file_handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
 
@@ -110,3 +151,44 @@ def critical(msg, *args, **kwargs):
 # Standard exception logger (always includes traceback)
 def exception(msg, *args, **kwargs):
     logger.exception(msg, *args, **kwargs)
+
+
+
+"""
+# -----------------------------------------
+# Delete old logs based on number of runs
+# Keep only the most recent N log files
+# Expected output: deletes oldest files if count exceeds limit
+# -----------------------------------------
+MAX_RUNS = 7  # or 30
+
+# List all log files in the directory
+files = [
+    os.path.join(log_dir, f)
+    for f in os.listdir(log_dir)
+    if os.path.isfile(os.path.join(log_dir, f))
+]
+
+# Expected output example:
+# ['C:/.../2026-01-10_12-00-00_etl.log', 'C:/.../2026-01-11_09-30-22_etl.log', ...]
+
+# Sort files by modification time (oldest first)
+files.sort(key=lambda f: os.path.getmtime(f))
+
+# Expected output example:
+# Oldest file first, newest file last
+
+# If we have more than MAX_RUNS files, delete the oldest ones
+while len(files) > MAX_RUNS:
+    old_file = files.pop(0)
+    try:
+        os.remove(old_file)
+        # Expected output example:
+        # Deleted old log: C:/.../2026-01-10_12-00-00_etl.log
+    except Exception as e:
+        # Expected output example:
+        # Failed to delete old log C:/...: [WinError 5] Access is denied
+        print(f"Failed to delete old log {old_file}: {e}")
+
+
+"""
