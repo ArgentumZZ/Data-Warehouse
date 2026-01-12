@@ -4,6 +4,7 @@ import pandas as pd
 from typing import Any, Dict, Optional
 from pathlib import Path
 import requests
+from datetime import datetime
 
 # Import custom libraries
 import utilities.logging_manager as lg
@@ -78,22 +79,43 @@ class ScriptWorker:
         df = pd.DataFrame(data_content)
         lg.info(f"The df: {df}")
 
-        self.num_of_records = len(df)
 
-        # self.data_min_date = df[].min()
-        # self.data_max_date = df[].max()
+        if len(df):
+            # process and transform
+            self.num_of_records = len(df)
 
-        # 4. Write to CSV
-        df.to_csv(
-            path_or_buf=file_path,
-            sep=";",
-            encoding="utf-8",
-            index=False,
-            escapechar="\\",
-            doublequote=False,
-            quoting=csv.QUOTE_NONE,
-            header=True
-        )
+            from datetime import datetime
+
+            # so these must be datetime objects
+            #df[time_column] = pd.to_datetime(df[time_column])
+            # self.data_min_date = df[time_column].min()
+            # self.data_max_date = df[time_column].max()
+
+            self.data_min_date = self.sfc.etl_audit_manager.sdt
+            self.data_max_date = self.sfc.etl_audit_manager.edt
+            # self.data_min_date = datetime.strptime("2025-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
+            # self.data_max_date = datetime.strptime("2025-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
+
+            # 4. Write to CSV
+            df.to_csv(
+                path_or_buf=file_path,
+                sep=";",
+                encoding="utf-8",
+                index=False,
+                escapechar="\\",
+                doublequote=False,
+                quoting=csv.QUOTE_NONE,
+                header=True
+            )
+        else:
+            self.num_of_records = 0
+            self.data_min_date = None
+            self.data_max_date = None
+
+            # No records are returned, then leave the min and max dates at the start date
+            # ready for the next run to start at the same point
+            self.sfc.etl_audit_manager.data_min_date = self.sfc.etl_audit_manager.sdt
+            self.sfc.etl_audit_manager.data_max_date = self.sfc.etl_audit_manager.sdt
 
 
     # ---------------------------

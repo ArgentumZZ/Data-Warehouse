@@ -217,8 +217,13 @@ class EtlAuditManager:
         # 1. Pull the count from the worker dynamically
         # This ensures we get '17' (after the run) instead of '0' (before the run)
         self.num_records = getattr(self.swc, 'num_of_records', 0)
-
         lg.logger.info(f"Final count pulled from worker: {self.num_records}")
+
+        self.data_min_date = getattr(self.swc, 'data_min_date')
+        lg.logger.info(f"Data min date: {self.data_min_date}")
+
+        self.data_max_date = getattr(self.swc, 'data_max_date')
+        lg.logger.info(f"Data max date: {self.data_max_date}")
 
         # 2. Format dates for SQL
         prev_date_val = f"'{self.prev_max_date.strftime('%Y-%m-%d %H:%M:%S')}'" if self.prev_max_date else "NULL"
