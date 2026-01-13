@@ -14,11 +14,43 @@ Purpose:
 
 import os
 import uuid
-
+import utilities.logging_manager as lg
+from datetime import datetime
 
 # ---------------------------------------------------------------------------
 # Existing functions (kept exactly as provided)
 # ---------------------------------------------------------------------------
+
+def build_output_file_path(table: str) -> str:
+    """
+    A utility function that creates an output folder to store CSV files from each project's run.
+
+    :param table: Name of the table (the project's table)
+    :return:
+    """
+
+    # 1. Find the current directory of the file (where this function is run):
+    # e.g. C:\Users\Mihail\PycharmProjects\datawarehouse\etls\datastore\financial_data_1_ethereum\script_factory
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    lg.info(f"Current Directory: {current_dir}")
+
+    # 2. Parent directory (e.g. C:\Users\Mihail\PycharmProjects\datawarehouse\etls\datastore\financial_data_1_ethereum)
+    parent_current_dir = os.path.dirname(current_dir)
+    lg.info(f"Parent Current Directory: {parent_current_dir}")
+
+    # 3. Build the path to the output directory: project/metadata/output and build an output folder
+    output_dir = os.path.join(parent_current_dir, "metadata", "output")
+    lg.info(f"Output directory: {output_dir}")
+
+    # 4. Create directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+
+    # 5. Build a timestamped filename
+    # e.g. project/metadata/output/ethereum_2026-01-13-18:00:00.csv
+    file_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    file_path = os.path.join(output_dir, f"{table}_{file_timestamp}.csv")
+    return file_path
+
 
 def generate_random_dir(prefix="run_"):
     """
@@ -30,24 +62,41 @@ def generate_random_dir(prefix="run_"):
     Returns:
         str: Random directory name.
     """
+    # uuid.uuid4().hex: a 32‑character hex string like a3f91c2b7e4d4c1f8b2d9f0e3c5a7d12
+    # [:8] -> select the first 8 characters
+    # Example output: run_a3f91c2b
     return prefix + uuid.uuid4().hex[:8]
 
 
-def create_folders(path_parts, isfolder=True):
+def create_folders(path_parts, is_folder=True):
     """
     Create a folder structure from a list of path components.
 
     Args:
         path_parts (list[str]): Components of the path.
-        isfolder (bool): Whether to create the final path as a folder.
+        is_folder (bool): Whether to create the final path as a folder.
 
     Returns:
         tuple: (full_path, parent_path, path_parts)
     """
+
+    # Example input: create_folders(["output", "run_e25d2c49"], is_folder=True)
+    # Example full_path: "output/run_e25d2c49"
     full_path = os.path.join(*path_parts)
-    if isfolder:
+    if is_folder:
+        # Create a folder:
+        # output /
+        #    run_e25d2c49 /
         os.makedirs(full_path, exist_ok=True)
+
+    # Example parent: "output"
     parent = os.path.dirname(full_path)
+
+    # Example result: (
+    #     "output/run_e25d2c49",      # full_path
+    #     "output",                   # parent_path
+    #     ["output", "run_e25d2c49"]  # path_parts
+    # )
     return full_path, parent, path_parts
 
 

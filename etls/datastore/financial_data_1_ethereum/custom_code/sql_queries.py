@@ -3,21 +3,22 @@ sql_queries = {}
 
 # 2. Create a source_cols_create variable with columns and data types
 source_columns_create = '''
-            id              TEXT,
-            type            TEXT,
-            attributes	    TEXT,
-            relationships	TEXT,
-            links           TEXT,    
+            id                      TEXT, 
+            block_number            BIGINT, 
+            tx_hash                 TEXT, 
+            value_eth               NUMERIC, 
+            source_created_at       TIMESTAMPTZ,
+            source_updated_at       TIMESTAMPTZ,    
     '''
 
 # 3. Create a source_cols_unique variable with unique columns
-source_columns_unique = '''id, type, attributes, relationships,links'''
+source_columns_unique = '''id'''
 
 # 4. Create table query
 sql_queries['create_table'] = '''
         CREATE TABLE IF NOT EXISTS {schema}.{table} (
         {table}_key                     BIGSERIAL,
-        etl_runs_key                    BIGINT,
+        etl_runs_key                    BIGINT ,
         ''' + source_columns_create + '''
         created_at                      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
         modified_at                     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -30,15 +31,14 @@ sql_queries['create_table'] = '''
 # 5. GET data query
 sql_queries['get_data'] = '''
                           SELECT id, 
-                                 fxcm_customer_id, 
-                                 account_id, 
-                                 account_number, 
-                                 notification, 
-                                 notification_read, 
-                                 timestamp, 
-                                 notification_type
-                          FROM notifications
-                          WHERE (timestamp >= '{sdt}' AND timestamp <= '{edt}')
+                                 block_number, 
+                                 tx_hash, 
+                                 value_eth, 
+                                 source_created_at,
+                                 source_updated_at
+                          FROM financial_data.ethereum
+                          WHERE (source_created_at  BETWEEN '{sdt}' AND '{edt}'
+                            OR source_updated_at BETWEEN '{sdt}' AND '{edt}')
                           '''
 
 # 6. Create comments query

@@ -127,7 +127,7 @@ class PostgresConnector:
                   query: str,
                   params: Optional[Tuple[Any, ...]] = None,
                   get_result: bool = True,
-                  commit: bool = False) -> List[Any]:
+                  commit: bool = False) -> pd.DataFrame:
         """
         Execute a SQL statement with optional result fetching and optional commit.
 
@@ -193,10 +193,14 @@ class PostgresConnector:
                     # Detect if results exist before fetching
                     if get_result and cur.description:
                         rows = cur.fetchall()
-                        lg.info(f"Returned {len(rows)} rows.")
-                        return rows
+                        col_names = [desc[0] for desc in cur.description]
 
-                    return []
+                        lg.info(f"Returned {len(rows)} rows.")
+                        lg.info(f"The column names: {col_names}")
+
+                        return pd.DataFrame(rows, columns=col_names)
+
+                    return pd.DataFrame()
 
         except DatabaseError:
             # Catch and log database-related errors (SQL syntax, constraint violations, etc.)
