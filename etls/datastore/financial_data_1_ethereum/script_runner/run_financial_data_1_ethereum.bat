@@ -25,17 +25,19 @@ set "PYTHONPATH=%SCRIPT_DIR%..;%PYTHONPATH%"
 
 
 :: 5. Going up 4 levels to find config: script_runner -> pilot_project_1 -> datastore -> etls -> datawarehouse
+echo.
 echo Loading environment...
 call "%SCRIPT_DIR%..\..\..\..\config\local\setenv.bat"
 
-echo The BASEDIR IS: BASEDIR=%BASEDIR%
-
-echo The ETL IS: ETLS=%ETLS%
+:: Print base and etls directories
+echo The BASE_DIR: %BASEDIR%
+echo The ETL_DIR: %ETLS%
 
 :: Print active environment (e.g. DEV / QA / PROD)
-echo The ENVIRONMENT IS: ENVIRONMENT=%SCRIPT_RUNNER_ENV%
+echo The ENVIRONMENT: %SCRIPT_RUNNER_ENV%
 
-echo Running ETL...
+echo.
+echo Running the script_runner.py ...
 :: %* means “all arguments passed to the .bat file”
 :: python "%SCRIPT_DIR%script_runner.py" %*
 ::python "%SCRIPT_DIR%script_runner.py" "%~1" "%~2"

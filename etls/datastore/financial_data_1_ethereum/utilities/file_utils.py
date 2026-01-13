@@ -30,24 +30,41 @@ def generate_random_dir(prefix="run_"):
     Returns:
         str: Random directory name.
     """
+    # uuid.uuid4().hex: a 32‑character hex string like a3f91c2b7e4d4c1f8b2d9f0e3c5a7d12
+    # [:8] -> select the first 8 characters
+    # Example output: run_a3f91c2b
     return prefix + uuid.uuid4().hex[:8]
 
 
-def create_folders(path_parts, isfolder=True):
+def create_folders(path_parts, is_folder=True):
     """
     Create a folder structure from a list of path components.
 
     Args:
         path_parts (list[str]): Components of the path.
-        isfolder (bool): Whether to create the final path as a folder.
+        is_folder (bool): Whether to create the final path as a folder.
 
     Returns:
         tuple: (full_path, parent_path, path_parts)
     """
+
+    # Example input: create_folders(["output", "run_e25d2c49"], is_folder=True)
+    # Example full_path: "output/run_e25d2c49"
     full_path = os.path.join(*path_parts)
-    if isfolder:
+    if is_folder:
+        # Create a folder:
+        # output /
+        #    run_e25d2c49 /
         os.makedirs(full_path, exist_ok=True)
+
+    # Example parent: "output"
     parent = os.path.dirname(full_path)
+
+    # Example result: (
+    #     "output/run_e25d2c49",      # full_path
+    #     "output",                   # parent_path
+    #     ["output", "run_e25d2c49"]  # path_parts
+    # )
     return full_path, parent, path_parts
 
 

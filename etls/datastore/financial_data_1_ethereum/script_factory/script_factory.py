@@ -86,13 +86,13 @@ class ScriptFactory:
                                                 schema=self.schema,
                                                 table=self.table)
 
-        # 5. Create an output folder - Added index [0] to ensure we get the string path
-        result = create_folders(
+        # 5. Create an output folder, use index [0] to get the full_path
+        self.output_dir = create_folders(
             [settings.output_folder_base, generate_random_dir()],
-            isfolder=True)
+            is_folder=True)[0]
 
         # If it returns a tuple, take the first element; otherwise take the result
-        self.output_dir = result[0] if isinstance(result, tuple) else result
+        # self.output_dir = result[0] if isinstance(result, tuple) else result
 
         # 6. Build CSV path inside that folder
         self.file_path = os.path.join(self.output_dir, self.file_name)

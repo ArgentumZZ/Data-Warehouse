@@ -19,7 +19,7 @@ import os
 # 1. Script metadata
 # ===========================================================
 
-script_name = 'GLEIF 1 ORDERS'
+script_name = 'FINANCIAL DATA 1 ETHEREUM'
 script_version = '1.0'
 script_description = 'ETL pipeline for ingesting and transforming order data'
 script_frequency = "daily"  # "hourly", "daily", "weekly", "monthly"
@@ -88,9 +88,9 @@ error_recipients = email_recipients["error_only"]
 # ===========================================================
 
 prod_database = 'postgresql: prod'
-prod_schema = 'gleif'
-prod_table = 'lei_records'
-prod_file_name = f'_{prod_table}.csv'
+prod_schema = 'financial_data'
+prod_table = 'ethereum'
+prod_file_name = f'{prod_table}.csv'
 
 
 # ===========================================================
@@ -98,9 +98,9 @@ prod_file_name = f'_{prod_table}.csv'
 # ===========================================================
 
 dev_database = 'postgresql: dev'
-dev_schema = 'gleif'
-dev_table = 'lei_records'
-dev_file_name = f'_{prod_table}.csv'
+dev_schema = 'financial_data'
+dev_table = 'ethereum'
+dev_file_name = f'{prod_table}.csv'
 
 # ===========================================================
 # 6. ETL behavior configuration
@@ -113,7 +113,7 @@ load_type = "I"
 max_days_to_load = 365
 
 # 6.3 Source for the project
-sources = ['gleif.lei_records']
+sources = ['financial_data.ethereum']
 
 # ===========================================================
 # 7. Project options

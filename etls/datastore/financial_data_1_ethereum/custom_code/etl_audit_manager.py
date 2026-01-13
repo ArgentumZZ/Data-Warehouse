@@ -93,7 +93,17 @@ class EtlAuditManager:
         lg.info(f"Result data max date: {result_data_max_date}")
 
         # 2. Check if the query actually returned a date
-        if result_data_max_date and result_data_max_date[0][0]:
+        if not result_data_max_date.empty:
+            # 3. Assign it to a variable, .iat[0, 0] retrieves the first row, first column
+            value = result_data_max_date.iat[0, 0]
+            if value is not None:
+                self.prev_max_date = value
+            else:
+                self.prev_max_date = None
+        else:
+            self.prev_max_date = None
+
+        '''if result_data_max_date and result_data_max_date[0][0]:
 
             # 3. Assign it to a variable
             self.prev_max_date = result_data_max_date[0][0]
@@ -101,7 +111,7 @@ class EtlAuditManager:
         else:
             # 4. If no previous records exist (first time running), set to None
             self.prev_max_date = None
-            lg.info(f"The Previous max date: {self.prev_max_date}")
+            lg.info(f"The Previous max date: {self.prev_max_date}")'''
 
         # 5. Generate a current reference timestamp
         now_utc = datetime.datetime.now(timezone.utc)
@@ -200,7 +210,9 @@ class EtlAuditManager:
 
         # 5. Run the insert query
         lg.info(f"Running the INSERT INTO query: {insert_query}")
-        self.etl_runs_key = self.pg_connector.run_query(query=insert_query, commit=True, get_result=True)[0][0]
+        # .iat[0, 0] retrieves the first row, first column
+        self.etl_runs_key = self.pg_connector.run_query(query=insert_query, commit=True, get_result=True).iat[0, 0]
+        lg.info(f"Etl_runs_key: {self.etl_runs_key}")
 
     def update_etl_runs_table_record(self, status: str):
         """
@@ -209,15 +221,15 @@ class EtlAuditManager:
         3. Update audit.etl_runs record.
         """
         # 1. Fetch the number of records in the df
-        self.num_records = getattr(self.swc, 'num_of_records', 0)
+        self.num_records = getattr(self.swc, 'num_of_records')
         lg.logger.info(f"Final count pulled from worker: {self.num_records}")
 
         # 2. Get the data min/max dates.
-        self.data_min_date = getattr(self.swc, 'data_min_date')
-        lg.logger.info(f"Data min date: {self.data_min_date}")
+        # self.data_min_date = getattr(self.swc, 'data_min_date')
+        # lg.logger.info(f"Data min date: {self.data_min_date}")
 
-        self.data_max_date = getattr(self.swc, 'data_max_date')
-        lg.logger.info(f"Data max date: {self.data_max_date}")
+        # self.data_max_date = getattr(self.swc, 'data_max_date')
+        # lg.logger.info(f"Data max date: {self.data_max_date}")
 
         # 3. Format dates for SQL
         prev_date_val = f"'{self.prev_max_date.strftime('%Y-%m-%d %H:%M:%S')}'" if self.prev_max_date else "NULL"

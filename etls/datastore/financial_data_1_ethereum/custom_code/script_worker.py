@@ -8,6 +8,8 @@ from datetime import datetime
 
 # Import custom libraries
 import utilities.logging_manager as lg
+from script_connectors.postgresql_connector import PostgresConnector
+from custom_code.sql_queries import sql_queries
 
 class ScriptWorker:
     """
@@ -56,7 +58,20 @@ class ScriptWorker:
         3. Save transformed data to CSV/Parquet for DB upload.
         """
 
-        # The URL
+        # 1. Initiate the postgre connector
+        self.pg_connector = PostgresConnector(credential_name='postgresql: development')
+
+        # 2. Format the query
+        query = sql_queries['get_data'].format(
+                            sdt=self.sfc.etl_audit_manager.sdt.strftime('%Y-%m-%d %H:%M:%S'),
+                            edt=self.sfc.etl_audit_manager.edt.strftime('%Y-%m-%d %H:%M:%S'))
+
+        lg.info(f"The query: {query}")
+
+        # 3. Run the query and assign it to a dataframe
+        df = self.pg_connector.run_query(query=query, commit=False, get_result=True)
+
+        '''# The URL
         url = "https://api.gleif.org/api/v1/lei-records/529900W18LQJJN6SJ336"
         lg.info(f"The URL is: {url}")
 
@@ -80,10 +95,13 @@ class ScriptWorker:
 
         # 3. Convert to DataFrame
         df = pd.DataFrame(data_content)
-        lg.info(f"The df: {df}")
+        lg.info(f"The df: {df}")'''
 
 
         if len(df):
+
+            # Take the etl_runs_key from the audit table and pass it to the dataframe
+            df['etl_runs_key'] = self.sfc.etl_audit_manager.etl_runs_key
             # process df and transform
             self.num_of_records = len(df)
 
@@ -113,14 +131,13 @@ class ScriptWorker:
             )
         else:
             self.num_of_records = 0
-            self.data_min_date = None
-            self.data_max_date = None
+            # self.data_min_date = None
+            # self.data_max_date = None
 
             # No records are returned, then leave the min and max dates at the start date
             # ready for the next run to start at the same point
             self.sfc.etl_audit_manager.data_min_date = self.sfc.etl_audit_manager.sdt
             self.sfc.etl_audit_manager.data_max_date = self.sfc.etl_audit_manager.sdt
-
 
     # 3. Upload to DWH
     def upload_to_dwh(self,
