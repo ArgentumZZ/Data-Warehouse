@@ -32,15 +32,15 @@ ___
 - **ETL Audit Manager**
   - Create an audit table to track project's run metadata. ✔️
   - Capture `start/end_load_date`, `start/end_script_execution_time`,` data_min/max_dates`, `status`, `number_of_records`, `environment`, `script_version`, `load_type`, `previous_max_date`, `target_database`, `target_table`. ✔️ 
-  - Create a create_etl_runs_table function. ✔️
-  - Create an insert_etl_runs_record function. ✔️
-  - Create an update_etl_runs_record function. ✔️
+  - Create a `create_etl_runs_table` function. ✔️
+  - Create an `insert_etl_runs_record` function. ✔️
+  - Create an `update_etl_runs_record` function. ✔️
   
 - **ETL Utilities**
   - Add general ETL helper functions.
   - Optionally create a `utilities/` folder with separate modules.
 
-- **Incremental & Full Load (I/F)**
+- **Incremental & Full Load**
   - Implement logic for both incremental (I) and full (F) load modes. ✔️
   - Override internal defaults with values from `.bat file.` ✔️
 
@@ -48,17 +48,18 @@ ___
   - Create a logging_manager.py to standardize log format. ✔️
   - Create a `logs/` folder to store logs for each project's run. ✔️
   - Automatically delete logs older than 7 days. ✔️
+  - Automatically delete logs older than N runs.
   
 - **Utilities folder**
-  - Create utilities .py files for ETL processes (e.g. file and folder modification, argument parsers, error handling)️
+  - Create utilities .py files for ETL processes (e.g. file_utils.py, argument_parser.py, errors_utils, db_utils.py)️
 
 - **Output folder**
   - Create an `output/` folder to store generated files.
   - Control with a boolean operator, whether an output file will be saved to the folder.
 
 - **Email Notifications (SMTP)**
-  - Add success/failure email alerts
-  - Include run summary and error details
+  - Implement e-mail success/failure alerts after each project's run..
+  - Include run summary and error details.
 
 - **Dockerization**
   - Add a `Dockerfile` for containerized execution.

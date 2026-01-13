@@ -2,7 +2,7 @@
 import logging, os, sys
 from datetime import datetime
 
-# 1. # Create (or retrieve) a single shared logger named "etl" that all modules will use
+# 1. # Create a single shared logger named "etl" that all modules will use
 logger = logging.getLogger("etl")
 
 # 2. Set the minimum severity level this logger will record (ignore DEBUG, keep INFO and above - WARNING, ERROR, CRITICAL)
@@ -11,8 +11,7 @@ logger.setLevel(logging.INFO)
 # 3. Add handlers if none exist
 if not logger.handlers:
 
-    # 4. Console handler (StreamHandler)
-    # Create a handler that prints log messages to the terminal
+    # 4.Create a Console Stream Handler that prints log messages to the terminal
     console_handler = logging.StreamHandler()
 
     # 5. Formatter defining how console log lines should look (timestamp, level, file, line, message)
@@ -27,38 +26,138 @@ if not logger.handlers:
     # 7. Register the console handler with the shared "etl" logger
     logger.addHandler(console_handler)
 
-    # 8. File handler (FileHandler)
+    # 8. Create a log folder to populate with .logs files
 
+    # 9. Determine the absolute path of the folder containing this file (utilities/)
     # os.path.dirname(path) returns the folder that contains the given path.
     # If input: C:/project/utilities/logging_manager.py, then output: C:/project/utilities
-    # 9. Determine the absolute path of the folder containing this file (utilities/)
-    current_dir = os.path.dirname(os.path.abspath(__file__))     # .../utilities
-    project_dir = os.path.dirname(current_dir)                  # .../project
+    current_dir = os.path.dirname(os.path.abspath(__file__))       # .../utilities
+    project_dir = os.path.dirname(current_dir)                     # .../project
 
     # 10. Build the path to the shared logs directory: project/metadata/logs and build a logs folder
-    log_dir = os.path.join(project_dir, "metadata", "logs")  # .../metadata/logs
+    log_dir = os.path.join(project_dir, "metadata", "logs")        # .../metadata/logs
 
     print("Current working directory:", os.getcwd())
     print("Log dir:", log_dir)
 
-    # Create directory if it doesn't exist
+    # 11. Create directory if it doesn't exist
     os.makedirs(log_dir, exist_ok=True)
 
-    # 11. Build timestamped filename
+    # 12. Build timestamped filename
     log_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_file = os.path.join(log_dir, f"{log_timestamp}_etl.log")
 
-    #################################################################
-    # Delete _etl.log files older than 7 days
+    # 13. Delete .logs files based on number of runs (keep the N most recent).
+    max_runs = 5
+
+    # 14. List all log files in the directory
+    files = [
+        os.path.join(log_dir, f)
+        for f in os.listdir(log_dir)
+        if os.path.isfile(os.path.join(log_dir, f))
+    ]
+
+    # Expected output example:
+    # ['C:/.../2026-01-10_12-00-00_etl.log', 'C:/.../2026-01-11_09-30-22_etl.log', ...]
+
+    # 15. Sort files by modification time (oldest first, newest file last)
+    files.sort(key=lambda f: os.path.getmtime(f))
+
+    # 16. If we have more than max_runs files, delete the oldest ones
+    while len(files) > max_runs:
+        old_file = files.pop(0)
+        try:
+            os.remove(old_file)
+        except Exception as e:
+
+            print(f"Failed to delete old log {old_file}: {e}")
+
+    # 17. Create file handler in append mode
+    file_handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
+
+    # 18. Define log format:
+    # %(asctime)s -> timestamp
+    # %(levelname)s -> log level (INFO, ERROR, etc.)
+    # %(filename)s -> name of the Python file
+    # %(lineno)d -> line number where logger was called
+    # %(message)s -> actual log message
+
+    file_formatter = logging.Formatter(
+        "%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d]: %(message)s",
+        "%Y-%m-%d %H:%M:%S"
+    )
+
+    # 19. Attach the file formatter to the handler
+    file_handler.setFormatter(file_formatter)
+
+    # 20. Attach the configured handler to the "etl" logger
+    logger.addHandler(file_handler)
+
+
+def _log(func, *args, **kwargs):
+    """
+    # Core helper that cleans up logging:
+    # - Adds exc_info automatically inside exception handlers
+    # - Ensures logs point to the real caller via stacklevel
+    # - Passes everything through to the underlying logging function
+    """
+
+    # Detect whether we're currently inside an exception handler (except block). If so, include the error trace
+    # sys.exc_info()[0] is non‑None only when an exception
+    # is actively being handled. # If the caller did NOT explicitly pass exc_info=True, we set it automatically.
+    if 'exc_info' not in kwargs and sys.exc_info()[0]:
+        kwargs['exc_info'] = True
+
+    # Ensure correct file/line attribution in logs.
+    # stacklevel=3 means:
+    # level 1 → inside logging module
+    # level 2 → inside this helper
+    # level 3 → the *real* caller (the user’s code)
+    # This prevents logs from pointing to this wrapper instead of the true source.
+    kwargs.setdefault('stacklevel', 3)
+
+    # Call the actual logging function (e.g., logger.info, logger.error, etc.) with the modified arguments.
+    func(*args, **kwargs)
+
+
+# These are convenience wrappers around the real logger methods.
+# Each one forwards the message to `_log()`, which adds smart behavior:
+# - automatic exc_info when inside an exception handler
+# - correct stacklevel so logs point to the real caller
+# This let us write: lg.info("message") instead of logger.info(...)
+def info(msg, *args, **kwargs):
+    _log(logger.info, msg, *args, **kwargs)
+
+def error(msg, *args, **kwargs):
+    _log(logger.error, msg, *args, **kwargs)
+
+def warning(msg, *args, **kwargs):
+    _log(logger.warning, msg, *args, **kwargs)
+
+def debug(msg, *args, **kwargs):
+    _log(logger.debug, msg, *args, **kwargs)
+
+def critical(msg, *args, **kwargs):
+    _log(logger.critical, msg, *args, **kwargs)
+
+# Special case: logger.exception already forces exc_info=True,
+# so we call it directly without going through _log().
+def exception(msg, *args, **kwargs):
+    logger.exception(msg, *args, **kwargs)
+
+##################################################################################################################
+# Code for delete _etl.log files older than X days
+######################################################################################################################
+    '''
     retention_days = 7
     now = datetime.now().timestamp()
 
     for file_name in os.listdir(log_dir):
         # file_name: 2026-01-12_18-44-30_etl.log
-        # print(f"The file name: {file_name}")
+        # print(f"The file name: {file_name}")'''
 
         # file_path:  C:\Users\Mihail\PycharmProjects\datawarehouse\etls\datastore\gleif_1_lei_records\metadata\logs\2026-01-12_18-44-30_etl.log
-        file_path = os.path.join(log_dir, file_name)
+    '''file_path = os.path.join(log_dir, file_name)
         # print(f"The file path: {file_path}")
 
         # Skip anything that isn't a file
@@ -86,109 +185,5 @@ if not logger.handlers:
             except Exception as e:
                 # If deletion fails, log the error but continue
                 print(f"Failed to delete old log {file_path}: {e}")
-    #################################################################
-
-
-    # 12. Create file handler
-    file_handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
-
-    # Define log format:
-    # %(asctime)s -> timestamp
-    # %(levelname)s -> log level (INFO, ERROR, etc.)
-    # %(filename)s -> name of the Python file
-    # %(lineno)d -> line number where logger was called
-    # %(message)s -> actual log message
-    file_formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d]: %(message)s",
-        "%Y-%m-%d %H:%M:%S"
-    )
-
-    # 13. Attach the file formatter to the handler
-    file_handler.setFormatter(file_formatter)
-
-    # 14. Attach the configured handler to the "etl" logger
-    logger.addHandler(file_handler)
-
-
-# ---------------------------------------------------------
-# 3. Smart Internal Helper
-# ---------------------------------------------------------
-def _log(func, *args, **kwargs):
-    """
-    Core wrapper to handle automatic traceback detection and
-    correct line-number reporting.
-    """
-    # Auto-detect if we are in an 'except' block; if so, include the error trace
-    if 'exc_info' not in kwargs and sys.exc_info()[0]:
-        kwargs['exc_info'] = True
-
-    # stacklevel=3 tells Python to ignore this helper and the calling function
-    # when looking for the filename/line number, pointing to the real source.
-    kwargs.setdefault('stacklevel', 3)
-
-    func(*args, **kwargs)
-
-
-# ---------------------------------------------------------
-# 4. Shorthand API
-# ---------------------------------------------------------
-# These allow for calling 'lg.info("msg")' instead of the long-form logger version
-def info(msg, *args, **kwargs):
-    _log(logger.info, msg, *args, **kwargs)
-
-def error(msg, *args, **kwargs):
-    _log(logger.error, msg, *args, **kwargs)
-
-def warning(msg, *args, **kwargs):
-    _log(logger.warning, msg, *args, **kwargs)
-
-def debug(msg, *args, **kwargs):
-    _log(logger.debug, msg, *args, **kwargs)
-
-def critical(msg, *args, **kwargs):
-    _log(logger.critical, msg, *args, **kwargs)
-
-# Standard exception logger (always includes traceback)
-def exception(msg, *args, **kwargs):
-    logger.exception(msg, *args, **kwargs)
-
-
-
-"""
-# -----------------------------------------
-# Delete old logs based on number of runs
-# Keep only the most recent N log files
-# Expected output: deletes oldest files if count exceeds limit
-# -----------------------------------------
-MAX_RUNS = 7  # or 30
-
-# List all log files in the directory
-files = [
-    os.path.join(log_dir, f)
-    for f in os.listdir(log_dir)
-    if os.path.isfile(os.path.join(log_dir, f))
-]
-
-# Expected output example:
-# ['C:/.../2026-01-10_12-00-00_etl.log', 'C:/.../2026-01-11_09-30-22_etl.log', ...]
-
-# Sort files by modification time (oldest first)
-files.sort(key=lambda f: os.path.getmtime(f))
-
-# Expected output example:
-# Oldest file first, newest file last
-
-# If we have more than MAX_RUNS files, delete the oldest ones
-while len(files) > MAX_RUNS:
-    old_file = files.pop(0)
-    try:
-        os.remove(old_file)
-        # Expected output example:
-        # Deleted old log: C:/.../2026-01-10_12-00-00_etl.log
-    except Exception as e:
-        # Expected output example:
-        # Failed to delete old log C:/...: [WinError 5] Access is denied
-        print(f"Failed to delete old log {old_file}: {e}")
-
-
-"""
+    '''
+######################################################################################################################
