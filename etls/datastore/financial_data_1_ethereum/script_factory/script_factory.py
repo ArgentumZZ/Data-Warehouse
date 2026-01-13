@@ -2,6 +2,7 @@
 # import script_factory.settings as settings
 from functools import partial
 import os, sys, psycopg2, datetime
+from datetime import datetime
 
 # import custom libraries
 from custom_code.etl_utils import EtlUtils
@@ -9,9 +10,9 @@ from custom_code.script_worker import ScriptWorker
 from custom_code.etl_audit_manager import EtlAuditManager
 from custom_code.sql_queries import sql_queries
 from utilities.email_manager import EmailManager
-from utilities.file_utils import create_folders, generate_random_dir
+from utilities.file_utils import build_output_file_path
 import utilities.logging_manager as lg
-from script_connectors.postgresql_connector import PostgresConnector
+from connectors.postgresql_connector import PostgresConnector
 from utilities.argument_parser import parse_arguments
 
 
@@ -55,22 +56,20 @@ class ScriptFactory:
             self.database = settings.prod_database
             self.schema = settings.prod_schema
             self.table = settings.prod_table
-            self.file_name = settings.prod_file_name
-            delete_log = settings.delete_log
-            delete_mail_logfile = settings.delete_mail_logfile
-            delete_output = settings.delete_output
-            send_mail_report = settings.send_mail_report
-            send_mail_log_report = settings.send_mail_log_report
+            self.delete_log = settings.prod_delete_log
+            self.delete_mail_logfile = settings.prod_delete_mail_logfile
+            self.delete_output = settings.prod_delete_output
+            self.send_mail_report = settings.prod_send_mail_report
+            self.send_mail_log_report = settings.prod_send_mail_log_report
         else:
             self.database = settings.dev_database
             self.schema = settings.dev_schema
             self.table = settings.dev_table
-            self.file_name = settings.dev_file_name
-            delete_log = settings.delete_log
-            delete_mail_logfile = settings.delete_mail_logfile
-            delete_output = settings.delete_output
-            send_mail_report = settings.send_mail_report
-            send_mail_log_report = settings.send_mail_log_report
+            self.delete_log = settings.dev_delete_log
+            self.delete_mail_logfile = settings.dev_delete_mail_logfile
+            self.delete_output = settings.dev_delete_output
+            self.send_mail_report = settings.dev_send_mail_report
+            self.send_mail_log_report = settings.dev_send_mail_log_report
 
         # 4. Initialize components
         self.etl_utils = EtlUtils(self)
@@ -86,18 +85,9 @@ class ScriptFactory:
                                                 schema=self.schema,
                                                 table=self.table)
 
-        # 5. Create an output folder - Added index [0] to ensure we get the string path
-        result = create_folders(
-            [settings.output_folder_base, generate_random_dir()],
-            isfolder=True)
 
-        # If it returns a tuple, take the first element; otherwise take the result
-        self.output_dir = result[0] if isinstance(result, tuple) else result
-
-        # 6. Build CSV path inside that folder
-        self.file_path = os.path.join(self.output_dir, self.file_name)
-
-        lg.logger.info(f"CSV will be saved to: {self.file_path}")
+        self.file_path = build_output_file_path(table=self.table)
+        lg.info(f"The file will be saved to: {self.file_path}")
 
     # ----------------------------------------------------------------------
     # Task list
@@ -156,6 +146,7 @@ class ScriptFactory:
             "func"          : partial(self.script_worker.upload_to_dwh,
                                       database_connector=self.pg_connector,
                                       etl_audit_manager=self.etl_audit_manager,
+                                      delete_output=self.delete_output,
                                       file_path=self.file_path,
                                       schema=self.schema,
                                       table=self.table,

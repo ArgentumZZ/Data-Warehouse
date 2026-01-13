@@ -8,6 +8,8 @@ from datetime import datetime
 
 # Import custom libraries
 import utilities.logging_manager as lg
+from connectors.postgresql_connector import PostgresConnector
+from custom_code.sql_queries import sql_queries
 
 class ScriptWorker:
     """
@@ -56,7 +58,20 @@ class ScriptWorker:
         3. Save transformed data to CSV/Parquet for DB upload.
         """
 
-        # The URL
+        # 1. Initiate the Postgres connector
+        self.pg_connector = PostgresConnector(credential_name='postgresql: development')
+
+        # 2. Format the query
+        query = sql_queries['get_data'].format(
+                            sdt=self.sfc.etl_audit_manager.sdt.strftime('%Y-%m-%d %H:%M:%S'),
+                            edt=self.sfc.etl_audit_manager.edt.strftime('%Y-%m-%d %H:%M:%S'))
+
+        lg.info(f"The query: {query}")
+
+        # 3. Run the query and assign it to a dataframe
+        df = self.pg_connector.run_query(query=query, commit=False, get_result=True)
+
+        '''# The URL
         url = "https://api.gleif.org/api/v1/lei-records/529900W18LQJJN6SJ336"
         lg.info(f"The URL is: {url}")
 
@@ -80,11 +95,16 @@ class ScriptWorker:
 
         # 3. Convert to DataFrame
         df = pd.DataFrame(data_content)
-        lg.info(f"The df: {df}")
+        lg.info(f"The df: {df}")'''
 
 
         if len(df):
+
+            # Take the etl_runs_key from the audit table and pass it to the dataframe
+            df['etl_runs_key'] = self.sfc.etl_audit_manager.etl_runs_key
             # process df and transform
+
+            # this will be passed to update_etl_runs_table_record
             self.num_of_records = len(df)
 
 
@@ -95,23 +115,23 @@ class ScriptWorker:
 
             # if there are no time columns, we can set them manually
             # so these must be datetime objects
-            self.data_min_date = self.sfc.etl_audit_manager.sdt
-            self.data_max_date = self.sfc.etl_audit_manager.edt
+            self.sfc.etl_audit_manager.data_min_date = self.sfc.etl_audit_manager.sdt
+            self.sfc.etl_audit_manager.data_max_date = self.sfc.etl_audit_manager.edt
+
+            # 1. Set worker values
+            # self.data_min_date = self.sfc.etl_audit_manager.sdt
+            # self.data_max_date = self.sfc.etl_audit_manager.edt
+
+            # 2. Sync them into the audit manager
+            # self.sfc.etl_audit_manager.data_min_date = self.data_min_date
+            # self.sfc.etl_audit_manager.data_max_date = self.data_max_date
+
             # self.data_min_date = datetime.strptime("2025-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
             # self.data_max_date = datetime.strptime("2025-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
 
-            # 4. Write to CSV
-            df.to_csv(
-                path_or_buf=file_path,
-                sep=";",
-                encoding="utf-8",
-                index=False,
-                escapechar="\\",
-                doublequote=False,
-                quoting=csv.QUOTE_NONE,
-                header=True
-            )
+
         else:
+            # this will be passed to update_etl_runs_table_record
             self.num_of_records = 0
             self.data_min_date = None
             self.data_max_date = None
@@ -120,12 +140,25 @@ class ScriptWorker:
             # ready for the next run to start at the same point
             self.sfc.etl_audit_manager.data_min_date = self.sfc.etl_audit_manager.sdt
             self.sfc.etl_audit_manager.data_max_date = self.sfc.etl_audit_manager.sdt
+            lg.info("Creating an empty file.")
 
+        # 4. Write to CSV
+        df.to_csv(
+            path_or_buf=file_path,
+            sep=";",
+            encoding="utf-8",
+            index=False,
+            escapechar="\\",
+            doublequote=False,
+            quoting=csv.QUOTE_NONE,
+            header=True
+        )
 
     # 3. Upload to DWH
     def upload_to_dwh(self,
                       database_connector,
                       etl_audit_manager,
+                      delete_output,
                       file_path,
                       schema,
                       table,
@@ -140,6 +173,7 @@ class ScriptWorker:
         4. Then, run the update_etl_runs_table_record function to update the audit.etl_runs record
             to status='Error'
 
+
         :param database_connector: An instance of self.pg_connector = PostgresConnector(section=self.database)
         :param etl_audit_manager: An instance of self.etl_audit_manager = EtlAuditManager(self, self.script_worker, self.database)
         :param file_path: A parameter of upload_to_pg from PostgresConnector
@@ -149,6 +183,7 @@ class ScriptWorker:
         :param update_clause: A parameter of upload_to_pg from PostgresConnector
         :param insert_columns: A parameter of upload_to_pg from PostgresConnector
         :param insert_values: A parameter of upload_to_pg from PostgresConnector
+        :param delete_output: A boolean specifying whether we should delete the file after each run.
         :return: None
         """
 
@@ -176,3 +211,11 @@ class ScriptWorker:
             except Exception as ex:
                 lg.error(f"Update did not go through. Error: {ex}")
             raise e
+
+        # this will run (deletion still happens on both success/failure or try/except above)
+        finally:
+            if delete_output:
+                try:
+                    os.remove(path=file_path)
+                except Exception as ex:
+                    lg.error(f"Could not delete file {file_path}: {ex}")
