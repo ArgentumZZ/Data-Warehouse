@@ -14,11 +14,43 @@ Purpose:
 
 import os
 import uuid
-
+import utilities.logging_manager as lg
+from datetime import datetime
 
 # ---------------------------------------------------------------------------
 # Existing functions (kept exactly as provided)
 # ---------------------------------------------------------------------------
+
+def build_output_file_path(table: str) -> str:
+    """
+    A utility function that creates an output folder to store CSV files from each project's run.
+
+    :param table: Name of the table (the project's table)
+    :return:
+    """
+
+    # 1. Find the current directory of the file (where this function is run):
+    # e.g. C:\Users\Mihail\PycharmProjects\datawarehouse\etls\datastore\financial_data_1_ethereum\script_factory
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    lg.info(f"Current Directory: {current_dir}")
+
+    # 2. Parent directory (e.g. C:\Users\Mihail\PycharmProjects\datawarehouse\etls\datastore\financial_data_1_ethereum)
+    parent_current_dir = os.path.dirname(current_dir)
+    lg.info(f"Parent Current Directory: {parent_current_dir}")
+
+    # 3. Build the path to the output directory: project/metadata/output and build an output folder
+    output_dir = os.path.join(parent_current_dir, "metadata", "output")
+    lg.info(f"Output directory: {output_dir}")
+
+    # 4. Create directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+
+    # 5. Build a timestamped filename
+    # e.g. project/metadata/output/ethereum_2026-01-13-18:00:00.csv
+    file_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    file_path = os.path.join(output_dir, f"{table}_{file_timestamp}.csv")
+    return file_path
+
 
 def generate_random_dir(prefix="run_"):
     """

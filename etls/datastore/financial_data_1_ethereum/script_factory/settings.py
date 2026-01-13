@@ -90,7 +90,7 @@ error_recipients = email_recipients["error_only"]
 prod_database = 'postgresql: prod'
 prod_schema = 'financial_data'
 prod_table = 'ethereum'
-prod_file_name = f'{prod_table}.csv'
+# prod_file_name = f'{prod_table}.csv'
 
 
 # ===========================================================
@@ -100,7 +100,7 @@ prod_file_name = f'{prod_table}.csv'
 dev_database = 'postgresql: dev'
 dev_schema = 'financial_data'
 dev_table = 'ethereum'
-dev_file_name = f'{prod_table}.csv'
+# dev_file_name = f'{prod_table}.csv'
 
 # ===========================================================
 # 6. ETL behavior configuration
@@ -116,24 +116,34 @@ max_days_to_load = 365
 sources = ['financial_data.ethereum']
 
 # ===========================================================
-# 7. Project options
+# 7. Project options (PROD and DEV)
 # ===========================================================
 
 # Options for log and output folders
-delete_log = True
-delete_mail_logfile = True
-delete_output = True
+prod_delete_log = True
+prod_delete_mail_logfile = True
+prod_delete_output = True
 
 # Whether to send summary report emails
-send_mail_report = True
+prod_send_mail_report = True
 
 # Conditions for sending log emails
-send_mail_log_report = {
+prod_send_mail_log_report = {
     "success"   : False,
     "fail"      : True
 }
+###################################################################
+# Options for log and output folders
+dev_delete_log = True
+dev_delete_mail_logfile = True
+dev_delete_output = True
 
-# ===========================================================
-# 7. Folder base options
-# ===========================================================
-output_folder_base = 'output'
+# Whether to send summary report emails
+dev_send_mail_report = True
+
+# Conditions for sending log emails
+dev_send_mail_log_report = {
+    "success"   : False,
+    "fail"      : True
+}
+####################################################################

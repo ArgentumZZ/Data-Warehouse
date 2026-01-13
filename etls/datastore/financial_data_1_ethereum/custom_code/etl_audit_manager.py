@@ -6,7 +6,7 @@ from datetime import timezone, timedelta
 
 # Custom libraries
 import utilities.logging_manager as lg
-from script_connectors.postgresql_connector import PostgresConnector
+from connectors.postgresql_connector import PostgresConnector
 
 class EtlAuditManager:
     """

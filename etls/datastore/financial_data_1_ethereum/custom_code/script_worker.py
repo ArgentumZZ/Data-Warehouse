@@ -8,7 +8,7 @@ from datetime import datetime
 
 # Import custom libraries
 import utilities.logging_manager as lg
-from script_connectors.postgresql_connector import PostgresConnector
+from connectors.postgresql_connector import PostgresConnector
 from custom_code.sql_queries import sql_queries
 
 class ScriptWorker:
@@ -158,6 +158,7 @@ class ScriptWorker:
     def upload_to_dwh(self,
                       database_connector,
                       etl_audit_manager,
+                      delete_output,
                       file_path,
                       schema,
                       table,
@@ -172,6 +173,7 @@ class ScriptWorker:
         4. Then, run the update_etl_runs_table_record function to update the audit.etl_runs record
             to status='Error'
 
+
         :param database_connector: An instance of self.pg_connector = PostgresConnector(section=self.database)
         :param etl_audit_manager: An instance of self.etl_audit_manager = EtlAuditManager(self, self.script_worker, self.database)
         :param file_path: A parameter of upload_to_pg from PostgresConnector
@@ -181,6 +183,7 @@ class ScriptWorker:
         :param update_clause: A parameter of upload_to_pg from PostgresConnector
         :param insert_columns: A parameter of upload_to_pg from PostgresConnector
         :param insert_values: A parameter of upload_to_pg from PostgresConnector
+        :param delete_output: A boolean specifying whether we should delete the file after each run.
         :return: None
         """
 
@@ -208,3 +211,11 @@ class ScriptWorker:
             except Exception as ex:
                 lg.error(f"Update did not go through. Error: {ex}")
             raise e
+
+        # this will run (deletion still happens on both success/failure or try/except above)
+        finally:
+            if delete_output:
+                try:
+                    os.remove(path=file_path)
+                except Exception as ex:
+                    lg.error(f"Could not delete file {file_path}: {ex}")
