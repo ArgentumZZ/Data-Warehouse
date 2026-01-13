@@ -58,7 +58,7 @@ class ScriptWorker:
         3. Save transformed data to CSV/Parquet for DB upload.
         """
 
-        # 1. Initiate the postgre connector
+        # 1. Initiate the Postgres connector
         self.pg_connector = PostgresConnector(credential_name='postgresql: development')
 
         # 2. Format the query
@@ -103,6 +103,8 @@ class ScriptWorker:
             # Take the etl_runs_key from the audit table and pass it to the dataframe
             df['etl_runs_key'] = self.sfc.etl_audit_manager.etl_runs_key
             # process df and transform
+
+            # this will be passed to update_etl_runs_table_record
             self.num_of_records = len(df)
 
 
@@ -113,31 +115,44 @@ class ScriptWorker:
 
             # if there are no time columns, we can set them manually
             # so these must be datetime objects
-            self.data_min_date = self.sfc.etl_audit_manager.sdt
-            self.data_max_date = self.sfc.etl_audit_manager.edt
+            self.sfc.etl_audit_manager.data_min_date = self.sfc.etl_audit_manager.sdt
+            self.sfc.etl_audit_manager.data_max_date = self.sfc.etl_audit_manager.edt
+
+            # 1. Set worker values
+            # self.data_min_date = self.sfc.etl_audit_manager.sdt
+            # self.data_max_date = self.sfc.etl_audit_manager.edt
+
+            # 2. Sync them into the audit manager
+            # self.sfc.etl_audit_manager.data_min_date = self.data_min_date
+            # self.sfc.etl_audit_manager.data_max_date = self.data_max_date
+
             # self.data_min_date = datetime.strptime("2025-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
             # self.data_max_date = datetime.strptime("2025-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
 
-            # 4. Write to CSV
-            df.to_csv(
-                path_or_buf=file_path,
-                sep=";",
-                encoding="utf-8",
-                index=False,
-                escapechar="\\",
-                doublequote=False,
-                quoting=csv.QUOTE_NONE,
-                header=True
-            )
+
         else:
+            # this will be passed to update_etl_runs_table_record
             self.num_of_records = 0
-            # self.data_min_date = None
-            # self.data_max_date = None
+            self.data_min_date = None
+            self.data_max_date = None
 
             # No records are returned, then leave the min and max dates at the start date
             # ready for the next run to start at the same point
             self.sfc.etl_audit_manager.data_min_date = self.sfc.etl_audit_manager.sdt
             self.sfc.etl_audit_manager.data_max_date = self.sfc.etl_audit_manager.sdt
+            lg.info("Creating an empty file.")
+
+        # 4. Write to CSV
+        df.to_csv(
+            path_or_buf=file_path,
+            sep=";",
+            encoding="utf-8",
+            index=False,
+            escapechar="\\",
+            doublequote=False,
+            quoting=csv.QUOTE_NONE,
+            header=True
+        )
 
     # 3. Upload to DWH
     def upload_to_dwh(self,

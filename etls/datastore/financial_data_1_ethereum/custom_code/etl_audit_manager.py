@@ -39,7 +39,7 @@ class EtlAuditManager:
         self.data_min_date: Optional[datetime.datetime] = None
         self.data_max_date: Optional[datetime.datetime] = None
         self.load_type: Optional[str] = None
-        self.num_records: Optional[int] = None
+        self.num_of_records: Optional[int] = None
         self.prev_max_date: Optional[datetime.datetime] = None
 
         # Initialize PostgreConnector
@@ -70,7 +70,7 @@ class EtlAuditManager:
                     environment                     TEXT,
                     status                          TEXT DEFAULT NULL,
                     script_version                  TEXT DEFAULT NULL,
-                    num_records                     BIGINT DEFAULT NULL,
+                    num_of_records                  BIGINT DEFAULT NULL,
                     prev_max_date                   TIMESTAMPTZ DEFAULT NULL,
                     created_at                      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP(0),
                     modified_at                     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP(0) 
@@ -221,8 +221,9 @@ class EtlAuditManager:
         3. Update audit.etl_runs record.
         """
         # 1. Fetch the number of records in the df
-        self.num_records = getattr(self.swc, 'num_of_records')
-        lg.logger.info(f"Final count pulled from worker: {self.num_records}")
+        # self.num_records = getattr(self.swc, 'num_of_records')
+        self.num_of_records = self.swc.num_of_records
+        lg.logger.info(f"Final count pulled from worker: {self.num_of_records}")
 
         # 2. Get the data min/max dates.
         # self.data_min_date = getattr(self.swc, 'data_min_date')
@@ -242,7 +243,7 @@ class EtlAuditManager:
                 data_max_date = '{self.data_max_date.strftime("%Y-%m-%d %H:%M:%S")}',
                 script_execution_end_time = CURRENT_TIMESTAMP(0),
                 status = '{status}',
-                num_records = {self.num_records},
+                num_of_records = {self.num_of_records},
                 prev_max_date = {prev_date_val},
                 modified_at = CURRENT_TIMESTAMP(0)
             WHERE etl_runs_key = {self.etl_runs_key};
