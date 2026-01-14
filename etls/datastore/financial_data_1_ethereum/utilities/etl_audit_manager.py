@@ -1,6 +1,5 @@
 # import libraries
-import os, datetime, csv
-import pandas as pd
+import os, datetime
 from typing import List, Tuple, Optional, Any, Union
 from datetime import timezone, timedelta
 
@@ -14,12 +13,55 @@ class EtlAuditManager:
     II. Create a table: @staticmethod: create_audit_etl_runs_table()
     III. Insert new etl runs records: instance method: insert_audit_etl_runs_record(self, ...)
     IV. Update etl runs records: instance method: update_etl_runs_table_record(self, ...)
+
+    Algorithm: ETL Run Auditing and Tracking
+
+    Step 1. Verify audit infrastructure.
+        1.1. If the audit schema does not exist, create it.
+        1.2. If the audit.etl_runs table does not exist, create it with columns:
+            – a surrogate primary key identifying the ETL run.
+            – load metadata (load type, sources, target database, target table).
+            – load window boundaries (start_load_date, end_load_date).
+            – processed data time boundaries (data_min_date, data_max_date).
+            – script execution timestamps (start and end).
+            – environment, execution status, and script version.
+            – operational metrics (num_records, prev_max_date).
+            – audit timestamps (created_at, modified_at) with default values.
+
+    Step 2. Register a new ETL execution.
+        2.1. At job start, insert a new record into audit.etl_runs and return etl_runs_key.
+        2.2. Determine whether a previous run exists for the same target table.
+            - If no previous run exists, enforce Full (F) mode.
+            - If a previous run exists, allow Full (F) or Incremental (I) mode based on configuration.
+
+    Step 3. Initialize execution parameters.
+        3.1. For Full (F) mode:
+            - Interpret internal configuration parameters (=default load_type) and/or external parameters (set in .bat).
+            - Set start_load_date to the previous data_max_date or the provided execution date.
+            - Set end_load_date to start_load_date plus the configured maximum load window (= default max_days_to_load).
+            - Set execution start time, creation and modification timestamps to the current time.
+            - Set status to "In Progress" and populate static configuration fields.
+
+        3.2. For Incremental (I) mode:
+            - Set start_load_date to the previous data_max_date.
+            - Set end_load_date to start_load_date plus the default load window (=max_days_to_load).
+            - Set execution start time, creation and modification timestamps to the current time.
+            - Set status to "In Progress" and populate static configuration fields.
+            - Initialize data_min_date and data_max_date from the previous run.
+
+    Step 4. Finalize the ETL run.
+        4.1. Update the etl_runs record using etl_runs_key.
+        4.2. Set status to "Complete" on success or "Error" on failure.
+        4.3. Set execution end time and modification timestamp to the current time.
+        4.4. Set num_of_records to the number of processed records.
+        4.5. Update data_min_date and data_max_date using the minimum and maximum timestamps from the processed
+             dataset’s time column.
     """
 
     def __init__(self,
-                 sfc: Any,
-                 swc: Any,
-                 credential_name: Any):
+                 sfc: "ScriptFactory",
+                 swc: "ScriptWorker",
+                 credential_name: str):
         """
         Initializes the audit manager with script factory, script worker and database credential names.
 
@@ -28,22 +70,21 @@ class EtlAuditManager:
             swc: Pointer to the script worker object.
             credential_name: DB credentials where to create the audit table (DWH DEV or PROD credentials).
         """
-        self.version: str = '1.0'
-        self.sfc = sfc
-        self.swc = swc
+        self.version: str = '1.0'                                               # Version of EtlAuditManager
+        self.sfc = sfc                                                          # An instance of ScriptFactory class
+        self.swc = swc                                                          # An instance of ScriptWorker class
+        self.credential_name = credential_name                                  # Name of credential connection
 
         # State tracking for the current ETL run
-        self.etl_runs_key: Optional[int] = None
-        self.sdt: Optional[datetime.datetime] = None  # Start Date Time
-        self.edt: Optional[datetime.datetime] = None  # End Date Time
-        self.data_min_date: Optional[datetime.datetime] = None
-        self.data_max_date: Optional[datetime.datetime] = None
-        self.load_type: Optional[str] = None
-        self.num_of_records: Optional[int] = None
-        self.prev_max_date: Optional[datetime.datetime] = None
-
-        # Initialize PostgreConnector
-        self.pg_connector = PostgresConnector(credential_name=credential_name)
+        self.etl_runs_key: Optional[int] = None                                 # An ETL run key identifier
+        self.sdt: Optional[datetime.datetime] = None                            # Start Date Time
+        self.edt: Optional[datetime.datetime] = None                            # End Date Time
+        self.data_min_date: Optional[datetime.datetime] = None                  # Minimum timestamp of ETL batch
+        self.data_max_date: Optional[datetime.datetime] = None                  # Maximum timestamp of ETL batch
+        self.load_type: Optional[str] = None                                    # Increment (I) or full (F) load type
+        self.num_of_records: Optional[int] = None                               # Number of records extracted
+        self.prev_max_date: Optional[datetime.datetime] = None                  # Previous data max date
+        self.pg_connector = PostgresConnector(credential_name=credential_name)  # Initialize PostgresConnector
         lg.logger.info('Etl Audit Manager object is instantiated')
 
     @staticmethod
@@ -82,10 +123,38 @@ class EtlAuditManager:
                               max_days_to_load: int,
                               increment_sdt: bool,
                               load_type: str,
-                              forced_sdt: str):
+                              forced_sdt: str) -> tuple[datetime.datetime, datetime.datetime]:
         """
-        Helper function used to fetch previous run history and calculate
-        the sdt (start date time=start_load_date) and edt (end date time=end_load_date) for the current run.
+        This method determines the start date-time (SDT / start_load_date) and end date-time (EDT / end_load_date)
+        based on the previous successful run, load mode (Full or Incremental), and runtime configuration.
+
+        Args:
+            prev_max_date_query:
+                SQL query used to retrieve the maximum processed data timestamp
+                from the most recent successful ETL run.
+            max_days_to_load:
+                Maximum number of days to include in the load window.
+            increment_sdt (bool):
+                If True, increments the start date by one day in Incremental mode
+                (commonly used for daily-partitioned datasets).
+            load_type (str):
+                Load mode indicator:
+                - 'F' for Full load
+                - 'I' for Incremental load
+            forced_sdt (str):
+                Optional forced start date (YYYY-MM-DD). When provided, this value
+                overrides the previous maximum date in Full load mode.
+
+        Returns:
+            tuple[datetime.datetime, datetime.datetime]:
+                A tuple containing:
+                - sdt: Calculated start date-time (timezone-aware, UTC)
+                - edt: Calculated end date-time (timezone-aware, UTC)
+
+        Raises:
+            ValueError:
+                If Full mode is selected and neither a forced start date nor a
+                previous maximum date is available.
         """
 
         # 1. Get the latest successfully loaded data max date
@@ -94,7 +163,7 @@ class EtlAuditManager:
 
         # 2. Check if the query actually returned a date
         if not result_data_max_date.empty:
-            # 3. Assign it to a variable, .iat[0, 0] retrieves the first row, first column
+            # Assign it to a variable, .iat[0, 0] retrieves the first row, first column
             value = result_data_max_date.iat[0, 0]
             if value is not None:
                 self.prev_max_date = value
@@ -103,51 +172,44 @@ class EtlAuditManager:
         else:
             self.prev_max_date = None
 
-        '''if result_data_max_date and result_data_max_date[0][0]:
-
-            # 3. Assign it to a variable
-            self.prev_max_date = result_data_max_date[0][0]
-            lg.info(f"The Previous max date: {self.prev_max_date}")
-        else:
-            # 4. If no previous records exist (first time running), set to None
-            self.prev_max_date = None
-            lg.info(f"The Previous max date: {self.prev_max_date}")'''
-
-        # 5. Generate a current reference timestamp
+        # 3. Generate a current reference timestamp
         now_utc = datetime.datetime.now(timezone.utc)
         lg.info(f"The NOW UTC: {now_utc}")
 
         lg.info(f"Running in {load_type} mode.")
-        # 6. Determine sdt (start date time) for F and I modes
+        # 4. Determine sdt (start date time) for F and I modes
         if load_type == 'F':
             # if we pass a date in .bat file (=forced_sdt)
             if forced_sdt:
                 forced_sdt = datetime.datetime.strptime(forced_sdt, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                 lg.info(f"Forced sdt (F mode): {forced_sdt}")
 
-                self.sdt = forced_sdt # this should become the new start date
+                self.sdt = forced_sdt  # this should become the new start date
                 lg.info(f"The sdt (F mode): {self.sdt}")
-            elif self.prev_max_date:  # if not start from the previous max_date
+            elif self.prev_max_date:   # if not, start from the previous_max_date
                 self.sdt = self.prev_max_date
                 lg.info(f"The sdt (F mode): {self.sdt}")
             else:
                 # elif self.prev_max_date is None:
                 raise ValueError("F mode requires either a forced_sdt or a previous max date.")
 
-            # Determine edt (F mode loads exactly X days)
+            # 5. Determine edt (F mode loads exactly X days)
             self.edt = self.sdt + timedelta(days=max_days_to_load)
             lg.info(f"The edt (F mode): {self.edt}")
 
+        # 6. Incremental load: Start from where we left off last time.
         elif load_type == 'I' and self.prev_max_date:
-            # Incremental load: Start from where we left off last time.
             # If increment_sdt is True, we add 1 day (standard if data is daily-partitioned, e.g. for ftp projects).
             self.sdt = self.prev_max_date + timedelta(days=1) if increment_sdt else self.prev_max_date
             lg.info(f"The sdt (I mode): {self.sdt}")
 
-            # 6D. Determine EDT (incremental cannot load future data)
+            # 7. Determine EDT (incremental cannot load future data)
             max_window_end = self.sdt + timedelta(days=max_days_to_load)
+
+            # 8. EDT becomes the minimum of now_utc and max_window_end
             self.edt = min(now_utc, max_window_end)
             lg.info(f"The edt (I mode): {self.edt}")
+
         return self.sdt, self.edt
 
     def insert_audit_etl_runs_record(
@@ -158,11 +220,54 @@ class EtlAuditManager:
             target_table: str,
             prev_max_date_query: str,
             script_version: str,
-            forced_sdt,
+            forced_sdt: str | None,
             max_days_to_load: int = 365,
             increment_sdt: bool = False
     ) -> None:
-        """Insert a new record in the audit table."""
+        """
+        Inserts a new ETL run record into the audit.etl_runs table.
+
+        This method initializes the audit schema and table if they do not exist, calculates the ETL load window
+        (SDT and EDT), inserts a new audit record for the current ETL execution, and stores the generated run
+        identifier.
+
+        Args:
+            load_type:
+                Load mode indicator:
+                - 'F' for Full load
+                - 'I' for Incremental load
+            sources:
+                List of sources involved in the ETL run.
+            target_database:
+                Name of the target database receiving the loaded data.
+            target_table:
+                Name of the target table receiving the loaded data.
+            prev_max_date_query:
+                SQL query used to retrieve the maximum processed data timestamp
+                from the most recent successful ETL run.
+            script_version:
+                Version identifier of the executing ETL script.
+            forced_sdt:
+                Optional forced start date (YYYY-MM-DD). Used primarily in Full
+                load mode to override the previous maximum data timestamp.
+            max_days_to_load:
+                Maximum number of days to include in the load window.
+                Defaults to 365.
+            increment_sdt:
+                If True, increments the start date by one day in Incremental
+                load mode (commonly used for daily-partitioned datasets).
+                Defaults to False.
+
+        Side Effects:
+            - Creates the audit schema and table if they do not exist.
+            - Sets `self.sdt` and `self.edt` to the calculated load window.
+            - Inserts a new record into audit.etl_runs.
+            - Sets `self.etl_runs_key` to the generated primary key.
+
+        Raises:
+            ValueError:
+                Propagated from `_calculate_etl_window` if load window calculation fails due to invalid configuration.
+        """
 
         # 1. If running for a first time, create the schema and the table
         self.pg_connector.create_schema(schema='audit')
@@ -171,14 +276,14 @@ class EtlAuditManager:
         # 2. Process some of the variables
         sources_string = ", ".join(sources)
 
-        # 3. Use the internal consolidation helper
+        # 3. Use the internal function `_calculate_etl_window` to calculate sdt and edt
         self.sdt, self.edt = self._calculate_etl_window(prev_max_date_query=prev_max_date_query,
                                                         max_days_to_load=max_days_to_load,
                                                         increment_sdt=increment_sdt,
                                                         load_type=load_type,
                                                         forced_sdt=forced_sdt)
 
-        # 4. Insert the record
+        # 4. Insert query
         insert_query = f"""
             INSERT INTO audit.etl_runs (
                 load_type, 
@@ -207,10 +312,10 @@ class EtlAuditManager:
             RETURNING etl_runs_key;
         """
 
-
         # 5. Run the insert query
         lg.info(f"Running the INSERT INTO query: {insert_query}")
-        # .iat[0, 0] retrieves the first row, first column
+
+        # 6. The method .iat[0, 0] retrieves the first row, first column
         self.etl_runs_key = self.pg_connector.run_query(query=insert_query, commit=True, get_result=True).iat[0, 0]
         lg.info(f"Etl_runs_key: {self.etl_runs_key}")
 

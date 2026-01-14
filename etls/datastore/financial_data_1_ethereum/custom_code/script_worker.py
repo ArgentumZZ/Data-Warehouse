@@ -1,9 +1,8 @@
 # Import libraries
-import configparser, csv, os
+import configparser, csv, os, requests
 import pandas as pd
 from typing import Any, Dict, Optional
 from pathlib import Path
-import requests
 from datetime import datetime
 
 # Import custom libraries

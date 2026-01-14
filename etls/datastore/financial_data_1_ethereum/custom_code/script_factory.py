@@ -5,15 +5,17 @@ import os, sys, psycopg2, datetime
 from datetime import datetime
 
 # import custom libraries
-from custom_code.etl_utils import EtlUtils
-from custom_code.script_worker import ScriptWorker
-from custom_code.etl_audit_manager import EtlAuditManager
-from custom_code.sql_queries import sql_queries
+from utilities.etl_utils import EtlUtils
+from utilities.etl_audit_manager import EtlAuditManager
 from utilities.email_manager import EmailManager
 from utilities.file_utils import build_output_file_path
 import utilities.logging_manager as lg
-from connectors.postgresql_connector import PostgresConnector
 from utilities.argument_parser import parse_arguments
+
+from custom_code.script_worker import ScriptWorker
+from custom_code.sql_queries import sql_queries
+from connectors.postgresql_connector import PostgresConnector
+
 
 
 class ScriptFactory:
