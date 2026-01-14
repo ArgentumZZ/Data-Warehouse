@@ -152,6 +152,16 @@ class EtlUtils:
         lg.info("Escape backslash completed successfully.")
         return df
 
+    @staticmethod
+    def strip_white_space():
+        pass
+
+    @staticmethod
+    def lowercase_column_names(df: pd.DataFrame) -> pd.DataFrame:
+        lg.info("Converting all column names to lowercase.")
+        df.columns = df.columns.str.lower()
+        return df
+
     def transform_dataframe(self,
                             df: pd.DataFrame,
                             columns_int_list: List[str] = None,
@@ -160,9 +170,9 @@ class EtlUtils:
                             columns_replace_backslash_list: List[str] = None,
                             columns_escape_backslash_list: List[str] = None,
 
+                            columns_lowercase: bool = True,
+
                             move_etl_runs_key_before='',
-                            columns_esc_backslash=[],
-                            replace_backslash_with='',
                             columns_strip_list=[],
                             columns_replace_newline=[],
                             replace_newline_with=''
@@ -187,6 +197,9 @@ class EtlUtils:
         # escape backslashes
         if columns_escape_backslash_list:
             df = EtlUtils.escape_backslash(df=df, columns_escape_backslash_list=columns_escape_backslash_list)
+
+        if columns_lowercase:
+            df = EtlUtils.lowercase_column_names(df=df)
 
         return df
 
