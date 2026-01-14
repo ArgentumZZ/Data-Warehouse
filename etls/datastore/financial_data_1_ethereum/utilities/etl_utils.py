@@ -1,6 +1,7 @@
 from typing import Any, List, Dict
 import pandas as pd
 import utilities.logging_manager as lg
+import json
 
 
 class EtlUtils:
@@ -162,6 +163,29 @@ class EtlUtils:
         df.columns = df.columns.str.lower()
         return df
 
+    @staticmethod
+    def manage_json_columns(df: pd.DataFrame, columns_json_list: List[str]) -> pd.DataFrame:
+        """
+        Converts Python objects (dicts/lists) into valid JSON strings.
+
+        Why:
+        1. Pandas/Python defaults to single quotes {'a': 1} which Postgres rejects.
+        2. json.dumps() forces double quotes {"a": 1} which Postgres requires.
+        3. The check prevents double-stringifying columns that are already strings.
+        """
+        for col in columns_json_list:
+            if col in df.columns:
+                lg.info(f"Serializing JSON for column: {col}")
+                # json.dumps ensures double quotes are used: {"key": "value"}
+                df[col] = df[col].apply(
+                    lambda x: json.dumps(x) if isinstance(x, (dict, list)) else x
+                    # ^ Explanation:
+                    # - If x is a dict/list: Convert to "{"proper": "json"}"
+                    # - If x is None/NaN: Leave as is so Postgres sees it as NULL
+                    # - If x is a string: Skip to avoid "{\"nested\": \"quotes\"}"
+                )
+        return df
+
     def transform_dataframe(self,
                             df: pd.DataFrame,
                             columns_int_list: List[str] = None,
@@ -169,7 +193,7 @@ class EtlUtils:
                             validate_no_nulls_string: str = None,
                             columns_replace_backslash_list: List[str] = None,
                             columns_escape_backslash_list: List[str] = None,
-
+                            columns_json_list: List[str] = None,
                             columns_lowercase: bool = True,
 
                             move_etl_runs_key_before='',
@@ -178,26 +202,31 @@ class EtlUtils:
                             replace_newline_with=''
                             ) -> pd.DataFrame:
 
-        if columns_lowercase:
-            df = EtlUtils.lowercase_column_names(df=df)
-
-        # Convert columns to integer
-        if columns_int_list:
-            df = EtlUtils.convert_columns_to_int(df=df, columns_int_list=columns_int_list)
-
-        # Rename columns
+        # 1. Rename columns
         if columns_str_dict:
             df = EtlUtils.rename_columns(df=df, rename_columns_dict=columns_str_dict)
 
-        # check for null values in unique columns
+        # 2. Lowercase columns
+        if columns_lowercase:
+            df = EtlUtils.lowercase_column_names(df=df)
+
+        # 3. Handle JSON Columns (Essential for Postgres)
+        if columns_json_list:
+            df = EtlUtils.manage_json_columns(df=df, columns_json_list=columns_json_list)
+
+        # 4. Convert columns to integer
+        if columns_int_list:
+            df = EtlUtils.convert_columns_to_int(df=df, columns_int_list=columns_int_list)
+
+        # 5. Check for null values in unique columns
         if validate_no_nulls_string:
             df = EtlUtils.validate_no_nulls(df=df, source_columns_unique=validate_no_nulls_string)
 
-        # replace backslashes
+        # 6. Replace backslashes
         if columns_replace_backslash_list:
             df = EtlUtils.replace_backslash(df=df, columns_replace_backslash_list=columns_replace_backslash_list)
 
-        # escape backslashes
+        # 7. escape backslashes
         if columns_escape_backslash_list:
             df = EtlUtils.escape_backslash(df=df, columns_escape_backslash_list=columns_escape_backslash_list)
 

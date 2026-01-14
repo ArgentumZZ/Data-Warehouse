@@ -107,12 +107,18 @@ class ScriptWorker:
             # process df and transform
             df = self.sfc.etl_utils.transform_dataframe(
                     df=df,
-                    columns_int_list=['block_number'],
-                    columns_str_dict={'value_eth' : 'value_ethereum',
-                                      'tx_hash'   : 'tax_hash'},
+                    columns_int_list=[],
+                    # Pass source columns in lowercase
+                    columns_str_dict={'value_eth'           : 'value_ethereum',
+                                      'tx_hash'             : 'tax_hash',
+                                      'blck_nbr_raw_val'    : 'raw_number_value',
+                                      'eth_amt_001'         : 'ethereum_amount',
+                                      'contract_addr_x'     : 'contract_address',
+                                      'f_is_vld_bool'       : 'is_valid'},
                     validate_no_nulls_string=source_columns_unique,
                     columns_replace_backslash_list=[],
                     columns_escape_backslash_list=[],
+                    columns_json_list=['metadata'],
                     columns_lowercase=True
                     )
 
@@ -142,6 +148,17 @@ class ScriptWorker:
             # self.data_min_date = datetime.strptime("2025-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
             # self.data_max_date = datetime.strptime("2025-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
 
+            # 4. Write to CSV
+            df.to_csv(
+                    path_or_buf=file_path,
+                    sep=";",
+                    encoding="utf-8",
+                    index=False,
+                    escapechar="\\",
+                    doublequote=False,
+                    quoting=csv.QUOTE_NONE,
+                    header=True
+            )
 
         else:
             # this will be passed to update_etl_runs_table_record
@@ -153,19 +170,8 @@ class ScriptWorker:
             # ready for the next run to start at the same point
             self.sfc.etl_audit_manager.data_min_date = self.sfc.etl_audit_manager.sdt
             self.sfc.etl_audit_manager.data_max_date = self.sfc.etl_audit_manager.sdt
-            lg.info("Creating an empty file.")
 
-        # 4. Write to CSV
-        df.to_csv(
-            path_or_buf=file_path,
-            sep=";",
-            encoding="utf-8",
-            index=False,
-            escapechar="\\",
-            doublequote=False,
-            quoting=csv.QUOTE_NONE,
-            header=True
-        )
+
 
     # 3. Upload to DWH
     def upload_to_dwh(self,
@@ -200,6 +206,11 @@ class ScriptWorker:
         :return: None
         """
 
+        # 1. Check if file exists (Fixes the "missing file" issue)
+        if not os.path.exists(file_path):
+            lg.info(f"No data to upload for {table}. Skipping step.")
+            self.status = 'Complete'
+            return
 
         try:
             # 1. Try to the upload_to_pg function from the postgresql_connector Class
@@ -227,8 +238,9 @@ class ScriptWorker:
 
         # this will run (deletion still happens on both success/failure or try/except above)
         finally:
-            if delete_output:
+            if delete_output and os.path.exists(file_path):
                 try:
                     os.remove(path=file_path)
+                    lg.info(f"Deleted temporary file: {file_path}")
                 except Exception as ex:
                     lg.error(f"Could not delete file {file_path}: {ex}")

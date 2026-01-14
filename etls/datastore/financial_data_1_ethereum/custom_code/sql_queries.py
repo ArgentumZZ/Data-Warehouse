@@ -4,15 +4,24 @@ sql_queries = {}
 # 2. Create a source_cols_create variable with columns and data types
 source_columns_create = '''
             id                      TEXT NOT NULL, 
-            block_number            BIGINT, 
-            tax_hash                TEXT, 
-            value_ethereum          NUMERIC, 
+            raw_number_value        BIGINT,
+            tax_hash                TEXT,
+            ethereum_amount         NUMERIC,
+            transaction_index       INT, 
+            gas_limit               NUMERIC,
+            sender_address          TEXT,
+            contract_address        TEXT, 
+            input_data              TEXT,
+            metadata                JSONB,
+            event_date              DATE,
+            is_valid                BOOLEAN,
+            confirmed_at            TIMESTAMPTZ,
             source_created_at       TIMESTAMPTZ,
             source_updated_at       TIMESTAMPTZ,    
     '''
 
 # 3. Create a source_cols_unique variable with unique columns
-source_columns_unique = '''id'''
+source_columns_unique = '''tax_hash'''
 
 # 4. Create table query
 sql_queries['create_table'] = '''
@@ -31,11 +40,20 @@ sql_queries['create_table'] = '''
 # 5. GET data query
 sql_queries['get_data'] = '''
                           SELECT id, 
-                                 block_number, 
-                                 tx_hash, 
-                                 value_eth, 
-                                 source_created_at,
-                                 source_updated_at
+                                BLCK_NBR_raw_VAL, 
+                                tx_hash, 
+                                eth_amt_001, 
+                                source_created_at, 
+                                source_updated_at,
+                                transaction_index,
+                                gas_limit,
+                                sender_address,
+                                CONTRACT_ADDR_X,
+                                input_data,
+                                metadata,
+                                event_date,
+                                confirmed_at,
+                                f_is_vld_bool   
                           FROM financial_data.ethereum
                           WHERE (source_created_at  BETWEEN '{sdt}' AND '{edt}'
                             OR source_updated_at BETWEEN '{sdt}' AND '{edt}')
