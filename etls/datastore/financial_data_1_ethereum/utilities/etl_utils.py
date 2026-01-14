@@ -1,4 +1,5 @@
-from typing import Any
+from typing import Any, List, Dict
+import pandas as pd
 
 
 class EtlUtils:
@@ -16,9 +17,16 @@ class EtlUtils:
     - Generic utilities
     """
 
-    def __init__(self, sfc: Any):
+    def __init__(self,
+                 sfc: 'ScriptFactory') -> None:
         self.sfc = sfc
         self.version = "1.0"
+
+    def transform_dataframe(self,
+                            df: pd.DataFrame,
+                            rename_columns: Dict[str, str],
+                            date_columns: List[str]):
+        pass
 
     # ===========================================================
     # 1. DataFrame column utilities
