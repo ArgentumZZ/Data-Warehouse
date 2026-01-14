@@ -17,8 +17,8 @@ source_columns_unique = '''id'''
 # 4. Create table query
 sql_queries['create_table'] = '''
         CREATE TABLE IF NOT EXISTS {schema}.{table} (
-        {table}_key                     BIGSERIAL,
-        etl_runs_key                    BIGINT ,
+        {table}_key                     BIGSERIAL PRIMARY KEY,
+        etl_runs_key                    BIGINT,
         ''' + source_columns_create + '''
         created_at                      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
         modified_at                     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
