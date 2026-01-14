@@ -1,15 +1,16 @@
 # Import libraries
-import configparser, csv, os
+import configparser, csv, os, requests
 import pandas as pd
 from typing import Any, Dict, Optional
 from pathlib import Path
-import requests
 from datetime import datetime
 
 # Import custom libraries
 import utilities.logging_manager as lg
+from utilities.etl_utils import EtlUtils
 from connectors.postgresql_connector import PostgresConnector
-from custom_code.sql_queries import sql_queries
+from custom_code.sql_queries import sql_queries, source_columns_unique
+
 
 class ScriptWorker:
     """
@@ -102,12 +103,30 @@ class ScriptWorker:
 
             # Take the etl_runs_key from the audit table and pass it to the dataframe
             df['etl_runs_key'] = self.sfc.etl_audit_manager.etl_runs_key
+
             # process df and transform
+            df = self.sfc.etl_utils.transform_dataframe(
+                    df=df,
+                    columns_int_list=[],
+                    # Pass source columns in lowercase
+                    columns_str_dict={'value_eth'           : 'value_ethereum',
+                                      'tx_hash'             : 'tax_hash',
+                                      'blck_nbr_raw_val'    : 'raw_number_value',
+                                      'eth_amt_001'         : 'ethereum_amount',
+                                      'contract_addr_x'     : 'contract_address',
+                                      'f_is_vld_bool'       : 'is_valid'},
+                    validate_no_nulls_string=source_columns_unique,
+                    columns_replace_backslash_list=[],
+                    columns_escape_backslash_list=[],
+                    columns_json_list=['metadata'],
+                    columns_lowercase=True
+                    )
+
 
             # this will be passed to update_etl_runs_table_record
             self.num_of_records = len(df)
 
-
+            # self.sfc.etl_utils.process_dataframe_date_ranges()
             # if there is a time column in the df, calculate min and max for that specific extract interval
             # df[time_column] = pd.to_datetime(df[time_column])
             # self.data_min_date = df[time_column].min()
@@ -129,6 +148,17 @@ class ScriptWorker:
             # self.data_min_date = datetime.strptime("2025-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
             # self.data_max_date = datetime.strptime("2025-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
 
+            # 4. Write to CSV
+            df.to_csv(
+                    path_or_buf=file_path,
+                    sep=";",
+                    encoding="utf-8",
+                    index=False,
+                    escapechar="\\",
+                    doublequote=False,
+                    quoting=csv.QUOTE_NONE,
+                    header=True
+            )
 
         else:
             # this will be passed to update_etl_runs_table_record
@@ -140,19 +170,8 @@ class ScriptWorker:
             # ready for the next run to start at the same point
             self.sfc.etl_audit_manager.data_min_date = self.sfc.etl_audit_manager.sdt
             self.sfc.etl_audit_manager.data_max_date = self.sfc.etl_audit_manager.sdt
-            lg.info("Creating an empty file.")
 
-        # 4. Write to CSV
-        df.to_csv(
-            path_or_buf=file_path,
-            sep=";",
-            encoding="utf-8",
-            index=False,
-            escapechar="\\",
-            doublequote=False,
-            quoting=csv.QUOTE_NONE,
-            header=True
-        )
+
 
     # 3. Upload to DWH
     def upload_to_dwh(self,
@@ -187,6 +206,11 @@ class ScriptWorker:
         :return: None
         """
 
+        # 1. Check if file exists (Fixes the "missing file" issue)
+        if not os.path.exists(file_path):
+            lg.info(f"No data to upload for {table}. Skipping step.")
+            self.status = 'Complete'
+            return
 
         try:
             # 1. Try to the upload_to_pg function from the postgresql_connector Class
@@ -214,8 +238,9 @@ class ScriptWorker:
 
         # this will run (deletion still happens on both success/failure or try/except above)
         finally:
-            if delete_output:
+            if delete_output and os.path.exists(file_path):
                 try:
                     os.remove(path=file_path)
+                    lg.info(f"Deleted temporary file: {file_path}")
                 except Exception as ex:
                     lg.error(f"Could not delete file {file_path}: {ex}")

@@ -1,5 +1,5 @@
 # import libraries
-import psycopg2, io
+import psycopg2, io, csv
 import pandas as pd
 from io import StringIO
 from psycopg2 import DatabaseError
@@ -310,7 +310,12 @@ class PostgresConnector:
                 # 5. Use an in-memory buffer to stream the data to Postgres
                 # This is much faster than running individual INSERT statements
                 buffer = io.StringIO()
-                df.to_csv(buffer, index=False, header=False, sep=';')
+                df.to_csv(buffer,
+                          index=False,
+                          header=False,
+                          sep=';',
+                          quoting=csv.QUOTE_NONE,
+                          escapechar='\\')
                 buffer.seek(0)  # Go back to the start of the virtual file
 
                 # 6. Execute the copy

@@ -23,6 +23,8 @@ script_name = 'FINANCIAL DATA 1 ETHEREUM'
 script_version = '1.0'
 script_description = 'ETL pipeline for ingesting and transforming order data'
 script_frequency = "daily"  # "hourly", "daily", "weekly", "monthly"
+script_primary_owner = "Mihail Mihaylov"
+script_secondary_owner = ""
 
 # ===========================================================
 # 2. Environment configuration
@@ -45,26 +47,23 @@ base_dir = os.environ.get("BASEDIR")   # Base directory (e.g. C:\Users\Mihail\Py
 etls_dir = os.environ.get("ETLS")      # Directory of etls folder (e.g. %BASEDIR%\ETLs)
 
 # 2.5 Paths for logs, working directory and configuration file
-logs_dir = os.environ.get("LOGS")                  # e.g. %BASEDIR%\logs
-work_dir = os.environ.get("WORKDIR")               # e.g. %BASEDIR%\work
+# logs_dir = os.environ.get("LOGS")                  # e.g. %BASEDIR%\logs
+# work_dir = os.environ.get("WORKDIR")               # e.g. %BASEDIR%\work
 config_dir = os.environ.get("CONFIG_DIR")          # Directory of the configuration file
 
 # 2.6 Virtual environment activation/deactivation commands
-venv_activate = os.environ.get("SCRIPT_VIRTUAL_ENV")
-venv_deactivate = os.environ.get("SCRIPT_VIRTUAL_ENV_DEACTIVATE")
+# venv_activate = os.environ.get("SCRIPT_VIRTUAL_ENV")
+# venv_deactivate = os.environ.get("SCRIPT_VIRTUAL_ENV_DEACTIVATE")
 
 # 2.7 Oracle client / SQL Server driver configuration
 oracle_path = os.environ.get("ORACLE_PATH")             # e.g. set PATH=C:\Oracle\instantclient_19_23;%PATH%
 sqlserver_driver = os.environ.get("SQLSERVER_DRIVER")   # e.g. ODBC+Driver+13+for+SQL+Server
 
-# 2.8 Logging level
-# log_level = os.environ.get("LOG_LEVEL")           # e.g. INFO / DEBUG / WARNING / ERROR
-
-# 2.9 Proxy settings
+# 2.8 Proxy settings
 # http_proxy = os.environ.get("HTTP_PROXY")
 # https_proxy = os.environ.get("HTTPS_PROXY")
 
-# 2.10 Custom tools path
+# 2.9 Custom tools path
 # custom_tools_path = os.environ.get("CUSTOM_TOOLS_PATH")
 
 # ===========================================================

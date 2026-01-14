@@ -3,22 +3,31 @@ sql_queries = {}
 
 # 2. Create a source_cols_create variable with columns and data types
 source_columns_create = '''
-            id                      TEXT, 
-            block_number            BIGINT, 
-            tx_hash                 TEXT, 
-            value_eth               NUMERIC, 
+            id                      TEXT NOT NULL, 
+            raw_number_value        BIGINT,
+            tax_hash                TEXT,
+            ethereum_amount         NUMERIC,
+            transaction_index       INT, 
+            gas_limit               NUMERIC,
+            sender_address          TEXT,
+            contract_address        TEXT, 
+            input_data              TEXT,
+            metadata                JSONB,
+            event_date              DATE,
+            is_valid                BOOLEAN,
+            confirmed_at            TIMESTAMPTZ,
             source_created_at       TIMESTAMPTZ,
             source_updated_at       TIMESTAMPTZ,    
     '''
 
 # 3. Create a source_cols_unique variable with unique columns
-source_columns_unique = '''id'''
+source_columns_unique = '''tax_hash'''
 
 # 4. Create table query
 sql_queries['create_table'] = '''
         CREATE TABLE IF NOT EXISTS {schema}.{table} (
-        {table}_key                     BIGSERIAL,
-        etl_runs_key                    BIGINT ,
+        {table}_key                     BIGSERIAL PRIMARY KEY,
+        etl_runs_key                    BIGINT,
         ''' + source_columns_create + '''
         created_at                      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
         modified_at                     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -31,29 +40,63 @@ sql_queries['create_table'] = '''
 # 5. GET data query
 sql_queries['get_data'] = '''
                           SELECT id, 
-                                 block_number, 
-                                 tx_hash, 
-                                 value_eth, 
-                                 source_created_at,
-                                 source_updated_at
+                                BLCK_NBR_raw_VAL, 
+                                tx_hash, 
+                                eth_amt_001, 
+                                source_created_at, 
+                                source_updated_at,
+                                transaction_index,
+                                gas_limit,
+                                sender_address,
+                                CONTRACT_ADDR_X,
+                                input_data,
+                                metadata,
+                                event_date,
+                                confirmed_at,
+                                f_is_vld_bool   
                           FROM financial_data.ethereum
                           WHERE (source_created_at  BETWEEN '{sdt}' AND '{edt}'
                             OR source_updated_at BETWEEN '{sdt}' AND '{edt}')
                           '''
 
 # 6. Create comments query
-sql_queries['create_comments'] = '''
-        COMMENT ON TABLE {schema}.{table} IS 'Table sourced from ...';
+sql_queries['set_comments'] = '''
+        COMMENT ON TABLE {schema}.{table} IS 'Table sourced from {schema}.';
         COMMENT ON COLUMN {schema}.{table}.{table}_key IS 'Serial key generated for each record in the table.';
         COMMENT ON COLUMN {schema}.{table}.etl_runs_key IS 'Serial key of the ETL run.';
         '''
 
-# 7. MERGE INTO syntax
-# 7.1. Construct MERGE ON clause using target (t) and source (s) unique columns
+# Use this to read table comment
+"""
+SELECT obj_description('financial_data.ethereum'::regclass, 'pg_class') AS table_comment;
+"""
+
+
+# Use this to read column comments
+"""SELECT
+    a.attname AS column_name,
+    d.description AS column_comment
+FROM pg_attribute AS a
+LEFT JOIN pg_description AS d
+    ON d.objoid = a.attrelid AND d.objsubid = a.attnum
+WHERE a.attrelid = 'financial_data.ethereum'::regclass AND a.attnum > 0;"""
+
+# 7. Previous data max date query
+sql_queries['prev_max_date_query'] = """SELECT data_max_date
+                                         FROM audit.etl_runs
+                                         WHERE etl_runs_key=(SELECT max(etl_runs_key) 
+                                                             FROM audit.etl_runs 
+                                                             WHERE target_table='{schema}.{table}'
+                                                             AND status='Complete')
+                                                       """
+
+
+# 8. MERGE INTO syntax
+# 8.1. Construct MERGE ON clause using target (t) and source (s) unique columns
 # Later need to add "etl_runs_key = excluded.etl_runs_key, "
 sql_queries['on_clause'] = " AND ".join([f"t.{col.strip()} = s.{col.strip()}" for col in source_columns_unique.split(',')])
 
-# 7.2. UPDATE CLAUSE for MERGE INTO query
+# 8.2. UPDATE CLAUSE for MERGE INTO query
 # ------------------------------------------------------------
 # Extract all column names from source_cols_create
 # ------------------------------------------------------------
@@ -79,7 +122,7 @@ update_parts = ["etl_runs_key = s.etl_runs_key"] + \
 
 sql_queries['update_clause'] = ", ".join(update_parts)
 
-# 7.3. INSERT for MERGE INTO
+# 8.3. INSERT for MERGE INTO
 # Extract normal columns from CREATE TABLE, skip comments
 cols = [line.split()[0] for line in source_columns_create.strip().split('\n') if line.strip() and not line.strip().startswith('--')]
 
