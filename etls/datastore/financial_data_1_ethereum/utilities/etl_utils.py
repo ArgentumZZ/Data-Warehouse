@@ -1,5 +1,6 @@
 from typing import Any, List, Dict
 import pandas as pd
+import utilities.logging_manager as lg
 
 
 class EtlUtils:
@@ -33,7 +34,7 @@ class EtlUtils:
         - Raises an error on non-integer floats or invalid strings.
         - None / NaN values are preserved.
         """
-
+        lg.info(f"Converting the columns in {convert_columns_int_list} to integers.")
         for col in convert_columns_int_list:
 
             # 1. Convert to numeric, raising an error for invalid strings
@@ -49,6 +50,7 @@ class EtlUtils:
             # 3. Convert to nullable Int64
             df[col] = numeric_series.astype('Int64')
 
+        lf.info("Conversion of columns to Int64 was successful.")
         return df
 
     def rename_columns(self,
@@ -62,6 +64,7 @@ class EtlUtils:
                 "old_version_1" : "new_version_2",
                 "old_version_2" : "new_version_2"
                 } """
+        lg.info(f"Renaming the columns in the dictionary: {rename_columns_dict}")
         return df.rename(columns=rename_columns_dict)
 
 
@@ -95,8 +98,8 @@ class EtlUtils:
                                       date_columns: List[str]
                                       ) -> None:
         # list of timestamps
-        date_min_list = [pd.to_datetime(column).min() for column in date_columns]
-        date_max_list = [pd.to_dateime(column).max() for column in date_columns]
+        date_min_list = [pd.to_datetime(df[column]).min() for column in date_columns]
+        date_max_list = [pd.to_dateime(df[column]).max() for column in date_columns]
 
         # timestamp
         data_min_date = min(date_min_list)
