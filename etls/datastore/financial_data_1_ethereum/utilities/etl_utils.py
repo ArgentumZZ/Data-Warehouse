@@ -64,6 +64,7 @@ class EtlUtils:
                 "old_version_1" : "new_version_2",
                 "old_version_2" : "new_version_2"
                 } """
+
         lg.info(f"Renaming the columns in the dictionary: {rename_columns_dict}")
         return df.rename(columns=rename_columns_dict)
 
@@ -75,17 +76,50 @@ class EtlUtils:
         # 1. Parse the string into column names
         # For example, turn "id, type, load, meta" into ["id", "type", "load", "meta"]
         cols = [c.strip() for c in source_columns_unique.split(",")]
+        lg.info(f"Converted source_columns_unique into: {cols}")
 
         # 2. Check that all columns exist in df
+        lg.info("Running columns missing check.")
         missing = [c for c in cols if c not in df.columns]
         if missing:
             raise ValueError(f"Columns not found in DataFrame: {missing}.")
 
         # 3. Check for nulls in each column
+        lg.info("Running null columns check.")
         for col in cols:
             if df[col].isnull().any():
                 raise ValueError(f"Column '{col}' contains null values.")
 
+        return df
+
+    @staticmethod
+    def replace_backslash(df: pd.DataFrame,
+                         columns_replace_backslash_list: List[str] = None,
+                         replace_with: str = ''):
+
+        """
+        1. Replace backslashes in the specified columns.
+        2. Backslashes are special characters in: JSON, CSV, SQL strings, Regex, File paths.
+        """
+
+        # 1. Check
+        if not columns_replace_backslash_list:
+            lg.info("No columns provided. Skipping transformation.")
+            return df
+
+        # 2. Check that the columns exists in the dataframe
+        missing = [c for c in columns_replace_backslash_list if c not in df.columns]
+        if missing:
+            lg.error(f"Columns not found in DataFrame: {missing}")
+            raise ValueError(f"Columns not found in DataFrame: {missing}")
+
+        # 3. Replace backslashes with parameter `replace_with`
+        # .astype(str) ensures the .str accessor always works
+        # regex=False prevents Pandas from interpreting backslashes as regex escapes
+        for col in columns_replace_backslash_list:
+            df[col] = df[col].astype(str).str.replace("\\", replace_with, regex=False)
+
+        lg.info("Backslash replacement completed successfully.")
         return df
 
     def transform_dataframe(self,
@@ -93,10 +127,11 @@ class EtlUtils:
                             columns_int_list: List[str] = None,
                             columns_str_dict: Dict[str, str] = None,
                             validate_no_nulls_string: str = None,
+                            columns_replace_backslash_list: List[str] = None,
+                            columns_escape_backslash_list: List[str] = None,
 
                             move_etl_runs_key_before='',
                             columns_esc_backslash=[],
-                            columns_replace_backslash_list=[],
                             replace_backslash_with='',
                             columns_strip_list=[],
                             columns_replace_newline=[],
@@ -111,8 +146,15 @@ class EtlUtils:
         if columns_str_dict:
             df = self.rename_columns(df=df, rename_columns_dict=columns_str_dict)
 
+        # check for null values in unique columns
         if validate_no_nulls_string:
             df = self.validate_no_nulls(df=df, source_columns_unique=validate_no_nulls_string)
+
+        # replace backslashes
+        if columns_replace_backslash_list:
+            df = self.replace_backslash(df=df, columns_replace_backslash_list=columns_replace_backslash_list)
+
+        # escape backslashes
 
         return df
 
