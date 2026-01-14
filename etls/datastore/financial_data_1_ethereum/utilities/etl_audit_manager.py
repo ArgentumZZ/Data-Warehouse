@@ -90,10 +90,15 @@ class EtlAuditManager:
     @staticmethod
     def create_audit_etl_runs_table() -> str:
         """
-        CREATE TABLE statement for the audit table.
+        Generates the SQL statement to create the audit.etl_runs table.
+
+        The table stores one record per ETL execution and captures load metadata, load window boundaries,
+        processed data time ranges, execution timestamps, runtime environment details, execution status,
+        and operational metrics. The table is created only if it does not already exist.
 
         Returns:
-            str: String formated SQL query.
+            str:
+                SQL CREATE TABLE statement for the audit.etl_runs table.
         """
         return f"""
                 CREATE TABLE IF NOT EXISTS audit.etl_runs (
@@ -123,7 +128,7 @@ class EtlAuditManager:
                               max_days_to_load: int,
                               increment_sdt: bool,
                               load_type: str,
-                              forced_sdt: str) -> tuple[datetime.datetime, datetime.datetime]:
+                              forced_sdt: Optional[str]) -> tuple[datetime.datetime, datetime.datetime]:
         """
         This method determines the start date-time (SDT / start_load_date) and end date-time (EDT / end_load_date)
         based on the previous successful run, load mode (Full or Incremental), and runtime configuration.
@@ -153,8 +158,7 @@ class EtlAuditManager:
 
         Raises:
             ValueError:
-                If Full mode is selected and neither a forced start date nor a
-                previous maximum date is available.
+                If Full mode is selected and neither a forced start date nor a previous maximum date is available.
         """
 
         # 1. Get the latest successfully loaded data max date
@@ -220,7 +224,7 @@ class EtlAuditManager:
             target_table: str,
             prev_max_date_query: str,
             script_version: str,
-            forced_sdt: str | None,
+            forced_sdt: Optional[str],
             max_days_to_load: int = 365,
             increment_sdt: bool = False
     ) -> None:
@@ -257,12 +261,6 @@ class EtlAuditManager:
                 If True, increments the start date by one day in Incremental
                 load mode (commonly used for daily-partitioned datasets).
                 Defaults to False.
-
-        Side Effects:
-            - Creates the audit schema and table if they do not exist.
-            - Sets `self.sdt` and `self.edt` to the calculated load window.
-            - Inserts a new record into audit.etl_runs.
-            - Sets `self.etl_runs_key` to the generated primary key.
 
         Raises:
             ValueError:
@@ -328,19 +326,12 @@ class EtlAuditManager:
         # 1. Fetch the number of records in the df
         # self.num_records = getattr(self.swc, 'num_of_records')
         self.num_of_records = self.swc.num_of_records
-        lg.logger.info(f"Final count pulled from worker: {self.num_of_records}")
+        lg.logger.info(f"Final count pulled from script worker: {self.num_of_records}")
 
-        # 2. Get the data min/max dates.
-        # self.data_min_date = getattr(self.swc, 'data_min_date')
-        # lg.logger.info(f"Data min date: {self.data_min_date}")
-
-        # self.data_max_date = getattr(self.swc, 'data_max_date')
-        # lg.logger.info(f"Data max date: {self.data_max_date}")
-
-        # 3. Format dates for SQL
+        # 2. Format dates for SQL
         prev_date_val = f"'{self.prev_max_date.strftime('%Y-%m-%d %H:%M:%S')}'" if self.prev_max_date else "NULL"
 
-        # 4. Update Query
+        # 3. Update Query
         update_query = f"""
             UPDATE audit.etl_runs 
             SET  
@@ -354,6 +345,6 @@ class EtlAuditManager:
             WHERE etl_runs_key = {self.etl_runs_key};
         """
 
-        # 5. Run the update query
+        # 4. Run the update query
         lg.info(f"Running the UPDATE query: {update_query}")
         self.pg_connector.run_query(query=update_query, commit=True, get_result=False)
