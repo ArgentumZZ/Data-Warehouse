@@ -5,8 +5,8 @@ sql_queries = {}
 source_columns_create = '''
             id                      TEXT, 
             block_number            BIGINT, 
-            tx_hash                 TEXT, 
-            value_eth               NUMERIC, 
+            tax_hash                 TEXT, 
+            value_ethereum          NUMERIC, 
             source_created_at       TIMESTAMPTZ,
             source_updated_at       TIMESTAMPTZ,    
     '''

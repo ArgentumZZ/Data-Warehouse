@@ -23,19 +23,19 @@ class EtlUtils:
         self.sfc = sfc
         self.version = "1.0"
 
-    def convert_columns_to_int(self,
-                               df: pd.DataFrame,
-                               convert_columns_int_list: list[str]
+    @staticmethod
+    def convert_columns_to_int(df: pd.DataFrame,
+                               columns_int_list: list[str]
                                ) -> pd.DataFrame:
         """
-        Convert all columns in the given list to nullable Int64.
+        Convert all columns in the given list to nullable Int64. Enforce early data corruption detection.
 
         Rules:
         - Raises an error on non-integer floats or invalid strings.
         - None / NaN values are preserved.
         """
-        lg.info(f"Converting the columns in {convert_columns_int_list} to integers.")
-        for col in convert_columns_int_list:
+        lg.info(f"Converting the columns in {columns_int_list} to integers.")
+        for col in columns_int_list:
 
             # 1. Convert to numeric, raising an error for invalid strings
             numeric_series = pd.to_numeric(df[col], errors='raise')
@@ -50,11 +50,11 @@ class EtlUtils:
             # 3. Convert to nullable Int64
             df[col] = numeric_series.astype('Int64')
 
-        lf.info("Conversion of columns to Int64 was successful.")
+        lg.info("Conversion of columns to Int64 was successful.")
         return df
 
-    def rename_columns(self,
-                       df: pd.DataFrame,
+    @staticmethod
+    def rename_columns(df: pd.DataFrame,
                        rename_columns_dict: Dict[str, str]
                        ) -> pd.DataFrame:
 
@@ -67,12 +67,32 @@ class EtlUtils:
         lg.info(f"Renaming the columns in the dictionary: {rename_columns_dict}")
         return df.rename(columns=rename_columns_dict)
 
+    @staticmethod
+    def validate_no_nulls(df: pd.DataFrame,
+                          source_columns_unique: str
+                          ) -> pd.DataFrame:
 
+        # 1. Parse the string into column names
+        # For example, turn "id, type, load, meta" into ["id", "type", "load", "meta"]
+        cols = [c.strip() for c in source_columns_unique.split(",")]
+
+        # 2. Check that all columns exist in df
+        missing = [c for c in cols if c not in df.columns]
+        if missing:
+            raise ValueError(f"Columns not found in DataFrame: {missing}.")
+
+        # 3. Check for nulls in each column
+        for col in cols:
+            if df[col].isnull().any():
+                raise ValueError(f"Column '{col}' contains null values.")
+
+        return df
 
     def transform_dataframe(self,
                             df: pd.DataFrame,
-                            convert_columns_int_list: List[int] = None,
-                            rename_columns_dict: Dict[str, str] = None,
+                            columns_int_list: List[str] = None,
+                            columns_str_dict: Dict[str, str] = None,
+                            validate_no_nulls_string: str = None,
 
                             move_etl_runs_key_before='',
                             columns_esc_backslash=[],
@@ -84,14 +104,17 @@ class EtlUtils:
                             ) -> pd.DataFrame:
 
         # Convert columns to integer
-        if convert_columns_int_list:
-            df = convert_columns_to_int(df=df, convert_columns_int_list=convert_columns_int_list)
+        if columns_int_list:
+            df = self.convert_columns_to_int(df=df, columns_int_list=columns_int_list)
 
         # Rename columns
-        if rename_columns_dict:
-            df = self.rename_columns(df=df, rename_columns_dict=rename_columns_dict)
+        if columns_str_dict:
+            df = self.rename_columns(df=df, rename_columns_dict=columns_str_dict)
 
-        pass
+        if validate_no_nulls_string:
+            df = self.validate_no_nulls(df=df, source_columns_unique=validate_no_nulls_string)
+
+        return df
 
     def process_dataframe_date_ranges(self,
                                       df: pd.DataFrame,
@@ -99,15 +122,15 @@ class EtlUtils:
                                       ) -> None:
         # list of timestamps
         date_min_list = [pd.to_datetime(df[column]).min() for column in date_columns]
-        date_max_list = [pd.to_dateime(df[column]).max() for column in date_columns]
+        date_max_list = [pd.to_datetime(df[column]).max() for column in date_columns]
 
         # timestamp
         data_min_date = min(date_min_list)
-        data_max_date = max(data_max_list)
+        data_max_date = max(date_max_list)
 
         # set data_min/max_date to audit manager
-        self.sfp.etl_audit_manager.data_min_date = self.data_min_date
-        self.sfp.etl_audit_manager.data_max_date = self.data_max_date
+        self.sfp.etl_audit_manager.data_min_date = data_min_date
+        self.sfp.etl_audit_manager.data_max_date = data_max_date
         pass
 
     # ===========================================================
@@ -137,11 +160,6 @@ class EtlUtils:
     # 1.5 Deduplication
     def remove_duplicates(self):
         """Remove duplicate rows based on key columns or full row comparison."""
-        pass
-
-    # 1.6 Column renaming
-    def rename_columns(self):
-        """Rename DataFrame columns to standardized names."""
         pass
 
     # 1.7 Schema validation

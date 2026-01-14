@@ -7,8 +7,10 @@ from datetime import datetime
 
 # Import custom libraries
 import utilities.logging_manager as lg
+from utilities.etl_utils import EtlUtils
 from connectors.postgresql_connector import PostgresConnector
-from custom_code.sql_queries import sql_queries
+from custom_code.sql_queries import sql_queries, source_columns_unique
+
 
 class ScriptWorker:
     """
@@ -102,6 +104,14 @@ class ScriptWorker:
             # Take the etl_runs_key from the audit table and pass it to the dataframe
             df['etl_runs_key'] = self.sfc.etl_audit_manager.etl_runs_key
             # process df and transform
+            df = self.sfc.etl_utils.transform_dataframe(df=df,
+                                                   columns_int_list=['block_number'],
+                                                   columns_str_dict={'value_eth' : 'value_ethereum',
+                                                                     'tx_hash'   : 'tax_hash'
+                                                                     },
+                                                   validate_no_nulls_string=source_columns_unique
+                                                   )
+
 
             # this will be passed to update_etl_runs_table_record
             self.num_of_records = len(df)
