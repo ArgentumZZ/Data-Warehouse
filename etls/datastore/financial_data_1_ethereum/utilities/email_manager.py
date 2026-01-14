@@ -43,11 +43,11 @@ class EmailManager:
             })
 
         def send(self):
-            lg.logger.info(f"Sending email to: {self.to}")
-            lg.logger.info(f"Subject: {self.subject}")
+            lg.info(f"Sending email to: {self.to}")
+            lg.info(f"Subject: {self.subject}")
             # Here you would integrate your actual mailer logic
             # This is a placeholder for demonstration
-            lg.logger.info("Email sent successfully")
+            lg.info("Email sent successfully")
 
     # -------------------------------------------------------
     # Internal helper function: dataframe_to_html
@@ -77,7 +77,7 @@ class EmailManager:
     # 1. Prepare email content
     # -------------------------------------------------------
     def prepare_mails(self):
-        lg.logger.info("Preparing email content")
+        lg.info("Preparing email content")
 
         self.mails.clear()
         mail = EmailManager.MailInput()
@@ -113,10 +113,10 @@ class EmailManager:
     # 2. Send emails
     # -------------------------------------------------------
     def send_mails(self):
-        lg.logger.info("Sending emails")
+        lg.info("Sending emails")
 
         if not self.cfg.send_mail_report:
-            lg.logger.info("Email sending disabled in settings")
+            lg.info("Email sending disabled in settings")
             return
 
         for mail in self.mails:

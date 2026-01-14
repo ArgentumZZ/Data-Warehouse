@@ -33,15 +33,17 @@ class ScriptFactory:
                  load_type: str,
                  max_days_to_load: int,
                  settings):
-        lg.logger.info("Initializing ScriptFactory")
+        lg.info("Initializing ScriptFactory")
 
         # 1. General script information
         self.info = {
-            'script_name'           : settings.script_name,
-            'script_version'        : settings.script_version,
-            'script_description'    : settings.script_description,
-            'script_frequency'      : settings.script_frequency,
-            'email_recipients'      : settings.email_recipients
+            'script_name'            : settings.script_name,
+            'script_version'         : settings.script_version,
+            'script_description'     : settings.script_description,
+            'script_frequency'       : settings.script_frequency,
+            'script_primary_owner'   : settings.script_primary_owner,
+            'script_secondary_owner' : settings.script_secondary_owner,
+            'email_recipients'       : settings.email_recipients
         }
 
         # forced_sdt, load_type, max_days_to_load = parse_arguments(sys.argv, settings)

@@ -85,7 +85,7 @@ class EtlAuditManager:
         self.num_of_records: Optional[int] = None                               # Number of records extracted
         self.prev_max_date: Optional[datetime.datetime] = None                  # Previous data max date
         self.pg_connector = PostgresConnector(credential_name=credential_name)  # Initialize PostgresConnector
-        lg.logger.info('Etl Audit Manager object is instantiated')
+        lg.info('Etl Audit Manager object is instantiated')
 
     @staticmethod
     def create_audit_etl_runs_table() -> str:
@@ -326,7 +326,7 @@ class EtlAuditManager:
         # 1. Fetch the number of records in the df
         # self.num_records = getattr(self.swc, 'num_of_records')
         self.num_of_records = self.swc.num_of_records
-        lg.logger.info(f"Final count pulled from script worker: {self.num_of_records}")
+        lg.info(f"Final count pulled from script worker: {self.num_of_records}")
 
         # 2. Format dates for SQL
         prev_date_val = f"'{self.prev_max_date.strftime('%Y-%m-%d %H:%M:%S')}'" if self.prev_max_date else "NULL"
