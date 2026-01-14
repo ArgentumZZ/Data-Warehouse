@@ -36,9 +36,21 @@ class EtlUtils:
                             ) -> pd.DataFrame:
         pass
 
-    def process_dataframe_date_ranged(self,
-                            df: pd.DataFrame,
-                            date_columns: List[str]):
+    def process_dataframe_date_ranges(self,
+                                      df: pd.DataFrame,
+                                      date_columns: List[str]
+                                      ) -> None:
+        # list of timestamps
+        date_min_list = [pd.to_datetime(column).min() for column in date_columns]
+        date_max_list = [pd.to_dateime(column).max() for column in date_columns]
+
+        # timestamp
+        data_min_date = min(date_min_list)
+        data_max_date = max(data_max_list)
+
+        # set data_min/max_date to audit manager
+        self.sfp.etl_audit_manager.data_min_date = self.data_min_date
+        self.sfp.etl_audit_manager.data_max_date = self.data_max_date
         pass
 
     # ===========================================================
