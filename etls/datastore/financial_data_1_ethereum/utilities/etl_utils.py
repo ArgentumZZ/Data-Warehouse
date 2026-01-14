@@ -178,6 +178,9 @@ class EtlUtils:
                             replace_newline_with=''
                             ) -> pd.DataFrame:
 
+        if columns_lowercase:
+            df = EtlUtils.lowercase_column_names(df=df)
+
         # Convert columns to integer
         if columns_int_list:
             df = EtlUtils.convert_columns_to_int(df=df, columns_int_list=columns_int_list)
@@ -197,9 +200,6 @@ class EtlUtils:
         # escape backslashes
         if columns_escape_backslash_list:
             df = EtlUtils.escape_backslash(df=df, columns_escape_backslash_list=columns_escape_backslash_list)
-
-        if columns_lowercase:
-            df = EtlUtils.lowercase_column_names(df=df)
 
         return df
 

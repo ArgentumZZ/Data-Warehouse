@@ -103,20 +103,24 @@ class ScriptWorker:
 
             # Take the etl_runs_key from the audit table and pass it to the dataframe
             df['etl_runs_key'] = self.sfc.etl_audit_manager.etl_runs_key
+
             # process df and transform
-            df = self.sfc.etl_utils.transform_dataframe(df=df,
-                                                   columns_int_list=['block_number'],
-                                                   columns_str_dict={'value_eth' : 'value_ethereum',
-                                                                     'tx_hash'   : 'tax_hash'
-                                                                     },
-                                                   validate_no_nulls_string=source_columns_unique
-                                                   )
+            df = self.sfc.etl_utils.transform_dataframe(
+                    df=df,
+                    columns_int_list=['block_number'],
+                    columns_str_dict={'value_eth' : 'value_ethereum',
+                                      'tx_hash'   : 'tax_hash'},
+                    validate_no_nulls_string=source_columns_unique,
+                    columns_replace_backslash_list=[],
+                    columns_escape_backslash_list=[],
+                    columns_lowercase=True
+                    )
 
 
             # this will be passed to update_etl_runs_table_record
             self.num_of_records = len(df)
 
-
+            # self.sfc.etl_utils.process_dataframe_date_ranges()
             # if there is a time column in the df, calculate min and max for that specific extract interval
             # df[time_column] = pd.to_datetime(df[time_column])
             # self.data_min_date = df[time_column].min()
