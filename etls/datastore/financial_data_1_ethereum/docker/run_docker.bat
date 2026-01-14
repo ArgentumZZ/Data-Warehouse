@@ -25,7 +25,7 @@ echo Parameter 1: %1
 echo Parameter 2: %2
 
 :: 2. Build the image
-:: -t -> tag this image with a name
+:: -t -> tag this image with a name (%SCRIPT_NAME%)
 :: The dot . means to use the Dockerfile in the current directory.
 echo.
 echo Building Docker image...

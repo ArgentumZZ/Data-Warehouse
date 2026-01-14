@@ -2,8 +2,8 @@ import time
 import utilities.logging_manager as lg
 import sys
 
-from script_factory.script_factory import ScriptFactory
-import script_factory.settings as settings
+from custom_code.script_factory import ScriptFactory
+import custom_code.script_parameters as settings
 from utilities.argument_parser import parse_arguments
 
 def main():

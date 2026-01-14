@@ -75,8 +75,8 @@ ___
   - Add parameter parsing, environment selection, and error handling.
 
 - **Backfill**
-  - Implement backfill loading option `.bat`, `.sh`, `_docker.bat`, `_docker.sh` files.
-  - Create a separate backfill project that accepts `project_name`, `start_date`, `end_date`, `load_days` that loads data incrementally.
+  - Implement backfill loading option in `.bat`, `.sh`, `_docker.bat`, `_docker.sh` files.
+  - Create a separate backfill project that accepts `project_name`, `start_date`, `end_date`, `load_days` to load data incrementally.
 - **Additional Connectors**
   - PostgreSQL (implemented) 
   - Oracle
