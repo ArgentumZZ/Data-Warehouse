@@ -23,25 +23,33 @@ class EtlUtils:
         self.version = "1.0"
 
     def convert_columns_to_int(self,
-                               df,
-                               convert_columns_list):
+                               df: pd.DataFrame,
+                               convert_columns_int_list: list[str]
+                               ) -> pd.DataFrame:
+        """
+        Convert all columns in the given list to nullable Int64.
 
-        ''' Convert all columns in the given list toInt64. Crashes on non-integer floats or invalid strings.
-            None Stays NaN/NA.'''
+        Rules:
+        - Raises an error on non-integer floats or invalid strings.
+        - None / NaN values are preserved.
+        """
 
-        for col in convert_columns_list:
-            # 1. Ensure all values are whole numbers (e.g., 1.0 is okay, 1.3 is not)
-            # Check if the remainder is 0 when divided by 1
-            # .dropna(): Ignores None/NULL so they don't interfere with the math.
-            # Ensure every single row meets the criteria before proceeding
-            if not (df[col].dropna() % 1 == 0).all():
+        for col in convert_columns_int_list:
+
+            # 1. Convert to numeric, raising an error for invalid strings
+            numeric_series = pd.to_numeric(df[col], errors='raise')
+
+            # 2. Ensure all non-NA values are whole numbers (e.g., 1.0 is okay, 1.3 is not)
+            #    - .dropna(): Ignores None/NaN values so they don't interfere with the check
+            #    - % 1 == 0: Vectorized check if values are whole numbers
+            #    - .all(): Ensures **every single non-NA value** passes the check
+            if not ((numeric_series.dropna() % 1) == 0).all():
                 raise ValueError(f"Column '{col}' contains non-integer decimals.")
 
-            # 2. Convert to nullable Int64
-            df[col] = df[col].astype('Int64')
+            # 3. Convert to nullable Int64
+            df[col] = numeric_series.astype('Int64')
 
         return df
-
 
     def rename_columns(self,
                        df: pd.DataFrame,
@@ -60,7 +68,7 @@ class EtlUtils:
 
     def transform_dataframe(self,
                             df: pd.DataFrame,
-                            convert_columns_list: List[int] = None,
+                            convert_columns_int_list: List[int] = None,
                             rename_columns_dict: Dict[str, str] = None,
 
                             move_etl_runs_key_before='',
@@ -73,12 +81,12 @@ class EtlUtils:
                             ) -> pd.DataFrame:
 
         # Convert columns to integer
-        if convert_columns_list:
-            df = convert_columns_to_int(df, convert_columns_list)
+        if convert_columns_int_list:
+            df = convert_columns_to_int(df=df, convert_columns_int_list=convert_columns_int_list)
 
         # Rename columns
         if rename_columns_dict:
-            df = self.rename_columns(df, rename_columns_dict)
+            df = self.rename_columns(df=df, rename_columns_dict=rename_columns_dict)
 
         pass
 
