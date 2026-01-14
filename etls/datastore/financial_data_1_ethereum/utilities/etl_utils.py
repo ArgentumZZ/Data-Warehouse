@@ -22,11 +22,48 @@ class EtlUtils:
         self.sfc = sfc
         self.version = "1.0"
 
+    def convert_columns_to_int(self,
+                               df,
+                               convert_columns_list):
+
+        ''' Convert all columns in the given list toInt64. Crashes on non-integer floats or invalid strings.
+            None Stays NaN/NA.'''
+
+        for col in convert_columns_list:
+            # 1. Ensure all values are whole numbers (e.g., 1.0 is okay, 1.3 is not)
+            # Check if the remainder is 0 when divided by 1
+            # .dropna(): Ignores None/NULL so they don't interfere with the math.
+            # Ensure every single row meets the criteria before proceeding
+            if not (df[col].dropna() % 1 == 0).all():
+                raise ValueError(f"Column '{col}' contains non-integer decimals.")
+
+            # 2. Convert to nullable Int64
+            df[col] = df[col].astype('Int64')
+
+        return df
+
+
+    def rename_columns(self,
+                       df: pd.DataFrame,
+                       rename_columns_dict: Dict[str, str]
+                       ) -> pd.DataFrame:
+
+        """ Rename column names by passing a dictionary with old versions as keys and the new versions as values
+
+         rename_columns_dict = {
+                "old_version_1" : "new_version_2",
+                "old_version_2" : "new_version_2"
+                } """
+        return df.rename(columns=rename_columns_dict)
+
+
+
     def transform_dataframe(self,
                             df: pd.DataFrame,
-                            rename_columns_dict: Dict[str, str],
+                            convert_columns_list: List[int] = None,
+                            rename_columns_dict: Dict[str, str] = None,
+
                             move_etl_runs_key_before='',
-                            columns_to_int_list=[],
                             columns_esc_backslash=[],
                             columns_replace_backslash_list=[],
                             replace_backslash_with='',
@@ -34,6 +71,15 @@ class EtlUtils:
                             columns_replace_newline=[],
                             replace_newline_with=''
                             ) -> pd.DataFrame:
+
+        # Convert columns to integer
+        if convert_columns_list:
+            df = convert_columns_to_int(df, convert_columns_list)
+
+        # Rename columns
+        if rename_columns_dict:
+            df = self.rename_columns(df, rename_columns_dict)
+
         pass
 
     def process_dataframe_date_ranges(self,
