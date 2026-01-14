@@ -99,16 +99,6 @@ class ScriptFactory:
         Initialize a list of parametrized tasks.
         Returns the ordered list of ETL tasks to be executed.
         """
-        # forced_sdt, load_type, max_days_to_load = parse_arguments(settings)
-        # Forced sdt
-        # self.forced_sdt = forced_sdt
-
-        # Load type
-        # self.load_type = load_type
-
-        # Maximum number of days to load
-        # self.max_days_to_load = max_days_to_load
-
 
         task_1 = {
             "func"          : partial(self.etl_audit_manager.insert_audit_etl_runs_record,
@@ -119,22 +109,30 @@ class ScriptFactory:
                                       target_database='datastore',
                                       target_table=f'{self.schema}.{self.table}',
                                       forced_sdt=self.forced_sdt,
-                                      prev_max_date_query=f"""SELECT data_max_date
-                                                            FROM audit.etl_runs
-                                                            WHERE etl_runs_key=(SELECT max(etl_runs_key) 
-                                                                    FROM audit.etl_runs 
-                                                                    WHERE target_table='{self.schema}.{self.table}'
-                                                                    AND status='Complete')
-                                                       """
+                                      prev_max_date_query=sql_queries['prev_max_date_query'].format(schema=self.schema,
+                                                                                                    table=self.table)
                             ),
             "task_name"     : "create_etl_runs_record",
-            "description"   : "Creating the etl_runs table record for the current execution of the tasks",
+            "description"   : "Create the etl_runs table record for the current execution of the tasks.",
             "enabled"       : True,
             "retries"       : 1,
             "depends_on"    : None
         }
 
         task_2 = {
+            "func"          : partial(self.pg_connector.run_query,
+                                      query=sql_queries['set_comments'].format(schema=self.schema, table=self.table),
+                                      commit=True,
+                                      get_result=True
+                                      ),
+            "task_name"     : "set_comments",
+            "description"   : "Set table and column comments for documentation.",
+            "enabled"       : True,
+            "retries"       : 1,
+            "depends_on"    : None
+        }
+
+        task_3 = {
             "func"          : partial(self.script_worker.get_data,
                                       file_path=self.file_path),
             "task_name"     : "get_data",
@@ -144,7 +142,7 @@ class ScriptFactory:
             "depends_on"    : None
         }
 
-        task_3 = {
+        task_4 = {
             "func"          : partial(self.script_worker.upload_to_dwh,
                                       database_connector=self.pg_connector,
                                       etl_audit_manager=self.etl_audit_manager,
@@ -157,14 +155,14 @@ class ScriptFactory:
                                       insert_columns=sql_queries['insert_columns'],
                                       insert_values=sql_queries['insert_values']
                             ),
-            "task_name": "upload_to_pg",
-            "description": "Upload data to Postgres DB.",
-            "enabled": True,
-            "retries": 1,
-            "depends_on": None
+            "task_name"    : "upload_to_pg",
+            "description"  : "Upload data to data warehouse.",
+            "enabled"      : True,
+            "retries"      : 1,
+            "depends_on"   : None
         }
 
-        task_4 = {
+        task_5 = {
             "func"          : partial(self.etl_audit_manager.update_etl_runs_table_record,
                                       status='Complete'
                                       ),
@@ -177,11 +175,12 @@ class ScriptFactory:
 
         return [
             task_1,  # self.etl_audit_manager.create_etl_runs_table_record,
-            # create_trigger,
-            # create_comments,
-            task_2,  # self.script_worker.get_data,
-            task_3,  # self.pg_connector.upload_to_pg
-            task_4   # self.etl_audit_manager.update_etl_runs_table_record
+                     # create_trigger,
+            task_2,  # create_comments,
+            task_3,  # self.script_worker.get_data,
+            task_4,  # self.pg_connector.upload_to_pg
+            task_5   # self.etl_audit_manager.update_etl_runs_table_record
+
             # Email tasks
             # self.prepare_mails,
             # self.send_all
