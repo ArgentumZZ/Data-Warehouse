@@ -24,7 +24,20 @@ class EtlUtils:
 
     def transform_dataframe(self,
                             df: pd.DataFrame,
-                            rename_columns: Dict[str, str],
+                            rename_columns_dict: Dict[str, str],
+                            move_etl_runs_key_before='',
+                            columns_to_int_list=[],
+                            columns_esc_backslash=[],
+                            columns_replace_backslash_list=[],
+                            replace_backslash_with='',
+                            columns_strip_list=[],
+                            columns_replace_newline=[],
+                            replace_newline_with=''
+                            ) -> pd.DataFrame:
+        pass
+
+    def process_dataframe_date_ranged(self,
+                            df: pd.DataFrame,
                             date_columns: List[str]):
         pass
 
