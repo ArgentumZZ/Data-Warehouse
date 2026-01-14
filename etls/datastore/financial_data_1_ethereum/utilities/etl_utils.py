@@ -102,7 +102,7 @@ class EtlUtils:
         2. Backslashes are special characters in: JSON, CSV, SQL strings, Regex, File paths.
         """
 
-        # 1. Check
+        # 1. Check if a list was passed
         if not columns_replace_backslash_list:
             lg.info("No columns provided. Skipping transformation.")
             return df
@@ -120,6 +120,36 @@ class EtlUtils:
             df[col] = df[col].astype(str).str.replace("\\", replace_with, regex=False)
 
         lg.info("Backslash replacement completed successfully.")
+        return df
+
+    @staticmethod
+    def escape_backslash(df: pd.DataFrame,
+                          columns_escape_backslash_list: List[str] = None):
+
+        """
+        1. Escape backslashes in the specified columns.
+        2. Backslashes are special characters in: JSON, CSV, SQL strings, Regex, File paths.
+        3. Turn them into literal characters instead of letting them act as a control character.
+        """
+
+        # 1. Check if a list was passed
+        if not columns_escape_backslash_list:
+            lg.info("No columns provided. Skipping transformation.")
+            return df
+
+        # 2. Check that the columns exists in the dataframe
+        missing = [c for c in columns_escape_backslash_list if c not in df.columns]
+        if missing:
+            lg.error(f"Columns not found in DataFrame: {missing}")
+            raise ValueError(f"Columns not found in DataFrame: {missing}")
+
+        # 3. Escape backslashes with \\
+        # .astype(str) ensures the .str accessor always works
+        # regex=False prevents Pandas from interpreting backslashes as regex escapes
+        for col in columns_escape_backslash_list:
+            df[col] = df[col].astype(str).str.replace("\\", "\\\\", regex=False)
+
+        lg.info("Escape backslash completed successfully.")
         return df
 
     def transform_dataframe(self,
@@ -140,21 +170,23 @@ class EtlUtils:
 
         # Convert columns to integer
         if columns_int_list:
-            df = self.convert_columns_to_int(df=df, columns_int_list=columns_int_list)
+            df = EtlUtils.convert_columns_to_int(df=df, columns_int_list=columns_int_list)
 
         # Rename columns
         if columns_str_dict:
-            df = self.rename_columns(df=df, rename_columns_dict=columns_str_dict)
+            df = EtlUtils.rename_columns(df=df, rename_columns_dict=columns_str_dict)
 
         # check for null values in unique columns
         if validate_no_nulls_string:
-            df = self.validate_no_nulls(df=df, source_columns_unique=validate_no_nulls_string)
+            df = EtlUtils.validate_no_nulls(df=df, source_columns_unique=validate_no_nulls_string)
 
         # replace backslashes
         if columns_replace_backslash_list:
-            df = self.replace_backslash(df=df, columns_replace_backslash_list=columns_replace_backslash_list)
+            df = EtlUtils.replace_backslash(df=df, columns_replace_backslash_list=columns_replace_backslash_list)
 
         # escape backslashes
+        if columns_escape_backslash_list:
+            df = EtlUtils.escape_backslash(df=df, columns_escape_backslash_list=columns_escape_backslash_list)
 
         return df
 
