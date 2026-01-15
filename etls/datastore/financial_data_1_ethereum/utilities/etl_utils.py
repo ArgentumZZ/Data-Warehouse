@@ -272,6 +272,33 @@ class EtlUtils:
         lg.info("Checking non null columns completed successfully.")
         return df
 
+    @staticmethod
+    def format_date_columns(df: pd.DataFrame,
+                            columns_date_config_dict: Dict[str, str]) -> pd.DataFrame:
+        """
+        1. Convert date columns to datetime pandas objects.
+        2. Convert the columns to the applied date format.
+
+        Example: column_config: {'created_at': '%Y-%m-%d %H:%M:%S',
+                                 'birth_date': '%Y-%m-%d'}
+        """
+        # 1. Check if a list was passed
+        if not columns_date_config_dict:
+            lg.info("No columns provided. Skipping transformation.")
+            return df
+
+        # 2. Check if the columns exist
+        for col in columns_date_config_dict.keys():
+            if col not in df.columns:
+                raise KeyError(f"Column '{col}' not found.")
+
+        # 3. Convert date/timestamp column to datetime object and the corresponding format
+        for col, date_format in columns_date_config_dict.items():
+            df[col] = pd.to_datetime(df[col], format=date_format, errors='coerce')
+
+        lg.info("Formating date columns completed successfully.")
+        return df
+
     def set_comments(self):
         pass
 
@@ -304,6 +331,7 @@ class EtlUtils:
                             columns_json_list: List[str] = None,
                             columns_strip_list: List[str] = None,
                             columns_non_null_list: List[str] = None,
+                            columns_date_config_dict: Dict[str, str] = None,
                             columns_lowercase: bool = True,
 
                             columns_replace_newline=[],
@@ -349,6 +377,10 @@ class EtlUtils:
         # 10. Check for NULLS
         if columns_non_null_list:
             df = EtlUtils.check_non_null_columns(df=df, columns_non_null_list=columns_non_null_list)
+
+        # 11. Format date columns
+        if columns_date_config_dict:
+            df = EtlUtils.format_date_columns(df=df, columns_date_config_dict=columns_date_config_dict)
 
         return df
 
