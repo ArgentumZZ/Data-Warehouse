@@ -107,7 +107,8 @@ class ScriptWorker:
             # process df and transform
             df = self.sfc.etl_utils.transform_dataframe(
                     df=df,
-                    columns_int_list=[],
+                    columns_int_list=['raw_number_value', 'transaction_index'],
+                    columns_numeric_list=[],
                     # Pass source columns in lowercase
                     columns_str_dict={'value_eth'           : 'value_ethereum',
                                       'tx_hash'             : 'tax_hash',
@@ -118,6 +119,7 @@ class ScriptWorker:
                     validate_no_nulls_string=source_columns_unique,
                     columns_replace_backslash_list=[],
                     columns_escape_backslash_list=[],
+                    columns_strip_list=[],
                     columns_json_list=['metadata'],
                     columns_lowercase=True
                     )

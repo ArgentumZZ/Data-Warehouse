@@ -1,5 +1,6 @@
 from typing import Any, List, Dict
 import pandas as pd
+import numpy as np
 import utilities.logging_manager as lg
 import json
 
@@ -55,6 +56,39 @@ class EtlUtils:
         return df
 
     @staticmethod
+    def convert_columns_to_float(df: pd.DataFrame,
+                                 columns_numeric_list: list[str]
+                                 ) -> pd.DataFrame:
+        """
+        Convert columns to nullable Float64.
+        Whitespace/empty strings are treated as NaN.
+        Actual data corruption (letters, etc.) still raises an error
+        """
+
+        if not columns_numeric_list:
+            lg.info("No columns provided. Skipping transformation.")
+            return df
+
+        lg.info(f"Converting the columns in {columns_numeric_list} to nullable Float64.")
+        for col in columns_numeric_list:
+            if col not in df.columns:
+                raise KeyError(f"{col} not found")
+
+            # 1. Replace empty strings or whitespace-only strings with np.nan
+            # The regex ^\s*$ matches:
+            # ^ : Start of string
+            # \s*: Zero or more whitespace characters
+            # $ : End of string
+            df[col] = df[col].replace(r'^\s*$', np.nan, regex=True)
+
+            # 2. Convert to numeric (raises error for 'abc', etc.)
+            # 3. Cast to nullable 'Float64'
+            df[col] = pd.to_numeric(df[col], errors='raise').astype('Float64')
+
+        lg.info("Conversion of columns to Float64 was successful.")
+        return df
+
+    @staticmethod
     def rename_columns(df: pd.DataFrame,
                        rename_columns_dict: Dict[str, str]
                        ) -> pd.DataFrame:
@@ -91,6 +125,7 @@ class EtlUtils:
             if df[col].isnull().any():
                 raise ValueError(f"Column '{col}' contains null values.")
 
+        lg.info("Validating no nulls completed successfully.")
         return df
 
     @staticmethod
@@ -150,21 +185,19 @@ class EtlUtils:
         for col in columns_escape_backslash_list:
             df[col] = df[col].astype(str).str.replace("\\", "\\\\", regex=False)
 
-        lg.info("Escape backslash completed successfully.")
+        lg.info("Escaping backslash completed successfully.")
         return df
-
-    @staticmethod
-    def strip_white_space():
-        pass
 
     @staticmethod
     def lowercase_column_names(df: pd.DataFrame) -> pd.DataFrame:
         lg.info("Converting all column names to lowercase.")
         df.columns = df.columns.str.lower()
+
+        lg.info("Lowercasing column names completed successfully.")
         return df
 
     @staticmethod
-    def manage_json_columns(df: pd.DataFrame, columns_json_list: List[str]) -> pd.DataFrame:
+    def manage_json_columns(df: pd.DataFrame, columns_json_list: List[str] = None) -> pd.DataFrame:
         """
         Converts Python objects (dicts/lists) into valid JSON strings.
 
@@ -173,6 +206,11 @@ class EtlUtils:
         2. json.dumps() forces double quotes {"a": 1} which Postgres requires.
         3. The check prevents double-stringifying columns that are already strings.
         """
+
+        if not columns_json_list:
+            lg.info("No columns provided. Skipping transformation.")
+            return df
+
         for col in columns_json_list:
             if col in df.columns:
                 lg.info(f"Serializing JSON for column: {col}")
@@ -184,20 +222,67 @@ class EtlUtils:
                     # - If x is None/NaN: Leave as is so Postgres sees it as NULL
                     # - If x is a string: Skip to avoid "{\"nested\": \"quotes\"}"
                 )
+
+        lg.info("Managing JSON columns completed successfully.")
         return df
+
+    @staticmethod
+    def strip_column_values(df: pd.DataFrame,
+                            columns_strip_list: List[str] = None) -> pd.DataFrame:
+
+
+        # 1. Check if a list was passed
+        if not columns_strip_list:
+            lg.info("No columns provided. Skipping transformation.")
+            return df
+
+        # 2. Filter the list to only include columns that actually exist AND are objects/strings
+        valid_string_cols = df[columns_strip_list].select_dtypes(include=['object', 'string']).columns
+        lg.info(f"Valid string columns list: {valid_string_cols}.")
+
+        # 3. Apply transformation only to valid columns
+        lg.info("Stripping whitespace from column values.")
+        for col in valid_string_cols:
+            # Vectorized strip and replace
+            df[col] = df[col].str.strip().replace('', np.nan)
+
+        lg.info("Stripping column values completed successfully.")
+        return df
+
+
+    def set_comments(self):
+        pass
+
+    def check_source_date_range(self):
+        pass
+
+    def run_data_quality_check(self):
+        pass
+
+    def get_command_line_parameters(self):
+        pass
+
+    def set_params_based_on_command_line(self):
+        pass
+
+    def delete_target_dates(self):
+        pass
+
+    def set_reference_page(self):
+        pass
 
     def transform_dataframe(self,
                             df: pd.DataFrame,
-                            columns_int_list: List[str] = None,
-                            columns_str_dict: Dict[str, str] = None,
                             validate_no_nulls_string: str = None,
+                            columns_int_list: List[str] = None,
+                            columns_numeric_list: List[str] = None,
+                            columns_str_dict: Dict[str, str] = None,
                             columns_replace_backslash_list: List[str] = None,
                             columns_escape_backslash_list: List[str] = None,
                             columns_json_list: List[str] = None,
+                            columns_strip_list: List[str] = None,
                             columns_lowercase: bool = True,
 
-                            move_etl_runs_key_before='',
-                            columns_strip_list=[],
                             columns_replace_newline=[],
                             replace_newline_with=''
                             ) -> pd.DataFrame:
@@ -218,17 +303,25 @@ class EtlUtils:
         if columns_int_list:
             df = EtlUtils.convert_columns_to_int(df=df, columns_int_list=columns_int_list)
 
-        # 5. Check for null values in unique columns
+        # 5. Convert columns to float
+        if columns_numeric_list:
+            df = EtlUtils.convert_columns_to_float(df=df, columns_numeric_list=columns_numeric_list)
+
+        # 6. Check for null values in unique columns
         if validate_no_nulls_string:
             df = EtlUtils.validate_no_nulls(df=df, source_columns_unique=validate_no_nulls_string)
 
-        # 6. Replace backslashes
+        # 7. Replace backslashes
         if columns_replace_backslash_list:
             df = EtlUtils.replace_backslash(df=df, columns_replace_backslash_list=columns_replace_backslash_list)
 
-        # 7. escape backslashes
+        # 8. Escape backslashes
         if columns_escape_backslash_list:
             df = EtlUtils.escape_backslash(df=df, columns_escape_backslash_list=columns_escape_backslash_list)
+
+        # 9. Strip whitespace
+        if columns_strip_list:
+            df = EtlUtils.strip_column_values(df=df, columns_strip_list=columns_strip_list)
 
         return df
 
