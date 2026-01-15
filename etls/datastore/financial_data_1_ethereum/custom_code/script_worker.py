@@ -106,25 +106,26 @@ class ScriptWorker:
 
             # process df and transform
             df = self.sfc.etl_utils.transform_dataframe(
-                    df=df,
-                    columns_int_list=['raw_number_value', 'transaction_index'],
-                    columns_numeric_list=[],
-                    # Pass source columns in lowercase
-                    columns_str_dict={'tx_hash'             : 'tax_hash',
-                                      'blck_nbr_raw_val'    : 'raw_number_value',
-                                      'eth_amt_001'         : 'ethereum_amount',
-                                      'contract_addr_x'     : 'contract_address',
-                                      'f_is_vld_bool'       : 'is_valid'},
-                    validate_no_nulls_string=[],
-                    columns_replace_backslash_list=[],
-                    columns_escape_backslash_list=[],
-                    columns_strip_list=[],
-                    columns_non_null_list=[],
-                    columns_unique_list=[],
-                    columns_json_list=['metadata'],
-                    columns_sanitize_list=[],
-                    columns_lowercase=True
-                    )
+                                    df=df,
+                                    # Pass source columns in lowercase
+                                    columns_str_dict={'tx_hash': 'tax_hash',
+                                                      'blck_nbr_raw_val': 'raw_number_value',
+                                                      'eth_amt_001': 'ethereum_amount',
+                                                      'contract_addr_x': 'contract_address',
+                                                      'f_is_vld_bool': 'is_valid'},
+                                    columns_lowercase=True,
+                                    columns_strip_list=[],
+                                    columns_replace_backslash_list=[],
+                                    columns_escape_backslash_list=[],
+                                    columns_sanitize_list=[],
+                                    columns_date_config_dict={},
+                                    columns_int_list=['raw_number_value', 'transaction_index'],
+                                    columns_numeric_list=[],
+                                    columns_json_list=['metadata'],
+                                    validate_no_nulls_string=[],
+                                    columns_non_null_list=[],
+                                    columns_unique_list=[]
+                                    )
 
 
             # this will be passed to update_etl_runs_table_record

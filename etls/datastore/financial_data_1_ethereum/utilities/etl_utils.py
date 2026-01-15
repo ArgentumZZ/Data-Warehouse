@@ -433,20 +433,45 @@ class EtlUtils:
 
     @staticmethod
     def transform_dataframe(df: pd.DataFrame,
-                            validate_no_nulls_string: str = None,
-                            columns_int_list: List[str] = None,
-                            columns_numeric_list: List[str] = None,
                             columns_str_dict: Dict[str, str] = None,
+                            columns_lowercase: bool = True,
+                            columns_strip_list: List[str] = None,
                             columns_replace_backslash_list: List[str] = None,
                             columns_escape_backslash_list: List[str] = None,
-                            columns_json_list: List[str] = None,
-                            columns_strip_list: List[str] = None,
-                            columns_non_null_list: List[str] = None,
-                            columns_unique_list: List[str] = None,
-                            columns_date_config_dict: Dict[str, str] = None,
                             columns_sanitize_list: List[str] = None,
-                            columns_lowercase: bool = True
+                            columns_date_config_dict: Dict[str, str] = None,
+                            columns_int_list: List[str] = None,
+                            columns_numeric_list: List[str] = None,
+                            columns_json_list: List[str] = None,
+                            validate_no_nulls_string: str = None,
+                            columns_non_null_list: List[str] = None,
+                            columns_unique_list: List[str] = None
                             ) -> pd.DataFrame:
+
+        """ Apply transformations to a dataframe.
+        1. Clean/Standardize.
+        2. Pre-process.
+        3. Data integrity.
+        4. Validate.
+
+        :param df:
+        :param validate_no_nulls_string:
+        :param columns_int_list:
+        :param columns_numeric_list:
+        :param columns_str_dict:
+        :param columns_replace_backslash_list:
+        :param columns_escape_backslash_list:
+        :param columns_json_list:
+        :param columns_strip_list:
+        :param columns_non_null_list:
+        :param columns_unique_list:
+        :param columns_date_config_dict:
+        :param columns_sanitize_list:
+        :param columns_lowercase:
+        :return:
+        """
+
+        # I. Clean and standardize.
 
         # 1. Rename columns
         if columns_str_dict:
@@ -456,49 +481,55 @@ class EtlUtils:
         if columns_lowercase:
             df = EtlUtils.lowercase_column_names(df=df)
 
-        # 3. Handle JSON Columns (Essential for Postgres)
-        if columns_json_list:
-            df = EtlUtils.serialize_json_columns(df=df, columns_json_list=columns_json_list)
+        # II. Pre-Processing.
 
-        # 4. Convert columns to integer
-        if columns_int_list:
-            df = EtlUtils.convert_columns_to_int(df=df, columns_int_list=columns_int_list)
-
-        # 5. Convert columns to float
-        if columns_numeric_list:
-            df = EtlUtils.convert_columns_to_float(df=df, columns_numeric_list=columns_numeric_list)
-
-        # 6. Check for null values in unique columns
-        if validate_no_nulls_string:
-            df = EtlUtils.validate_no_nulls(df=df, validate_no_nulls_string=validate_no_nulls_string)
-
-        # 7. Replace backslashes
-        if columns_replace_backslash_list:
-            df = EtlUtils.replace_backslash(df=df, columns_replace_backslash_list=columns_replace_backslash_list)
-
-        # 8. Escape backslashes
-        if columns_escape_backslash_list:
-            df = EtlUtils.escape_backslash(df=df, columns_escape_backslash_list=columns_escape_backslash_list)
-
-        # 9. Strip whitespace
+        # 3. Strip whitespace
         if columns_strip_list:
             df = EtlUtils.strip_column_values(df=df, columns_strip_list=columns_strip_list)
 
-        # 10. Sanitize_columns
+        # 4. Replace backslashes
+        if columns_replace_backslash_list:
+            df = EtlUtils.replace_backslash(df=df, columns_replace_backslash_list=columns_replace_backslash_list)
+
+        # 5. Escape backslashes
+        if columns_escape_backslash_list:
+            df = EtlUtils.escape_backslash(df=df, columns_escape_backslash_list=columns_escape_backslash_list)
+
+        # 6. Sanitize_columns
         if columns_sanitize_list:
             df = EtlUtils.sanitize_columns(df=df, columns_sanitize_list=columns_sanitize_list)
 
-        # 11. Check for NULLS
+        # III. Data Integrity.
+
+        # 7. Format date columns
+        if columns_date_config_dict:
+            df = EtlUtils.format_date_columns(df=df, columns_date_config_dict=columns_date_config_dict)
+
+        # 8. Convert columns to integer
+        if columns_int_list:
+            df = EtlUtils.convert_columns_to_int(df=df, columns_int_list=columns_int_list)
+
+        # 9. Convert columns to float
+        if columns_numeric_list:
+            df = EtlUtils.convert_columns_to_float(df=df, columns_numeric_list=columns_numeric_list)
+
+        # 10. Handle JSON Columns (Essential for Postgres)
+        if columns_json_list:
+            df = EtlUtils.serialize_json_columns(df=df, columns_json_list=columns_json_list)
+
+        # IV. Validation.
+
+        # 11. Check for null values in unique columns
+        if validate_no_nulls_string:
+            df = EtlUtils.validate_no_nulls(df=df, validate_no_nulls_string=validate_no_nulls_string)
+
+        # 12. Check for NULLS
         if columns_non_null_list:
             df = EtlUtils.check_non_null_columns(df=df, columns_non_null_list=columns_non_null_list)
 
-        # 12. Check for duplicates
+        # 13. Check for duplicates
         if columns_unique_list:
             df = EtlUtils.handle_duplicates(df=df, columns_unique_list=columns_unique_list)
-
-        # 13. Format date columns
-        if columns_date_config_dict:
-            df = EtlUtils.format_date_columns(df=df, columns_date_config_dict=columns_date_config_dict)
 
         return df
 
