@@ -260,17 +260,21 @@ class EtlUtils:
     def strip_column_values(df: pd.DataFrame,
                             columns_strip_list: List[str] = None) -> pd.DataFrame:
 
-
         # 1. Check if a list was passed
         if not columns_strip_list:
             lg.info("No columns provided. Skipping transformation.")
             return df
 
-        # 2. Filter the list to only include columns that actually exist AND are objects/strings
+        # 2. Check if the columns exist
+        for col in columns_strip_list:
+            if col not in df.columns:
+                raise KeyError(f"Column '{col}' not found.")
+
+        # 3. Filter the list to only include columns that actually exist AND are objects/strings
         valid_string_cols = df[columns_strip_list].select_dtypes(include=['object', 'string']).columns
         lg.info(f"Valid string columns list: {valid_string_cols}.")
 
-        # 3. Apply transformation only to valid columns
+        # 4. Apply transformation only to valid columns
         lg.info("Stripping whitespace from column values.")
         for col in valid_string_cols:
             # Vectorized strip and replace
@@ -366,7 +370,7 @@ class EtlUtils:
     @staticmethod
     def sanitize_columns(df: pd.DataFrame,
                          columns_sanitize_list: List[str] = None,
-                         replace_with=' '):
+                         replace_with=' ') -> pd.DataFrame:
         """
         Cleans string columns by replacing control characters (\r\n\t) with a placeholder
         and normalizing empty or null-like strings to actual Null values.
