@@ -116,11 +116,12 @@ class ScriptWorker:
                                       'eth_amt_001'         : 'ethereum_amount',
                                       'contract_addr_x'     : 'contract_address',
                                       'f_is_vld_bool'       : 'is_valid'},
-                    validate_no_nulls_string=source_columns_unique,
+                    validate_no_nulls_string=[],
                     columns_replace_backslash_list=[],
                     columns_escape_backslash_list=[],
                     columns_strip_list=[],
                     columns_non_null_list=[],
+                    columns_unique_list=[],
                     columns_json_list=['metadata'],
                     columns_lowercase=True
                     )

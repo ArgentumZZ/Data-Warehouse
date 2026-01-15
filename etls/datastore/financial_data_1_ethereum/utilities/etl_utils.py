@@ -105,23 +105,22 @@ class EtlUtils:
 
     @staticmethod
     def validate_no_nulls(df: pd.DataFrame,
-                          source_columns_unique: str
+                          validate_no_nulls_string: str
                           ) -> pd.DataFrame:
 
-        # 1. Parse the string into column names
-        # For example, turn "id, type, load, meta" into ["id", "type", "load", "meta"]
-        cols = [c.strip() for c in source_columns_unique.split(",")]
-        lg.info(f"Converted source_columns_unique into: {cols}")
+        # 1. Check if a list was passed
+        if not validate_no_nulls_string:
+            lg.info("No columns provided. Skipping transformation.")
+            return df
 
         # 2. Check that all columns exist in df
-        lg.info("Running columns missing check.")
-        missing = [c for c in cols if c not in df.columns]
-        if missing:
-            raise ValueError(f"Columns not found in DataFrame: {missing}.")
+        for col in validate_no_nulls_string:
+            if col not in df.columns:
+                raise KeyError(f"Column '{col}' not found.")
 
         # 3. Check for nulls in each column
         lg.info("Running null columns check.")
-        for col in cols:
+        for col in validate_no_nulls_string:
             if df[col].isnull().any():
                 raise ValueError(f"Column '{col}' contains null values.")
 
@@ -130,8 +129,8 @@ class EtlUtils:
 
     @staticmethod
     def replace_backslash(df: pd.DataFrame,
-                         columns_replace_backslash_list: List[str] = None,
-                         replace_with: str = ''):
+                          columns_replace_backslash_list: List[str] = None,
+                          replace_with: str = ''):
 
         """
         1. Replace backslashes in the specified columns.
@@ -160,7 +159,7 @@ class EtlUtils:
 
     @staticmethod
     def escape_backslash(df: pd.DataFrame,
-                          columns_escape_backslash_list: List[str] = None):
+                         columns_escape_backslash_list: List[str] = None):
 
         """
         1. Escape backslashes in the specified columns.
@@ -395,7 +394,7 @@ class EtlUtils:
 
         # 6. Check for null values in unique columns
         if validate_no_nulls_string:
-            df = EtlUtils.validate_no_nulls(df=df, source_columns_unique=validate_no_nulls_string)
+            df = EtlUtils.validate_no_nulls(df=df, validate_no_nulls_string=validate_no_nulls_string)
 
         # 7. Replace backslashes
         if columns_replace_backslash_list:
