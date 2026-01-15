@@ -159,7 +159,7 @@ class EtlUtils:
     @staticmethod
     def replace_backslash(df: pd.DataFrame,
                           columns_replace_backslash_list: List[str] = None,
-                          replace_with: str = ''):
+                          replace_with: str = '') -> pd.DataFrame:
 
         """
         1. Replace backslashes in the specified columns.
@@ -172,10 +172,9 @@ class EtlUtils:
             return df
 
         # 2. Check that the columns exists in the dataframe
-        missing = [c for c in columns_replace_backslash_list if c not in df.columns]
-        if missing:
-            lg.error(f"Columns not found in DataFrame: {missing}")
-            raise ValueError(f"Columns not found in DataFrame: {missing}")
+        for col in columns_replace_backslash_list:
+            if col not in df.columns:
+                raise KeyError(f"Column '{col}' not found.")
 
         # 3. Replace backslashes with parameter `replace_with`
         # .astype(str) ensures the .str accessor always works
@@ -188,7 +187,7 @@ class EtlUtils:
 
     @staticmethod
     def escape_backslash(df: pd.DataFrame,
-                         columns_escape_backslash_list: List[str] = None):
+                         columns_escape_backslash_list: List[str] = None) -> pd.DataFrame:
 
         """
         1. Escape backslashes in the specified columns.
@@ -202,10 +201,9 @@ class EtlUtils:
             return df
 
         # 2. Check that the columns exists in the dataframe
-        missing = [c for c in columns_escape_backslash_list if c not in df.columns]
-        if missing:
-            lg.error(f"Columns not found in DataFrame: {missing}")
-            raise ValueError(f"Columns not found in DataFrame: {missing}")
+        for col in columns_escape_backslash_list:
+            if col not in df.columns:
+                raise KeyError(f"Column '{col}' not found.")
 
         # 3. Escape backslashes with \\
         # .astype(str) ensures the .str accessor always works
