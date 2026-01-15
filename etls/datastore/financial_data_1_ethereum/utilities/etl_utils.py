@@ -249,6 +249,28 @@ class EtlUtils:
         lg.info("Stripping column values completed successfully.")
         return df
 
+    @staticmethod
+    def check_non_null_columns(df: pd.DataFrame,
+                               columns_non_null_list: List[str] = None
+                               ) -> pd.DataFrame:
+        """Raises ValueError if any non-null columns contain NULLs."""
+
+        # 1. Check if a list was passed
+        if not columns_non_null_list:
+            lg.info("No columns provided. Skipping transformation.")
+            return df
+
+        # 2. Check if the columns exist
+        for col in columns_non_null_list:
+            if col not in df.columns:
+                raise KeyError(f"Column '{col}' not found.")
+
+            # 3. Raise an error if a NULL is found
+            if df[col].isnull().any():
+                raise ValueError(f"Data Quality Error: Column '{col}' contains null values.")
+
+        lg.info("Checking non null columns completed successfully.")
+        return df
 
     def set_comments(self):
         pass
@@ -281,6 +303,7 @@ class EtlUtils:
                             columns_escape_backslash_list: List[str] = None,
                             columns_json_list: List[str] = None,
                             columns_strip_list: List[str] = None,
+                            columns_non_null_list: List[str] = None,
                             columns_lowercase: bool = True,
 
                             columns_replace_newline=[],
@@ -322,6 +345,10 @@ class EtlUtils:
         # 9. Strip whitespace
         if columns_strip_list:
             df = EtlUtils.strip_column_values(df=df, columns_strip_list=columns_strip_list)
+
+        # 10. Check for NULLS
+        if columns_non_null_list:
+            df = EtlUtils.check_non_null_columns(df=df, columns_non_null_list=columns_non_null_list)
 
         return df
 

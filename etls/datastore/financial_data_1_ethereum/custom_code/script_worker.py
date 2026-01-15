@@ -120,6 +120,7 @@ class ScriptWorker:
                     columns_replace_backslash_list=[],
                     columns_escape_backslash_list=[],
                     columns_strip_list=[],
+                    columns_non_null_list=[],
                     columns_json_list=['metadata'],
                     columns_lowercase=True
                     )
