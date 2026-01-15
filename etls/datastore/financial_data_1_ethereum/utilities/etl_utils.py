@@ -36,20 +36,31 @@ class EtlUtils:
         - Raises an error on non-integer floats or invalid strings.
         - None / NaN values are preserved.
         """
+
+        # 1. Check if a list was passed
+        if not columns_int_list:
+            return df
+
+        # 2. Check if a column exist in the dataframe
+        for col in columns_int_list:
+            if col not in df.columns:
+                raise KeyError(f"Column '{col}' not found.")
+
+        # 3. Convert the columns to integers
         lg.info(f"Converting the columns in {columns_int_list} to integers.")
         for col in columns_int_list:
 
-            # 1. Convert to numeric, raising an error for invalid strings
+            # 4. Convert to numeric, raising an error for invalid strings
             numeric_series = pd.to_numeric(df[col], errors='raise')
 
-            # 2. Ensure all non-NA values are whole numbers (e.g., 1.0 is okay, 1.3 is not)
+            # 5. Ensure all non-NA values are whole numbers (e.g., 1.0 is okay, 1.3 is not)
             #    - .dropna(): Ignores None/NaN values so they don't interfere with the check
             #    - % 1 == 0: Vectorized check if values are whole numbers
             #    - .all(): Ensures **every single non-NA value** passes the check
             if not ((numeric_series.dropna() % 1) == 0).all():
                 raise ValueError(f"Column '{col}' contains non-integer decimals.")
 
-            # 3. Convert to nullable Int64
+            # 6. Convert to nullable Int64
             df[col] = numeric_series.astype('Int64')
 
         lg.info("Conversion of columns to Int64 was successful.")
@@ -65,14 +76,19 @@ class EtlUtils:
         Actual data corruption (letters, etc.) still raises an error
         """
 
+        # 1. Check if a list was passed
         if not columns_numeric_list:
             lg.info("No columns provided. Skipping transformation.")
             return df
 
-        lg.info(f"Converting the columns in {columns_numeric_list} to nullable Float64.")
+        # 2. Check if a column exist in the dataframe
         for col in columns_numeric_list:
             if col not in df.columns:
-                raise KeyError(f"{col} not found")
+                raise KeyError(f"Column '{col}' not found.")
+
+        # 3. Convert the columns to floats
+        lg.info(f"Converting the columns in {columns_numeric_list} to nullable Float64.")
+        for col in columns_numeric_list:
 
             # 1. Replace empty strings or whitespace-only strings with np.nan
             # The regex ^\s*$ matches:
@@ -98,10 +114,23 @@ class EtlUtils:
          rename_columns_dict = {
                 "old_version_1" : "new_version_2",
                 "old_version_2" : "new_version_2"
-                } """
+                }
+        """
 
-        lg.info(f"Renaming the columns in the dictionary: {rename_columns_dict}")
-        return df.rename(columns=rename_columns_dict)
+        # 1. Check if a list was passed
+        if not rename_columns_dict:
+            lg.info("No columns provided. Skipping transformation.")
+            return df
+
+        # 2. Check if a column exist in the dataframe
+        for col in rename_columns_dict:
+            if col not in df.columns:
+                raise KeyError(f"Column '{col}' not found.")
+
+        # 3. Rename the columns
+        df = df.rename(columns=rename_columns_dict)
+        lg.info(f"Renaming the columns completed successfully.")
+        return df
 
     @staticmethod
     def validate_no_nulls(df: pd.DataFrame,

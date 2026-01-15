@@ -110,8 +110,7 @@ class ScriptWorker:
                     columns_int_list=['raw_number_value', 'transaction_index'],
                     columns_numeric_list=[],
                     # Pass source columns in lowercase
-                    columns_str_dict={'value_eth'           : 'value_ethereum',
-                                      'tx_hash'             : 'tax_hash',
+                    columns_str_dict={'tx_hash'             : 'tax_hash',
                                       'blck_nbr_raw_val'    : 'raw_number_value',
                                       'eth_amt_001'         : 'ethereum_amount',
                                       'contract_addr_x'     : 'contract_address',
