@@ -123,6 +123,7 @@ class ScriptWorker:
                     columns_non_null_list=[],
                     columns_unique_list=[],
                     columns_json_list=['metadata'],
+                    columns_sanitize_list=[],
                     columns_lowercase=True
                     )
 

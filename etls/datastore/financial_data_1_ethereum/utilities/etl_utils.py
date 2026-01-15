@@ -2,7 +2,7 @@ from typing import Any, List, Dict
 import pandas as pd
 import numpy as np
 import utilities.logging_manager as lg
-import json
+import json, re
 
 
 class EtlUtils:
@@ -332,6 +332,49 @@ class EtlUtils:
         lg.info("Formating date columns completed successfully.")
         return df
 
+    @staticmethod
+    def sanitize_columns(df: pd.DataFrame,
+                         columns_sanitize_list: List[str] = None,
+                         replace_with=' '):
+        """
+        Cleans string columns by replacing control characters (\r\n\t) with a placeholder
+        and normalizing empty or null-like strings to actual Null values.
+
+        Args:
+            df (pd.DataFrame): The DataFrame to process.
+            columns_sanitize_list (list): List of column names to apply cleaning to.
+            replace_with (str): The string to insert in place of newlines/tabs.
+                                Defaults to a single space.
+
+        Returns:
+            pd.DataFrame: The modified DataFrame with sanitized columns.
+        """
+
+        # 1. Check if the list was passed
+        if not columns_sanitize_list:
+            return df
+
+        # 2. Check if the columns exist in the data frane
+        for col in columns_sanitize_list:
+            if col not in df.columns:
+                raise KeyError(f"Column '{col}' not found.")
+
+        # 3. Apply the transformations
+        for col in columns_sanitize_list:
+
+            # Step 1: Force column to string type and replace \r (carriage return),
+            # \n (newline), and \t (tab) with the replacement string using regex.
+            df[col] = df[col].astype(str).str.replace(r'[\r\n\t]+', replace_with, regex=True)
+
+            # Step 2: After the string conversion and replacement, cleanup the "noise".
+            # - '' (Empty strings) occur if the cell was empty or only contained control chars.
+            # - 'nan' occurs because .astype(str) converts actual np.nan into a string.
+
+            # This converts both back to a proper numpy NaN object.
+            df[col] = df[col].replace(['', 'nan'], np.nan)
+
+        return df
+
     def set_comments(self):
         pass
 
@@ -353,8 +396,8 @@ class EtlUtils:
     def set_reference_page(self):
         pass
 
-    def transform_dataframe(self,
-                            df: pd.DataFrame,
+    @staticmethod
+    def transform_dataframe(df: pd.DataFrame,
                             validate_no_nulls_string: str = None,
                             columns_int_list: List[str] = None,
                             columns_numeric_list: List[str] = None,
@@ -366,10 +409,8 @@ class EtlUtils:
                             columns_non_null_list: List[str] = None,
                             columns_unique_list: List[str] = None,
                             columns_date_config_dict: Dict[str, str] = None,
-                            columns_lowercase: bool = True,
-
-                            columns_replace_newline=[],
-                            replace_newline_with=''
+                            columns_sanitize_list: List[str] = None,
+                            columns_lowercase: bool = True
                             ) -> pd.DataFrame:
 
         # 1. Rename columns
@@ -408,18 +449,21 @@ class EtlUtils:
         if columns_strip_list:
             df = EtlUtils.strip_column_values(df=df, columns_strip_list=columns_strip_list)
 
-        # 10. Check for NULLS
+        # 10. Sanitize_columns
+        if columns_sanitize_list:
+            df = EtlUtils.sanitize_columns(df=df, columns_sanitize_list=columns_sanitize_list)
+
+        # 11. Check for NULLS
         if columns_non_null_list:
             df = EtlUtils.check_non_null_columns(df=df, columns_non_null_list=columns_non_null_list)
 
-        # 11. Check for duplicates
+        # 12. Check for duplicates
         if columns_unique_list:
             df = EtlUtils.handle_duplicates(df=df, columns_unique_list=columns_unique_list)
 
-        # 12. Format date columns
+        # 13. Format date columns
         if columns_date_config_dict:
             df = EtlUtils.format_date_columns(df=df, columns_date_config_dict=columns_date_config_dict)
-
 
         return df
 
@@ -452,21 +496,6 @@ class EtlUtils:
     # 1.2 String cleaning
     def clean_string_columns(self):
         """Trim whitespace, normalize casing, remove unwanted characters in string columns."""
-        pass
-
-    # 1.3 Date parsing
-    def parse_date_columns(self):
-        """Convert string date columns into proper datetime objects."""
-        pass
-
-    # 1.4 Null handling
-    def handle_null_values(self):
-        """Fill, drop, or otherwise handle null values in the DataFrame."""
-        pass
-
-    # 1.5 Deduplication
-    def remove_duplicates(self):
-        """Remove duplicate rows based on key columns or full row comparison."""
         pass
 
     # 1.7 Schema validation
