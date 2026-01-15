@@ -273,6 +273,40 @@ class EtlUtils:
         return df
 
     @staticmethod
+    def handle_duplicates(df: pd.DataFrame,
+                          columns_unique_list: List[str] = None,
+                          action='raise') -> pd.DataFrame:
+
+        """
+        Action 'raise' (default): Stop the pipeline if duplicates exist.
+        Action 'drop': Remove them and keep the first occurrence.
+
+        Raises ValueError if duplicated records were found in the unique list."""
+
+        # 1. Check if a list was passed
+        if not columns_unique_list:
+            lg.info("No columns provided. Skipping transformation.")
+            return df
+
+        # 2. Check if the columns exist
+        for col in columns_unique_list:
+            if col not in df.columns:
+                raise KeyError(f"Column '{col}' not found.")
+
+        # 3. Raise an error if a duplicate is found
+        duplicates = df.duplicated(subset=columns_unique_list)
+        if duplicates.any():
+            if action == 'raise':
+                duplicated_counts = duplicates.sum()
+                raise ValueError(f"Found {duplicated_counts} duplicate rows based on {columns_unique_list}")
+            elif action == 'drop':
+                df = df.drop_duplicates(subset=columns_unique_list, keep='first')
+            return df
+
+        lg.info("Handling duplicates completed successfully.")
+        return df
+
+    @staticmethod
     def format_date_columns(df: pd.DataFrame,
                             columns_date_config_dict: Dict[str, str]) -> pd.DataFrame:
         """
@@ -331,6 +365,7 @@ class EtlUtils:
                             columns_json_list: List[str] = None,
                             columns_strip_list: List[str] = None,
                             columns_non_null_list: List[str] = None,
+                            columns_unique_list: List[str] = None,
                             columns_date_config_dict: Dict[str, str] = None,
                             columns_lowercase: bool = True,
 
@@ -378,9 +413,14 @@ class EtlUtils:
         if columns_non_null_list:
             df = EtlUtils.check_non_null_columns(df=df, columns_non_null_list=columns_non_null_list)
 
-        # 11. Format date columns
+        # 11. Check for duplicates
+        if columns_unique_list:
+            df = EtlUtils.handle_duplicates(df=df, columns_unique_list=columns_unique_list)
+
+        # 12. Format date columns
         if columns_date_config_dict:
             df = EtlUtils.format_date_columns(df=df, columns_date_config_dict=columns_date_config_dict)
+
 
         return df
 
