@@ -223,7 +223,7 @@ class EtlUtils:
         return df
 
     @staticmethod
-    def manage_json_columns(df: pd.DataFrame, columns_json_list: List[str] = None) -> pd.DataFrame:
+    def serialize_json_columns(df: pd.DataFrame, columns_json_list: List[str] = None) -> pd.DataFrame:
         """
         Converts Python objects (dicts/lists) into valid JSON strings.
 
@@ -233,23 +233,27 @@ class EtlUtils:
         3. The check prevents double-stringifying columns that are already strings.
         """
 
+        # 1. Check if a list was passed
         if not columns_json_list:
             lg.info("No columns provided. Skipping transformation.")
             return df
 
+        # 2. Check that the columns exists in the dataframe
         for col in columns_json_list:
-            if col in df.columns:
+            if col not in df.columns:
+                raise KeyError(f"Column '{col}' not found.")
+
+        # 3. Serialize JSON
+        for col in columns_json_list:
                 lg.info(f"Serializing JSON for column: {col}")
                 # json.dumps ensures double quotes are used: {"key": "value"}
-                df[col] = df[col].apply(
-                    lambda x: json.dumps(x) if isinstance(x, (dict, list)) else x
-                    # ^ Explanation:
-                    # - If x is a dict/list: Convert to "{"proper": "json"}"
-                    # - If x is None/NaN: Leave as is so Postgres sees it as NULL
-                    # - If x is a string: Skip to avoid "{\"nested\": \"quotes\"}"
-                )
+                df[col] = df[col] = [json.dumps(x) if isinstance(x, (dict, list)) else x for x in df[col]]
+                # ^ Explanation:
+                # - If x is a dict/list: Convert to "{"proper": "json"}"
+                # - If x is None/NaN: Leave as is so Postgres sees it as NULL
+                # - If x is a string: Skip to avoid "{\"nested\": \"quotes\"}"
 
-        lg.info("Managing JSON columns completed successfully.")
+        lg.info("Serializing JSON columns completed successfully.")
         return df
 
     @staticmethod
@@ -450,7 +454,7 @@ class EtlUtils:
 
         # 3. Handle JSON Columns (Essential for Postgres)
         if columns_json_list:
-            df = EtlUtils.manage_json_columns(df=df, columns_json_list=columns_json_list)
+            df = EtlUtils.serialize_json_columns(df=df, columns_json_list=columns_json_list)
 
         # 4. Convert columns to integer
         if columns_int_list:
