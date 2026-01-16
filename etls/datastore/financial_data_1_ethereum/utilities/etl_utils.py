@@ -26,15 +26,264 @@ class EtlUtils:
         self.version = "1.0"
 
     @staticmethod
+    def rename_columns(df: pd.DataFrame,
+                       rename_columns_dict: Dict[str, str]
+                       ) -> pd.DataFrame:
+
+        """
+        Rename column names by passing a dictionary with old versions as keys and the new versions as values
+
+        Args:
+            df:
+                Input pandas DataFrame
+            rename_columns_dict:
+                a dictionary with columns for renaming. For example,
+                                 rename_columns_dict = {
+                                        "old_version_1" : "new_version_2",
+                                        "old_version_2" : "new_version_2"
+                                        }
+        Returns:
+            A pandas DataFrame with renamed columns.
+        """
+
+        # 1. Check if a list was passed
+        if not rename_columns_dict:
+            lg.info("No columns provided. Skipping transformation.")
+            return df
+
+        # 2. Check if a column exist in the dataframe
+        for col in rename_columns_dict:
+            if col not in df.columns:
+                raise KeyError(f"Column '{col}' not found.")
+
+        # 3. Rename the columns
+        df = df.rename(columns=rename_columns_dict)
+        lg.info(f"Renaming the columns completed successfully.")
+        return df
+
+    @staticmethod
+    def lowercase_column_names(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Lowercase the column names of the input dataframe.
+        """
+        lg.info("Converting all column names to lowercase.")
+        df.columns = df.columns.str.lower()
+
+        lg.info("Lowercasing column names completed successfully.")
+        return df
+
+    @staticmethod
+    def strip_column_values(df: pd.DataFrame,
+                            columns_strip_list: List[str] = None) -> pd.DataFrame:
+
+        """
+        Strip leading and trailing whitespace from string column values.
+
+        Args:
+            df:
+                Input pandas DataFrame for processing
+            columns_strip_list:
+                A list with column names for processing.
+
+        Returns:
+             A pandas DataFrame with column values stripped from whitespace.
+        """
+
+        # 1. Check if a list was passed
+        if not columns_strip_list:
+            lg.info("No columns provided. Skipping transformation.")
+            return df
+
+        # 2. Check if the columns exist
+        for col in columns_strip_list:
+            if col not in df.columns:
+                raise KeyError(f"Column '{col}' not found.")
+
+        # 3. Filter the list to only include columns that actually exist AND are objects/strings
+        valid_string_cols = df[columns_strip_list].select_dtypes(include=['object', 'string']).columns
+        lg.info(f"Valid string columns list: {valid_string_cols}.")
+
+        # 4. Apply transformation only to valid columns
+        lg.info("Stripping whitespace from column values.")
+        for col in valid_string_cols:
+            # Vectorized strip and replace
+            df[col] = df[col].str.strip().replace('', np.nan)
+
+        lg.info("Stripping column values completed successfully.")
+        return df
+
+    @staticmethod
+    def replace_backslash(df: pd.DataFrame,
+                          columns_replace_backslash_list: List[str] = None,
+                          replace_with: str = '') -> pd.DataFrame:
+
+        """
+        1. Replace backslashes in the specified columns.
+        2. Backslashes (\) are special characters in: JSON, CSV, SQL strings, Regex, File paths.
+
+        Args:
+            columns_replace_backslash_list:
+                A list with column names for processing.
+            replace_with:
+                A default value to replace backslashes with.
+
+        Returns:
+            A processed pandas DataFrame.
+        """
+
+        # 1. Check if a list was passed
+        if not columns_replace_backslash_list:
+            lg.info("No columns provided. Skipping transformation.")
+            return df
+
+        # 2. Check that the columns exists in the dataframe
+        for col in columns_replace_backslash_list:
+            if col not in df.columns:
+                raise KeyError(f"Column '{col}' not found.")
+
+        # 3. Replace backslashes with parameter `replace_with`
+        # .astype(str) ensures the .str accessor always works
+        # regex=False prevents Pandas from interpreting backslashes as regex escapes
+        for col in columns_replace_backslash_list:
+            df[col] = df[col].astype(str).str.replace("\\", replace_with, regex=False)
+
+        lg.info("Backslash replacement completed successfully.")
+        return df
+
+    @staticmethod
+    def escape_backslash(df: pd.DataFrame,
+                         columns_escape_backslash_list: List[str] = None) -> pd.DataFrame:
+
+        """
+        1. Escape backslashes in the specified columns.
+        2. Backslashes (\) are special characters in: JSON, CSV, SQL strings, Regex, File paths.
+        3. Turn them into literal characters instead of letting them act as a control character.
+
+        Args:
+            columns_escape_backslash_list:
+                A list with columns for processing.
+
+        Returns:
+            A processed pandas DataFrame.
+        """
+
+        # 1. Check if a list was passed
+        if not columns_escape_backslash_list:
+            lg.info("No columns provided. Skipping transformation.")
+            return df
+
+        # 2. Check that the columns exists in the dataframe
+        for col in columns_escape_backslash_list:
+            if col not in df.columns:
+                raise KeyError(f"Column '{col}' not found.")
+
+        # 3. Escape backslashes with \\
+        # .astype(str) ensures the .str accessor always works
+        # regex=False prevents Pandas from interpreting backslashes as regex escapes
+        for col in columns_escape_backslash_list:
+            df[col] = df[col].astype(str).str.replace("\\", "\\\\", regex=False)
+
+        lg.info("Escaping backslash completed successfully.")
+        return df
+
+    @staticmethod
+    def sanitize_columns(df: pd.DataFrame,
+                         columns_sanitize_list: List[str] = None,
+                         replace_with=' ') -> pd.DataFrame:
+        """
+        Cleans string columns by replacing control characters (\r\n\t) with a placeholder
+        and normalizing empty or null-like strings to actual Null values.
+
+        Args:
+            df:
+                The DataFrame to process.
+            columns_sanitize_list:
+                List of column names to apply cleaning to.
+            replace_with:
+                The string to insert in place of newlines/tabs. Defaults to a single space.
+
+        Returns:
+            pd.DataFrame: The modified DataFrame with sanitized columns.
+        """
+
+        # 1. Check if the list was passed
+        if not columns_sanitize_list:
+            return df
+
+        # 2. Check if the columns exist in the data frane
+        for col in columns_sanitize_list:
+            if col not in df.columns:
+                raise KeyError(f"Column '{col}' not found.")
+
+        # 3. Apply the transformations
+        for col in columns_sanitize_list:
+            # Step 1: Force column to string type and replace \r (carriage return),
+            # \n (newline), and \t (tab) with the replacement string using regex.
+            df[col] = df[col].astype(str).str.replace(r'[\r\n\t]+', replace_with, regex=True)
+
+            # Step 2: After the string conversion and replacement, cleanup the "noise".
+            # - '' (Empty strings) occur if the cell was empty or only contained control chars.
+            # - 'nan' occurs because .astype(str) converts actual np.nan into a string.
+
+            # This converts both back to a proper numpy NaN object.
+            df[col] = df[col].replace(['', 'nan'], np.nan)
+
+        return df
+
+    @staticmethod
+    def format_date_columns(df: pd.DataFrame,
+                            columns_date_config_dict: Dict[str, str] = None) -> pd.DataFrame:
+        """
+        1. Convert date columns to datetime pandas objects.
+        2. Convert the columns to the applied date format.
+
+        Example: column_config: {'created_at': '%Y-%m-%d %H:%M:%S',
+                                 'birth_date': '%Y-%m-%d'}
+
+        Args:
+            df:
+                Input pandas DataFrame
+            columns_date_config_dict:
+                A dictionary with datetime columns for processing.
+
+        Returns:
+            A processed pandas DataFrame.
+        """
+
+        # 1. Check if a list was passed
+        if not columns_date_config_dict:
+            lg.info("No columns provided. Skipping transformation.")
+            return df
+
+        # 2. Check if the columns exist
+        for col in columns_date_config_dict.keys():
+            if col not in df.columns:
+                raise KeyError(f"Column '{col}' not found.")
+
+        # 3. Convert date/timestamp column to datetime object and the corresponding format
+        for col, date_format in columns_date_config_dict.items():
+            df[col] = pd.to_datetime(df[col], format=date_format, errors='coerce')
+
+        lg.info("Formating date columns completed successfully.")
+        return df
+
+    @staticmethod
     def convert_columns_to_int(df: pd.DataFrame,
-                               columns_int_list: list[str]
+                               columns_int_list: list[str] = None,
                                ) -> pd.DataFrame:
         """
-        Convert all columns in the given list to nullable Int64. Enforce early data corruption detection.
+        1. Convert all columns in the given list to nullable Int64. Enforce early data corruption detection.
+        2. Raise an error on non-integer floats or invalid strings.
+        3. None / NaN values are preserved.
 
-        Rules:
-        - Raises an error on non-integer floats or invalid strings.
-        - None / NaN values are preserved.
+        Args:
+            df:
+                Input pandas DataFrame
+            columns_int_list:
+                A list with column for processing.
+
+        Returns:
+            A processed pandas DataFrame.
         """
 
         # 1. Check if a list was passed
@@ -68,12 +317,21 @@ class EtlUtils:
 
     @staticmethod
     def convert_columns_to_float(df: pd.DataFrame,
-                                 columns_numeric_list: list[str]
+                                 columns_numeric_list: List[str] = None,
                                  ) -> pd.DataFrame:
         """
-        Convert columns to nullable Float64.
-        Whitespace/empty strings are treated as NaN.
-        Actual data corruption (letters, etc.) still raises an error
+        1. Convert columns to nullable Float64.
+        2. Whitespace/empty strings are treated as NaN.
+        3. Actual data corruption (letters, etc.) still raises an error.
+
+        Args:
+            df:
+                Input pandas DataFrame
+            columns_numeric_list:
+                A list with columns for processing.
+
+        Returns:
+            A processed pandas DataFrame.
         """
 
         # 1. Check if a list was passed
@@ -105,124 +363,6 @@ class EtlUtils:
         return df
 
     @staticmethod
-    def rename_columns(df: pd.DataFrame,
-                       rename_columns_dict: Dict[str, str]
-                       ) -> pd.DataFrame:
-
-        """ Rename column names by passing a dictionary with old versions as keys and the new versions as values
-
-         rename_columns_dict = {
-                "old_version_1" : "new_version_2",
-                "old_version_2" : "new_version_2"
-                }
-        """
-
-        # 1. Check if a list was passed
-        if not rename_columns_dict:
-            lg.info("No columns provided. Skipping transformation.")
-            return df
-
-        # 2. Check if a column exist in the dataframe
-        for col in rename_columns_dict:
-            if col not in df.columns:
-                raise KeyError(f"Column '{col}' not found.")
-
-        # 3. Rename the columns
-        df = df.rename(columns=rename_columns_dict)
-        lg.info(f"Renaming the columns completed successfully.")
-        return df
-
-    @staticmethod
-    def validate_no_nulls(df: pd.DataFrame,
-                          validate_no_nulls_string: str
-                          ) -> pd.DataFrame:
-
-        # 1. Check if a list was passed
-        if not validate_no_nulls_string:
-            lg.info("No columns provided. Skipping transformation.")
-            return df
-
-        # 2. Check that all columns exist in df
-        for col in validate_no_nulls_string:
-            if col not in df.columns:
-                raise KeyError(f"Column '{col}' not found.")
-
-        # 3. Check for nulls in each column
-        lg.info("Running null columns check.")
-        for col in validate_no_nulls_string:
-            if df[col].isnull().any():
-                raise ValueError(f"Column '{col}' contains null values.")
-
-        lg.info("Validating no nulls completed successfully.")
-        return df
-
-    @staticmethod
-    def replace_backslash(df: pd.DataFrame,
-                          columns_replace_backslash_list: List[str] = None,
-                          replace_with: str = '') -> pd.DataFrame:
-
-        """
-        1. Replace backslashes in the specified columns.
-        2. Backslashes are special characters in: JSON, CSV, SQL strings, Regex, File paths.
-        """
-
-        # 1. Check if a list was passed
-        if not columns_replace_backslash_list:
-            lg.info("No columns provided. Skipping transformation.")
-            return df
-
-        # 2. Check that the columns exists in the dataframe
-        for col in columns_replace_backslash_list:
-            if col not in df.columns:
-                raise KeyError(f"Column '{col}' not found.")
-
-        # 3. Replace backslashes with parameter `replace_with`
-        # .astype(str) ensures the .str accessor always works
-        # regex=False prevents Pandas from interpreting backslashes as regex escapes
-        for col in columns_replace_backslash_list:
-            df[col] = df[col].astype(str).str.replace("\\", replace_with, regex=False)
-
-        lg.info("Backslash replacement completed successfully.")
-        return df
-
-    @staticmethod
-    def escape_backslash(df: pd.DataFrame,
-                         columns_escape_backslash_list: List[str] = None) -> pd.DataFrame:
-
-        """
-        1. Escape backslashes in the specified columns.
-        2. Backslashes are special characters in: JSON, CSV, SQL strings, Regex, File paths.
-        3. Turn them into literal characters instead of letting them act as a control character.
-        """
-
-        # 1. Check if a list was passed
-        if not columns_escape_backslash_list:
-            lg.info("No columns provided. Skipping transformation.")
-            return df
-
-        # 2. Check that the columns exists in the dataframe
-        for col in columns_escape_backslash_list:
-            if col not in df.columns:
-                raise KeyError(f"Column '{col}' not found.")
-
-        # 3. Escape backslashes with \\
-        # .astype(str) ensures the .str accessor always works
-        # regex=False prevents Pandas from interpreting backslashes as regex escapes
-        for col in columns_escape_backslash_list:
-            df[col] = df[col].astype(str).str.replace("\\", "\\\\", regex=False)
-
-        lg.info("Escaping backslash completed successfully.")
-        return df
-
-    @staticmethod
-    def lowercase_column_names(df: pd.DataFrame) -> pd.DataFrame:
-        lg.info("Converting all column names to lowercase.")
-        df.columns = df.columns.str.lower()
-
-        lg.info("Lowercasing column names completed successfully.")
-        return df
-
-    @staticmethod
     def serialize_json_columns(df: pd.DataFrame, columns_json_list: List[str] = None) -> pd.DataFrame:
         """
         Converts Python objects (dicts/lists) into valid JSON strings.
@@ -245,49 +385,34 @@ class EtlUtils:
 
         # 3. Serialize JSON
         for col in columns_json_list:
-                lg.info(f"Serializing JSON for column: {col}")
-                # json.dumps ensures double quotes are used: {"key": "value"}
-                df[col] = df[col] = [json.dumps(x) if isinstance(x, (dict, list)) else x for x in df[col]]
-                # ^ Explanation:
-                # - If x is a dict/list: Convert to "{"proper": "json"}"
-                # - If x is None/NaN: Leave as is so Postgres sees it as NULL
-                # - If x is a string: Skip to avoid "{\"nested\": \"quotes\"}"
+            lg.info(f"Serializing JSON for column: {col}")
+            # json.dumps ensures double quotes are used: {"key": "value"}
+            df[col] = df[col] = [json.dumps(x) if isinstance(x, (dict, list)) else x for x in df[col]]
+            # ^ Explanation:
+            # - If x is a dict/list: Convert to "{"proper": "json"}"
+            # - If x is None/NaN: Leave as is so Postgres sees it as NULL
+            # - If x is a string: Skip to avoid "{\"nested\": \"quotes\"}"
 
         lg.info("Serializing JSON columns completed successfully.")
-        return df
-
-    @staticmethod
-    def strip_column_values(df: pd.DataFrame,
-                            columns_strip_list: List[str] = None) -> pd.DataFrame:
-
-        # 1. Check if a list was passed
-        if not columns_strip_list:
-            lg.info("No columns provided. Skipping transformation.")
-            return df
-
-        # 2. Check if the columns exist
-        for col in columns_strip_list:
-            if col not in df.columns:
-                raise KeyError(f"Column '{col}' not found.")
-
-        # 3. Filter the list to only include columns that actually exist AND are objects/strings
-        valid_string_cols = df[columns_strip_list].select_dtypes(include=['object', 'string']).columns
-        lg.info(f"Valid string columns list: {valid_string_cols}.")
-
-        # 4. Apply transformation only to valid columns
-        lg.info("Stripping whitespace from column values.")
-        for col in valid_string_cols:
-            # Vectorized strip and replace
-            df[col] = df[col].str.strip().replace('', np.nan)
-
-        lg.info("Stripping column values completed successfully.")
         return df
 
     @staticmethod
     def check_non_null_columns(df: pd.DataFrame,
                                columns_non_null_list: List[str] = None
                                ) -> pd.DataFrame:
-        """Raises ValueError if any non-null columns contain NULLs."""
+        """
+        1. Check the column values for NULL values.
+        2. Raises ValueError if any non-null columns contain NULLs.
+
+        Args:
+            df:
+                Input pandas DataFrame
+            columns_non_null_list:
+                A list with column for processing.
+
+        Returns:
+            A processed pandas DataFrame.
+        """
 
         # 1. Check if a list was passed
         if not columns_non_null_list:
@@ -312,10 +437,23 @@ class EtlUtils:
                           action='raise') -> pd.DataFrame:
 
         """
-        Action 'raise' (default): Stop the pipeline if duplicates exist.
-        Action 'drop': Remove them and keep the first occurrence.
+        1. Check if there are any duplicates based on the subset input. There are two options:
+        2. Action 'raise' (default): Stop the pipeline if duplicates exist.
+        3. Action 'drop': Remove them and keep the first occurrence.
+        4. Raises ValueError if duplicated records were found in the unique list.
 
-        Raises ValueError if duplicated records were found in the unique list."""
+        Args:
+            df:
+                Input pandas DataFrame
+            columns_unique_list:
+                A list with column for processing.
+            action:
+                Behavior of the function, action='raise' (default) stops the ETL pipeline if duplicates are detected.
+                action='drop' removes duplicates and keeps the first occurrence.
+
+        Returns:
+            A processed pandas DataFrame.
+        """
 
         # 1. Check if a list was passed
         if not columns_unique_list:
@@ -341,97 +479,6 @@ class EtlUtils:
         return df
 
     @staticmethod
-    def format_date_columns(df: pd.DataFrame,
-                            columns_date_config_dict: Dict[str, str]) -> pd.DataFrame:
-        """
-        1. Convert date columns to datetime pandas objects.
-        2. Convert the columns to the applied date format.
-
-        Example: column_config: {'created_at': '%Y-%m-%d %H:%M:%S',
-                                 'birth_date': '%Y-%m-%d'}
-        """
-        # 1. Check if a list was passed
-        if not columns_date_config_dict:
-            lg.info("No columns provided. Skipping transformation.")
-            return df
-
-        # 2. Check if the columns exist
-        for col in columns_date_config_dict.keys():
-            if col not in df.columns:
-                raise KeyError(f"Column '{col}' not found.")
-
-        # 3. Convert date/timestamp column to datetime object and the corresponding format
-        for col, date_format in columns_date_config_dict.items():
-            df[col] = pd.to_datetime(df[col], format=date_format, errors='coerce')
-
-        lg.info("Formating date columns completed successfully.")
-        return df
-
-    @staticmethod
-    def sanitize_columns(df: pd.DataFrame,
-                         columns_sanitize_list: List[str] = None,
-                         replace_with=' ') -> pd.DataFrame:
-        """
-        Cleans string columns by replacing control characters (\r\n\t) with a placeholder
-        and normalizing empty or null-like strings to actual Null values.
-
-        Args:
-            df (pd.DataFrame): The DataFrame to process.
-            columns_sanitize_list (list): List of column names to apply cleaning to.
-            replace_with (str): The string to insert in place of newlines/tabs.
-                                Defaults to a single space.
-
-        Returns:
-            pd.DataFrame: The modified DataFrame with sanitized columns.
-        """
-
-        # 1. Check if the list was passed
-        if not columns_sanitize_list:
-            return df
-
-        # 2. Check if the columns exist in the data frane
-        for col in columns_sanitize_list:
-            if col not in df.columns:
-                raise KeyError(f"Column '{col}' not found.")
-
-        # 3. Apply the transformations
-        for col in columns_sanitize_list:
-
-            # Step 1: Force column to string type and replace \r (carriage return),
-            # \n (newline), and \t (tab) with the replacement string using regex.
-            df[col] = df[col].astype(str).str.replace(r'[\r\n\t]+', replace_with, regex=True)
-
-            # Step 2: After the string conversion and replacement, cleanup the "noise".
-            # - '' (Empty strings) occur if the cell was empty or only contained control chars.
-            # - 'nan' occurs because .astype(str) converts actual np.nan into a string.
-
-            # This converts both back to a proper numpy NaN object.
-            df[col] = df[col].replace(['', 'nan'], np.nan)
-
-        return df
-
-    def set_comments(self):
-        pass
-
-    def check_source_date_range(self):
-        pass
-
-    def run_data_quality_check(self):
-        pass
-
-    def get_command_line_parameters(self):
-        pass
-
-    def set_params_based_on_command_line(self):
-        pass
-
-    def delete_target_dates(self):
-        pass
-
-    def set_reference_page(self):
-        pass
-
-    @staticmethod
     def transform_dataframe(df: pd.DataFrame,
                             columns_str_dict: Dict[str, str] = None,
                             columns_lowercase: bool = True,
@@ -443,32 +490,35 @@ class EtlUtils:
                             columns_int_list: List[str] = None,
                             columns_numeric_list: List[str] = None,
                             columns_json_list: List[str] = None,
-                            validate_no_nulls_string: str = None,
                             columns_non_null_list: List[str] = None,
                             columns_unique_list: List[str] = None
                             ) -> pd.DataFrame:
 
-        """ Apply transformations to a dataframe.
-        1. Clean/Standardize.
-        2. Pre-process.
-        3. Data integrity.
-        4. Validate.
+        """
+        A central function that applies transformations to a dataframe.
 
-        :param df:
-        :param validate_no_nulls_string:
-        :param columns_int_list:
-        :param columns_numeric_list:
-        :param columns_str_dict:
-        :param columns_replace_backslash_list:
-        :param columns_escape_backslash_list:
-        :param columns_json_list:
-        :param columns_strip_list:
-        :param columns_non_null_list:
-        :param columns_unique_list:
-        :param columns_date_config_dict:
-        :param columns_sanitize_list:
-        :param columns_lowercase:
-        :return:
+        1. Cleansing and standardizing.
+        2. Pre-processing.
+        3. Data integrity.
+        4. Validation.
+
+        Args:
+            df: Input pandas DataFrame for processing.
+            columns_str_dict: A dictionary with columns for renaming.
+            columns_lowercase: A boolean operator that controls whether columns names should be lowercased.
+            columns_strip_list: A list with column names for stripping whitespace.
+            columns_replace_backslash_list: A list with column names for replacing backslashes.
+            columns_escape_backslash_list: A list with column names for escaping backslashes.
+            columns_sanitize_list: A list with column names for replacing control characters (\r\n\t) with a placeholder.
+            columns_date_config_dict: A dictionary with date/timestamp columns for convertion in another date format.
+            columns_int_list: A list with columns for conversion in Int64 format.
+            columns_numeric_list: A list with columns for conversion in Float54 format.
+            columns_json_list: A list with column names for converting dicts/lists into valid JSON strings.
+            columns_non_null_list: A list with column names for detecting NULL values.
+            columns_unique_list: A list with column names for detecting duplicated values.
+
+        Returns:
+            A processed pandas DataFrame.
         """
 
         # I. Clean and standardize.
@@ -519,15 +569,11 @@ class EtlUtils:
 
         # IV. Validation.
 
-        # 11. Check for null values in unique columns
-        if validate_no_nulls_string:
-            df = EtlUtils.validate_no_nulls(df=df, validate_no_nulls_string=validate_no_nulls_string)
-
-        # 12. Check for NULLS
+        # 11. Check for NULLS
         if columns_non_null_list:
             df = EtlUtils.check_non_null_columns(df=df, columns_non_null_list=columns_non_null_list)
 
-        # 13. Check for duplicates
+        # 12. Check for duplicates
         if columns_unique_list:
             df = EtlUtils.handle_duplicates(df=df, columns_unique_list=columns_unique_list)
 
@@ -548,6 +594,27 @@ class EtlUtils:
         # set data_min/max_date to audit manager
         self.sfp.etl_audit_manager.data_min_date = data_min_date
         self.sfp.etl_audit_manager.data_max_date = data_max_date
+        pass
+
+    def set_comments(self):
+        pass
+
+    def check_source_date_range(self):
+        pass
+
+    def run_data_quality_check(self):
+        pass
+
+    def get_command_line_parameters(self):
+        pass
+
+    def set_params_based_on_command_line(self):
+        pass
+
+    def delete_target_dates(self):
+        pass
+
+    def set_reference_page(self):
         pass
 
     # ===========================================================

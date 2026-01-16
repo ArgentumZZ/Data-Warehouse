@@ -104,7 +104,7 @@ class ScriptWorker:
             # Take the etl_runs_key from the audit table and pass it to the dataframe
             df['etl_runs_key'] = self.sfc.etl_audit_manager.etl_runs_key
 
-            # process df and transform
+            # Process and transform the DataFrame
             df = self.sfc.etl_utils.transform_dataframe(
                                     df=df,
                                     # Pass source columns in lowercase
@@ -122,7 +122,6 @@ class ScriptWorker:
                                     columns_int_list=['raw_number_value', 'transaction_index'],
                                     columns_numeric_list=[],
                                     columns_json_list=['metadata'],
-                                    validate_no_nulls_string=[],
                                     columns_non_null_list=[],
                                     columns_unique_list=[]
                                     )
