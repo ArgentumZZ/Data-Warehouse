@@ -1,12 +1,6 @@
-"""
-Purpose:
-    Define custom exception classes for ETL-specific and data-warehouse-specific
-    error handling. Each exception includes guidance on when it should be raised,
-    providing semantic clarity and predictable control flow across the pipeline.
-"""
-
 # ---------------------------------------------------------------------------
-# Base class
+# Custom exception classes that may user for ETL-specific and
+# data-warehouse-specific error handling
 # ---------------------------------------------------------------------------
 
 

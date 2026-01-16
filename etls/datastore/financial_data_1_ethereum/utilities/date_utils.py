@@ -1,12 +1,6 @@
-"""
-date_utils.py
-
-Purpose:
-    Provide helpers for working with dates and timestamps, including:
-        - Getting today's date
-        - Adding/subtracting days
-"""
-
+# ===========================================================
+# Date and timestamp helpers that may be implemented
+# ===========================================================
 from datetime import datetime, timedelta
 
 
@@ -19,16 +13,19 @@ def today():
     """
     return datetime.now().date()
 
+def yesterday(self):
+    """Return yesterday's date."""
+    pass
 
-def add_days(date, days):
+def add_days(base_date, days):
     """
     Add or subtract days from a date.
 
     Args:
-        date (date): Base date.
-        days (int): Number of days to add (negative allowed).
+        base_date: Base date.
+        days: Number of days to add (negative allowed).
 
     Returns:
         date: Adjusted date.
     """
-    return date + timedelta(days=days)
+    return base_date + timedelta(days=days)

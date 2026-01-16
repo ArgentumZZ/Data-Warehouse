@@ -3,15 +3,15 @@
 - **Data Warehouse**
   - Extract, transform and load data from different sources into a PostgresSQL database.
 - **Main folders**
-  - `dags` - DAG files for Airflow (in progress).
-  - `connectors` folder - Connectors to different DB and non-DB sources (in progress).
-  - `utilities` folder - Utilities files (in progress).
+  - `dags` - DAG files for Airflow.
+  - `connectors` folder - Connectors to different DB and non-DB sources.
+  - `utilities` folder - Utilities files.
   - `metadata/logs` - logs generated for each project's run.
   - `metadata/output` - files generated for each project's run.
-  - `tests` folder - Unit tests (in progress).
-  - `warehouse` folder - dim and fact tables (in progress).
-  - `data_quality_checks` folder - Custom data quality checks (in progress).
-  - `aggregations` - Data aggregations (in progress).
+  - `tests` folder - Unit tests.
+  - `warehouse` folder - dim and fact tables.
+  - `data_quality_checks` folder - Custom data quality checks.
+  - `aggregations` - Data aggregations.
   - `docker` - Dockerfile, requirements.txt and .sh run files.
   - `customer_code` - Custom code for each project.
   - `sript_factory` - Central assembly factory, take info from all other files to create the tasks for execution.
@@ -41,8 +41,9 @@ ___
   - Create an `update_etl_runs_record` function. ✔️
   
 - **ETL Utilities**
-  - Add general ETL helper functions.
-  - Optionally create a `utilities/` folder with separate modules.
+  - Add custom ETL transformation functions. ✔️
+  - Add a single `transform_dataframe` function that applies transformations. ✔️
+  - Add `process_dataframe_date_ranges` function to calculate `data_min_date` and `data_max_date`. ✔️
 
 - **Incremental and full Load**
   - Implement logic for both incremental (I) and full (F) load modes. ✔️
@@ -55,28 +56,30 @@ ___
   - (Optionally) Automatically delete .logs older than N runs. ✔️
   
 - **Utilities folder**
-  - Create utilities .py files for ETL processes (e.g. file_utils.py, argument_parser.py, errors_utils, db_utils.py)️
+  - Create utilities .py files for ETL processes (e.g. file_utils.py, argument_parser.py, errors_utils, db_utils.py)️. ✔️
 
 - **Output folder**
   - Create an `output/` folder to store generated files. ✔️
   - Format `output/file_name_timestamp.csv`. ✔️
   - Control with a boolean operator, whether the file will be deleted from the folder. ✔️
 
+- **Dockerization** (in progress)
+  - Add a `Dockerfile` for containerized execution.
+  - Add the correct file paths needed to run `_docker.bat` and `_docker.sh`.
+  - Ensure compatibility with Windows/Linux runners.
+
+- **Launcher scripts** (in progress)
+  - Update `.bat`, `.sh`, `_docker.bat`, `_docker.sh`.
+  - Add parameter parsing, environment selection, and error handling.
+
 - **Email Notifications (SMTP)**
   - Implement e-mail success/failure alerts after each project's run.
   - Include run summary and error details.
 
-- **Dockerization**
-  - Add a `Dockerfile` for containerized execution.
-  - Ensure compatibility with Windows/Linux runners.
-
-- **Launcher scripts**
-  - Update `.bat`, `.sh`, `_docker.bat`, `_docker.sh`
-  - Add parameter parsing, environment selection, and error handling.
-
 - **Backfill**
   - Implement backfill loading option in `.bat`, `.sh`, `_docker.bat`, `_docker.sh` files.
   - Create a separate backfill project that accepts `project_name`, `start_date`, `end_date`, `load_days` to load data incrementally.
+
 - **Additional Connectors**
   - PostgreSQL (implemented) 
   - Oracle
