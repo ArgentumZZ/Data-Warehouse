@@ -104,23 +104,27 @@ class ScriptWorker:
             # Take the etl_runs_key from the audit table and pass it to the dataframe
             df['etl_runs_key'] = self.sfc.etl_audit_manager.etl_runs_key
 
-            # process df and transform
+            # Process and transform the DataFrame
             df = self.sfc.etl_utils.transform_dataframe(
-                    df=df,
-                    columns_int_list=[],
-                    # Pass source columns in lowercase
-                    columns_str_dict={'value_eth'           : 'value_ethereum',
-                                      'tx_hash'             : 'tax_hash',
-                                      'blck_nbr_raw_val'    : 'raw_number_value',
-                                      'eth_amt_001'         : 'ethereum_amount',
-                                      'contract_addr_x'     : 'contract_address',
-                                      'f_is_vld_bool'       : 'is_valid'},
-                    validate_no_nulls_string=source_columns_unique,
-                    columns_replace_backslash_list=[],
-                    columns_escape_backslash_list=[],
-                    columns_json_list=['metadata'],
-                    columns_lowercase=True
-                    )
+                                    df=df,
+                                    # Pass source columns in lowercase
+                                    columns_str_dict={'tx_hash': 'tax_hash',
+                                                      'blck_nbr_raw_val': 'raw_number_value',
+                                                      'eth_amt_001': 'ethereum_amount',
+                                                      'contract_addr_x': 'contract_address',
+                                                      'f_is_vld_bool': 'is_valid'},
+                                    columns_lowercase=True,
+                                    columns_strip_list=[],
+                                    columns_replace_backslash_list=[],
+                                    columns_escape_backslash_list=[],
+                                    columns_sanitize_list=[],
+                                    columns_date_config_dict={},
+                                    columns_int_list=['raw_number_value', 'transaction_index'],
+                                    columns_numeric_list=[],
+                                    columns_json_list=['metadata'],
+                                    columns_non_null_list=[],
+                                    columns_unique_list=[]
+                                    )
 
 
             # this will be passed to update_etl_runs_table_record

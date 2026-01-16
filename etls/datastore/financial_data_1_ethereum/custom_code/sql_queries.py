@@ -26,8 +26,8 @@ source_columns_unique = '''tax_hash'''
 # 4. Create table query
 sql_queries['create_table'] = '''
         CREATE TABLE IF NOT EXISTS {schema}.{table} (
-        {table}_key                     BIGSERIAL PRIMARY KEY,
         etl_runs_key                    BIGINT,
+        {table}_key                     BIGSERIAL PRIMARY KEY,
         ''' + source_columns_create + '''
         created_at                      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
         modified_at                     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -56,7 +56,7 @@ sql_queries['get_data'] = '''
                                 f_is_vld_bool   
                           FROM financial_data.ethereum
                           WHERE (source_created_at  BETWEEN '{sdt}' AND '{edt}'
-                            OR source_updated_at BETWEEN '{sdt}' AND '{edt}')
+                            OR source_updated_at BETWEEN '{sdt}' AND '{edt}');
                           '''
 
 # 6. Create comments query

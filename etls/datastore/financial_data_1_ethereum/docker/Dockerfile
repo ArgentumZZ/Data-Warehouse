@@ -5,6 +5,30 @@
 # FROM python:${PY_VERSION}
 FROM python:3.11-slim
 
+
+# Update package lists and install system dependencies required
+# for building Python packages that compile C extensions
+RUN \
+    # Update the package index so apt knows about the latest package versions
+    apt-get update && \
+    # Install system-level build tools and headers needed to compile Python C extensions
+    apt-get install -y \
+        # C compiler required for building Python packages with C extensions
+        gcc \
+        # Core build tools: make, g++, dpkg-dev, etc.
+        build-essential \
+        # Foreign Function Interface headers (needed for cffi, cryptography)
+        libffi-dev \
+        # PostgreSQL client headers (required for psycopg2)
+        libpq-dev \
+        # Python headers needed to compile Python C extensions
+        python3-dev \
+    # Remove cached package lists to keep the image size smaller
+    && rm -rf /var/lib/apt/lists/*
+
+
+
+RUN pip install --upgrade pip
 # -----------------------------
 # 1. Build-time arguments (ARG)
 # -----------------------------
@@ -67,7 +91,7 @@ COPY docker_test.py .
 # CMD ["python", "docker_test.py"]
 
 # the executable that always runs
-ENTRYPOINT ["python", "docker_test.py"]
+ENTRYPOINT ["python", "script_runner.py"]
 
 # In the terminal
 # docker build -t my-python-test .
