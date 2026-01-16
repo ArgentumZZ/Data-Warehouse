@@ -13,20 +13,22 @@ Purpose:
 """
 
 import os
-import uuid
 import utilities.logging_manager as lg
 from datetime import datetime
 
 # ---------------------------------------------------------------------------
-# Existing functions (kept exactly as provided)
+# Existing functions
 # ---------------------------------------------------------------------------
 
 def build_output_file_path(table: str) -> str:
     """
     A utility function that creates an output folder to store CSV files from each project's run.
 
-    :param table: Name of the table (the project's table)
-    :return:
+    Arg:
+        table: Name of the table (the project's table)
+
+    Returns:
+        A string file path.
     """
 
     # 1. Find the current directory of the file (where this function is run):
@@ -51,57 +53,8 @@ def build_output_file_path(table: str) -> str:
     file_path = os.path.join(output_dir, f"{table}_{file_timestamp}.csv")
     return file_path
 
-
-def generate_random_dir(prefix="run_"):
-    """
-    Generate a random directory name.
-
-    Args:
-        prefix (str): Optional prefix for the directory.
-
-    Returns:
-        str: Random directory name.
-    """
-    # uuid.uuid4().hex: a 32‑character hex string like a3f91c2b7e4d4c1f8b2d9f0e3c5a7d12
-    # [:8] -> select the first 8 characters
-    # Example output: run_a3f91c2b
-    return prefix + uuid.uuid4().hex[:8]
-
-
-def create_folders(path_parts, is_folder=True):
-    """
-    Create a folder structure from a list of path components.
-
-    Args:
-        path_parts (list[str]): Components of the path.
-        is_folder (bool): Whether to create the final path as a folder.
-
-    Returns:
-        tuple: (full_path, parent_path, path_parts)
-    """
-
-    # Example input: create_folders(["output", "run_e25d2c49"], is_folder=True)
-    # Example full_path: "output/run_e25d2c49"
-    full_path = os.path.join(*path_parts)
-    if is_folder:
-        # Create a folder:
-        # output /
-        #    run_e25d2c49 /
-        os.makedirs(full_path, exist_ok=True)
-
-    # Example parent: "output"
-    parent = os.path.dirname(full_path)
-
-    # Example result: (
-    #     "output/run_e25d2c49",      # full_path
-    #     "output",                   # parent_path
-    #     ["output", "run_e25d2c49"]  # path_parts
-    # )
-    return full_path, parent, path_parts
-
-
 # ---------------------------------------------------------------------------
-# Additional helpers (additive only)
+# 2. File utilities
 # ---------------------------------------------------------------------------
 
 def normalize(path):
@@ -119,6 +72,16 @@ def normalize(path):
     path = os.path.expanduser(path)
     path = os.path.normpath(path)
     return os.path.abspath(path)
+
+
+def join(*parts):
+    """
+    Join path components and normalize the result.
+
+    Returns:
+        str: Normalized absolute path.
+    """
+    return normalize(os.path.join(*parts))
 
 
 def ensure_dir(path):
@@ -268,3 +231,31 @@ def file_size(path):
     if os.path.isfile(path):
         return os.path.getsize(path)
     return 0
+
+def extension(path):
+    """Return the file extension (including the dot)."""
+    return os.path.splitext(normalize(path))[1]
+
+
+def filename(path):
+    """Return the filename without directories."""
+    return os.path.basename(normalize(path))
+
+
+def parent(path):
+    """Return the parent directory."""
+    return os.path.dirname(normalize(path))
+
+
+def relative_to_script(script_file, *parts):
+    """
+    Resolve a path relative to the script's directory.
+
+    Args:
+        script_file (str): __file__ of the calling script.
+
+    Returns:
+        str: Normalized absolute path.
+    """
+    base = os.path.dirname(normalize(script_file))
+    return join(base, *parts)
