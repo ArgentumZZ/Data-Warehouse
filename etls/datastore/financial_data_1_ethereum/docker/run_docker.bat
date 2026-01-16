@@ -7,15 +7,13 @@ cd /d "%~dp0"
 title %~n0
 ::See the title at the top
 
-:: Print current working directory
-echo Current directory: %cd%
-
 :: Example variables you may want to use
-set SCRIPT_NAME=docker_test
+set SCRIPT_NAME=financial_data_1_ethereum
 set DATA_DIR=/app/data
 set CONFIG_DIR=/app/config
 
 :: Print variable values
+echo Current directory: %cd%
 echo Script Name: %SCRIPT_NAME%
 echo Data Dir: %DATA_DIR%
 echo Config Dir: %CONFIG_DIR%
@@ -41,4 +39,3 @@ docker run --rm %SCRIPT_NAME% %1 %2
 
 echo.
 echo Done.
-pause
