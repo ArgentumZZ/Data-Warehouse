@@ -1,5 +1,5 @@
 # import libraries
-import psycopg2, io, csv
+import psycopg2, io, csv, configparser, os
 import pandas as pd
 from io import StringIO
 from psycopg2 import DatabaseError
