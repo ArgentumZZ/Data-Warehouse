@@ -38,7 +38,7 @@ RUN pip install --upgrade pip
 # It does not exist when the container runs
 # You can override it at build time: docker build --build-arg basedir=/custom/path -t my-image .
 ARG NUMPY_VERSION=1.26.0
-ARG basedir=/myapp
+ARG basedir=/app
 # Good practice: echo ARGs for debugging
 RUN echo "Using basedir: $basedir"
 RUN echo "Using numpy version: $NUMPY_VERSION"
@@ -52,8 +52,10 @@ RUN echo "Using numpy version: $NUMPY_VERSION"
 # Your Python code can read it using os.getenv()
 # You can override it at runtime: docker run -e APP_ENV=dev my-image
 # ENV BASEDIR=$basedir
+# This allows import utilities to work because Python will look in /app and find the utilities/ folder.
+ENV PYTHONPATH="/app"
 ENV DATA_DIR=/app/data
-ENV CONFIG_DIR=/app/config
+ENV CONFIG_DIR=/app/config/db_config.cfg
 # ENV LOG_DIR=/app/logs
 
 # -----------------------------
@@ -73,16 +75,21 @@ RUN pip install numpy==$NUMPY_VERSION
 # 5. Install dependencies (cached layer)
 # -----------------------------
 # Copy dependency list first (better for caching)
-COPY requirements.txt .
+COPY etls/datastore/financial_data_1_ethereum/docker/requirements.txt .
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # -----------------------------
+# 6. Copy config file (IMPORTANT)
+# -----------------------------
+RUN mkdir -p /app/config
+COPY config/local/db_config.cfg /app/config/db_config.cfg
+
+# -----------------------------
 # 6. Copy project files
 # -----------------------------
-COPY docker_test.py .
-# OR copy the entire project (not just one file)
-# COPY . .
+# Copy only the ethereum project subfolder into /app
+COPY etls/datastore/financial_data_1_ethereum/ /app/
 
 # -----------------------------
 # 7. Default command
@@ -91,7 +98,7 @@ COPY docker_test.py .
 # CMD ["python", "docker_test.py"]
 
 # the executable that always runs
-ENTRYPOINT ["python", "script_runner.py"]
+ENTRYPOINT ["python", "/app/script_runner/script_runner.py"]
 
 # In the terminal
 # docker build -t my-python-test .
