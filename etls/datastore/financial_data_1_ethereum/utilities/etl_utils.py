@@ -631,6 +631,7 @@ class EtlUtils:
 
         date_max_list = [pd.to_datetime(df[column], utc=True).max() for column in date_columns]
         lg.info(f"The date_max_list: {date_max_list}")
+        
         # 3. Calculate min and max values
         calculated_min_date = min(date_min_list)
         lg.info(f"Calculated_min_date: {calculated_min_date}")
