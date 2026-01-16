@@ -103,6 +103,7 @@ class ScriptWorker:
             self.data_min_date, self.data_max_date = self.sfc.etl_utils.process_dataframe_date_ranges(
                 df=df,
                 date_columns=['source_created_at', 'source_updated_at'])
+
             lg.info(f"The Script Worker data_min_date: {self.data_min_date}")
             lg.info(f"The Script Worker data_max_date: {self.data_max_date}")
 
@@ -114,7 +115,7 @@ class ScriptWorker:
             self.num_of_records = len(df)
             lg.info(f"The number of records: {self.num_of_records}")
 
-            # 4. Write to CSV
+            # 6. Write to CSV
             df.to_csv(
                     path_or_buf=file_path,
                     sep=";",
@@ -127,13 +128,12 @@ class ScriptWorker:
             )
 
         else:
-            # this will be passed to update_etl_runs_table_record
+            # 1. No records are returned, then leave the min and max dates at the start date
             self.num_of_records = 0
             self.data_min_date = None
             self.data_max_date = None
 
-            # No records are returned, then leave the min and max dates at the start date
-            # ready for the next run to start at the same point
+            # 2. The next run will start from the same point
             self.sfc.etl_audit_manager.data_min_date = self.sfc.etl_audit_manager.sdt
             self.sfc.etl_audit_manager.data_max_date = self.sfc.etl_audit_manager.sdt
 

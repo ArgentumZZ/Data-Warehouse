@@ -41,9 +41,9 @@ ___
   - Create an `update_etl_runs_record` function. ✔️
   
 - **ETL Utilities**
-  - Add custom ETL transformation functions.
-  - Add a single `transform_dataframe` function that applies transformations.
-  - Add `process_dataframe_date_ranges` function to extract correct `data_min_date` and `data_max_date`.
+  - Add custom ETL transformation functions. ✔️
+  - Add a single `transform_dataframe` function that applies transformations. ✔️
+  - Add `process_dataframe_date_ranges` function to calculate `data_min_date` and `data_max_date`. ✔️
 
 - **Incremental and full Load**
   - Implement logic for both incremental (I) and full (F) load modes. ✔️
