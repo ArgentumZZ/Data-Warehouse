@@ -60,7 +60,7 @@ class ScriptWorker:
         """
 
         # 1. Initiate the Postgres connector
-        self.pg_connector = PostgresConnector(credential_name='postgresql: development')
+        pg_connector = PostgresConnector(credential_name='postgresql: development')
 
         # 2. Format the query
         query = sql_queries['get_data'].format(
@@ -70,41 +70,14 @@ class ScriptWorker:
         lg.info(f"The query: {query}")
 
         # 3. Run the query and assign it to a dataframe
-        df = self.pg_connector.run_query(query=query, commit=False, get_result=True)
-
-        '''# The URL
-        url = "https://api.gleif.org/api/v1/lei-records/529900W18LQJJN6SJ336"
-        lg.info(f"The URL is: {url}")
-
-        # The payload
-        payload = {}
-        lg.info(f"The payload: {payload}")
-
-        # The headers
-        headers = {'Accept': 'application/vnd.api+json'}
-        lg.info(f"The headers: {headers}")
-
-        # 1. Call the API, convert to json
-        response = requests.request("GET", url, headers=headers, data=payload)
-        data_json = response.json()
-
-        # 2. Extract keys from the 'data' object
-        # In the JSON, 'data' is a dictionary, not a list
-        data_content = data_json.get('data', {})
-        data_keys = list(data_content.keys())
-        lg.info(f"Keys found in 'data': {data_keys}")
-
-        # 3. Convert to DataFrame
-        df = pd.DataFrame(data_content)
-        lg.info(f"The df: {df}")'''
-
+        df = pg_connector.run_query(query=query, commit=False, get_result=True)
 
         if len(df):
 
-            # Take the etl_runs_key from the audit table and pass it to the dataframe
+            # 1. Take the etl_runs_key from the audit table and pass it to the dataframe
             df['etl_runs_key'] = self.sfc.etl_audit_manager.etl_runs_key
 
-            # Process and transform the DataFrame
+            # 2. Process and transform the DataFrame
             df = self.sfc.etl_utils.transform_dataframe(
                                     df=df,
                                     # Pass source columns in lowercase
@@ -126,31 +99,20 @@ class ScriptWorker:
                                     columns_unique_list=[]
                                     )
 
+            # 3. Process dataframe date ranges
+            self.data_min_date, self.data_max_date = self.sfc.etl_utils.process_dataframe_date_ranges(
+                df=df,
+                date_columns=['source_created_at', 'source_updated_at'])
+            lg.info(f"The Script Worker data_min_date: {self.data_min_date}")
+            lg.info(f"The Script Worker data_max_date: {self.data_max_date}")
 
-            # this will be passed to update_etl_runs_table_record
+            # 4. If there are no time columns in the source, we can set data_min/max_dates manually to sdt and edt
+            # self.sfc.etl_audit_manager.data_min_date = self.sfc.etl_audit_manager.sdt
+            # self.sfc.etl_audit_manager.data_max_date = self.sfc.etl_audit_manager.edt
+
+            # 5. This will be passed to update_etl_runs_table_record
             self.num_of_records = len(df)
-
-            # self.sfc.etl_utils.process_dataframe_date_ranges()
-            # if there is a time column in the df, calculate min and max for that specific extract interval
-            # df[time_column] = pd.to_datetime(df[time_column])
-            # self.data_min_date = df[time_column].min()
-            # self.data_max_date = df[time_column].max()
-
-            # if there are no time columns, we can set them manually
-            # so these must be datetime objects
-            self.sfc.etl_audit_manager.data_min_date = self.sfc.etl_audit_manager.sdt
-            self.sfc.etl_audit_manager.data_max_date = self.sfc.etl_audit_manager.edt
-
-            # 1. Set worker values
-            # self.data_min_date = self.sfc.etl_audit_manager.sdt
-            # self.data_max_date = self.sfc.etl_audit_manager.edt
-
-            # 2. Sync them into the audit manager
-            # self.sfc.etl_audit_manager.data_min_date = self.data_min_date
-            # self.sfc.etl_audit_manager.data_max_date = self.data_max_date
-
-            # self.data_min_date = datetime.strptime("2025-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
-            # self.data_max_date = datetime.strptime("2025-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")
+            lg.info(f"The number of records: {self.num_of_records}")
 
             # 4. Write to CSV
             df.to_csv(
@@ -174,8 +136,6 @@ class ScriptWorker:
             # ready for the next run to start at the same point
             self.sfc.etl_audit_manager.data_min_date = self.sfc.etl_audit_manager.sdt
             self.sfc.etl_audit_manager.data_max_date = self.sfc.etl_audit_manager.sdt
-
-
 
     # 3. Upload to DWH
     def upload_to_dwh(self,

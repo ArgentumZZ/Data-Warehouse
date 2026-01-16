@@ -1,9 +1,11 @@
-from typing import Any, List, Dict
+# import libraries
+from typing import Any, List, Dict, Tuple
 import pandas as pd
 import numpy as np
-import utilities.logging_manager as lg
-import json, re
+import json, pytz
 
+# import custom libraries
+import utilities.logging_manager as lg
 
 class EtlUtils:
     """
@@ -581,20 +583,42 @@ class EtlUtils:
 
     def process_dataframe_date_ranges(self,
                                       df: pd.DataFrame,
-                                      date_columns: List[str]
-                                      ) -> None:
-        # list of timestamps
-        date_min_list = [pd.to_datetime(df[column]).min() for column in date_columns]
-        date_max_list = [pd.to_datetime(df[column]).max() for column in date_columns]
+                                      date_columns: List[str] = None,
+                                      ) -> Tuple[pd.Timestamp, pd.Timestamp]:
 
-        # timestamp
-        data_min_date = min(date_min_list)
-        data_max_date = max(date_max_list)
+        # 1. Create lists with min and max timestamp values
+        # For each date/timestamp column, find the min/max and append it to the list
+        date_min_list = [pd.to_datetime(df[column], utc=True).min() for column in date_columns]
+        lg.info(f"The date_min_list: {date_min_list}")
 
-        # set data_min/max_date to audit manager
-        self.sfp.etl_audit_manager.data_min_date = data_min_date
-        self.sfp.etl_audit_manager.data_max_date = data_max_date
-        pass
+        date_max_list = [pd.to_datetime(df[column], utc=True).max() for column in date_columns]
+        lg.info(f"The date_max_list: {date_max_list}")
+        # 2. Calculate min and max values
+        calculated_min_date = min(date_min_list)
+        lg.info(f"Calculated_min_date: {calculated_min_date}")
+
+        calculated_max_date = max(date_max_list)
+        lg.info(f"Calculated_max_date: {calculated_max_date}")
+
+        # 3. Normalize ETL window timestamps to UTC-aware timestamps
+        sdt_utc = pd.to_datetime(self.sfc.etl_audit_manager.sdt, utc=True)
+        edt_utc = pd.to_datetime(self.sfc.etl_audit_manager.edt, utc=True)
+
+        # 4. Protect the ETL audit layer from garbage dates, out‑of‑range dates, late‑arriving data, future timestamps
+        # and timezone‑shifted values.
+
+        # Determine the minimum/maximum timestamp from the corresponding list and sdt/edt in audit manager
+        clamped_data_min_date = max(calculated_min_date, sdt_utc)  # max! not min
+        lg.info(f"The clamped_data_min_date: {clamped_data_min_date}")
+
+        clamped_data_max_date = min(calculated_max_date, edt_utc)  # min! not max
+        lg.info(f"The clamped_data_max_date: {clamped_data_max_date}")
+
+        # 5. Add the dates to the etl audit manager
+        self.sfc.etl_audit_manager.data_min_date = clamped_data_min_date
+        self.sfc.etl_audit_manager.data_max_date = clamped_data_max_date
+
+        return clamped_data_min_date, clamped_data_max_date
 
     def set_comments(self):
         pass
