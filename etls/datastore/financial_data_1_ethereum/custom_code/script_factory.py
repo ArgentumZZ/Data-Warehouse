@@ -89,7 +89,7 @@ class ScriptFactory:
                                                 schema=self.schema,
                                                 table=self.table)
 
-
+        # Build file path for the output folder
         self.file_path = build_output_file_path(table=self.table)
         lg.info(f"The file will be saved to: {self.file_path}")
 

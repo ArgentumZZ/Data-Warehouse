@@ -28,29 +28,53 @@ if not logger.handlers:
 
     # 8. Create a log folder to populate with .logs files
 
-    # 9. Determine the absolute path of the folder containing this file (utilities/)
-    # os.path.dirname(path) returns the folder that contains the given path.
-    # If input: C:/project/utilities/logging_manager.py, then output: C:/project/utilities
-    current_dir = os.path.dirname(os.path.abspath(__file__))       # .../utilities
-    project_dir = os.path.dirname(current_dir)                     # .../project
+    # 9. Get the absolute path of the script being executed (run_script.py)
+    # Result: .../financial_data_1_ethereum/script_runner/run_script.py
+    script_path = os.path.abspath(sys.argv[0])
+    print(f"Absolute path of run_script.py: {script_path}")
 
-    # 10. Build the path to the shared logs directory: project/metadata/logs and build a logs folder
-    log_dir = os.path.join(project_dir, "metadata", "logs")        # .../metadata/logs
+    # 10. Go up ONE level to get the 'script_runner' folder
+    # Result: .../financial_data_1_ethereum/script_runner
+    script_runner_dir = os.path.dirname(script_path)
+    print(f"Path of script_runner folder: {script_runner_dir}")
 
-    print("Current working directory:", os.getcwd())
+    # 11. Go up SECOND level to get the project root
+    # Result: .../project_name
+    project_root = os.path.dirname(script_runner_dir)
+    print(f"Path of project root: {project_root}")
+
+    # 12. Build the path to metadata/logs at the project root level
+    log_dir = os.path.join(project_root, "metadata", "logs")
     print("Log dir:", log_dir)
 
-    # 11. Create directory if it doesn't exist
+    # 13. Create directory if it doesn't exist
     os.makedirs(log_dir, exist_ok=True)
 
-    # 12. Build timestamped filename
+    # Could use Path to re-do it
+    """
+    from pathlib import Path
+
+    # Get the path of the running script, go up 2 levels (parent of parent)
+    # .parent = script_runner/
+    # .parent.parent = financial_data_1_ethereum/
+    project_root = Path(sys.argv[0]).resolve().parent.parent
+    
+    log_dir = project_root / "metadata" / "logs"
+    
+    # Ensure directory exists (converts Path object to string for logging module)
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_dir = str(log_dir)
+    """
+
+
+    # 14. Build timestamped filename
     log_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_file = os.path.join(log_dir, f"{log_timestamp}_etl.log")
 
-    # 13. Delete .logs files based on number of runs (keep the N most recent).
+    # 15. Delete .logs files based on number of runs (keep the N most recent).
     max_runs = 5
 
-    # 14. List all log files in the directory
+    # 16. List all log files in the directory
     files = [
         os.path.join(log_dir, f)
         for f in os.listdir(log_dir)
@@ -60,10 +84,10 @@ if not logger.handlers:
     # Expected output example:
     # ['C:/.../2026-01-10_12-00-00_etl.log', 'C:/.../2026-01-11_09-30-22_etl.log', ...]
 
-    # 15. Sort files by modification time (oldest first, newest file last)
+    # 17. Sort files by modification time (oldest first, newest file last)
     files.sort(key=lambda f: os.path.getmtime(f))
 
-    # 16. If we have more than max_runs files, delete the oldest ones
+    # 18. If we have more than max_runs files, delete the oldest ones
     while len(files) > max_runs:
         old_file = files.pop(0)
         try:
@@ -72,10 +96,10 @@ if not logger.handlers:
 
             print(f"Failed to delete old log {old_file}: {e}")
 
-    # 17. Create file handler in append mode
+    # 19. Create file handler in append mode
     file_handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
 
-    # 18. Define log format:
+    # 20. Define log format:
     # %(asctime)s -> timestamp
     # %(levelname)s -> log level (INFO, ERROR, etc.)
     # %(filename)s -> name of the Python file
@@ -87,10 +111,10 @@ if not logger.handlers:
         "%Y-%m-%d %H:%M:%S"
     )
 
-    # 19. Attach the file formatter to the handler
+    # 21. Attach the file formatter to the handler
     file_handler.setFormatter(file_formatter)
 
-    # 20. Attach the configured handler to the "etl" logger
+    # 22. Attach the configured handler to the "etl" logger
     logger.addHandler(file_handler)
 
 

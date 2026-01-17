@@ -12,7 +12,7 @@ Purpose:
         - Listing directory contents
 """
 
-import os
+import os, sys
 import utilities.logging_manager as lg
 from datetime import datetime
 
@@ -31,23 +31,32 @@ def build_output_file_path(table: str) -> str:
         A string file path.
     """
 
-    # 1. Find the current directory of the file (where this function is run):
-    # e.g. C:\Users\Mihail\PycharmProjects\datawarehouse\etls\datastore\financial_data_1_ethereum\script_factory
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    lg.info(f"Current Directory: {current_dir}")
+    # 1. Get the absolute path of the script being executed (run_script.py)
+    # Result: .../project_name/script_runner/run_script.py
+    script_path = os.path.abspath(sys.argv[0])
+    lg.info(f"Absolute path of run_script.py: {script_path}")
 
-    # 2. Parent directory (e.g. C:\Users\Mihail\PycharmProjects\datawarehouse\etls\datastore\financial_data_1_ethereum)
-    parent_current_dir = os.path.dirname(current_dir)
-    lg.info(f"Parent Current Directory: {parent_current_dir}")
+    # 2. Go up ONE level to get the 'script_runner' folder
+    # Result: .../project_name/script_runner
+    script_runner_dir = os.path.dirname(script_path)
+    lg.info(f"Path of script_runner folder: {script_runner_dir}")
 
-    # 3. Build the path to the output directory: project/metadata/output and build an output folder
-    output_dir = os.path.join(parent_current_dir, "metadata", "output")
+    # 3. Go up SECOND level to get the project root
+    # Result: .../project_name
+    project_root = os.path.dirname(script_runner_dir)
+    lg.info(f"Path of project root: {project_root}")
+
+    # 4. Determine the parent directory (e.g. C:\Users\Mihail\PycharmProjects\datawarehouse\etls\datastore\project_name)
+    lg.info(f"Parent Current Directory: {project_root}")
+
+    # 5. Build the path to the output directory: project_name/metadata/output and build an output folder
+    output_dir = os.path.join(project_root, "metadata", "output")
     lg.info(f"Output directory: {output_dir}")
 
-    # 4. Create directory if it doesn't exist
+    # 6. Create directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
 
-    # 5. Build a timestamped filename
+    # 7. Build a timestamped filename
     # e.g. project/metadata/output/ethereum_2026-01-13-18:00:00.csv
     file_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     file_path = os.path.join(output_dir, f"{table}_{file_timestamp}.csv")
