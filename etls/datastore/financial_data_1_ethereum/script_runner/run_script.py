@@ -15,7 +15,8 @@ def main():
 
     try:
         # 1. INITIALIZATION
-        # Create the factory instance and fetch the list of task dictionaries
+        # Parse the .bat/.sh file for input parameters
+        # Create the factory instance
         forced_sdt, load_type, max_days_to_load = parse_arguments(sys.argv, settings)
 
         factory = ScriptFactory(
@@ -24,13 +25,16 @@ def main():
             max_days_to_load=max_days_to_load,
             settings=settings
         )
+
+        # Fetch the list of task dictionaries
         tasks = factory.init_tasks()
 
         for task in tasks:
             # 2. DATA EXTRACTION
             # Match the keys exactly as defined in init_tasks() dictionaries.
-            # Using .get() for 'enabled', 'retries' and 'description' provides a fallback value
+            # Using .get() for 'enabled', 'retries' and 'description' provide a fallback value,
             # if those keys are missing from a specific dictionary.
+
             t_name = task["task_name"]              # Maps to task_1["task_name"]
             t_func = task["func"]                   # This is the partial() object
             t_dep = task["depends_on"]              # The name of the required previous task
@@ -56,7 +60,6 @@ def main():
             # Define a boolean variable to track the success of a task
             task_passed_finally = False
 
-            # The loop range is (retries + 1).
             # If retries=1, the loop runs for attempt 0 (initial) and attempt 1 (retry).
             for attempt in range(0, t_retries + 1):
                 try:
@@ -80,9 +83,9 @@ def main():
                 except Exception as e:
                     lg.error(f"Attempt {attempt} failed for '{t_name}': {str(e)}")
 
-                    # If there are still retries left, wait 1 second before trying again
+                    # If there are still retries left, wait 5 second before trying again
                     if attempt < t_retries:
-                        time.sleep(1)
+                        time.sleep(5)
                     else:
                         lg.error(f"Task '{t_name}' exhausted all retry attempts.")
 
@@ -100,11 +103,11 @@ def main():
             sys.exit(0)  # Explicit success
         else:
             lg.error("ETL run finished with errors.")
-            sys.exit(1)
+            sys.exit(1)  # Explicit crash
 
     except Exception as e:
         lg.error(f"Critical error during factory initialization: {e}")
-        sys.exit(1)  # Tell Batch there was a crash
+        sys.exit(1)  # Explicit crash
 
 
 if __name__ == "__main__":
