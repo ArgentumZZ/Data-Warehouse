@@ -63,14 +63,15 @@ ___
   - Format `output/file_name_timestamp.csv`. ✔️
   - Control with a boolean operator, whether the file will be deleted from the folder. ✔️
 
-- **Dockerization** (in progress)
+- **Containerization** (in progress)
   - Add a `Dockerfile` for containerized execution.
   - Add the correct file paths needed to run `_docker.bat` and `_docker.sh`.
-  - Ensure compatibility with Windows/Linux runners.
+  - Ensure compatibility with Windows/Linux.
 
 - **Launcher scripts** (in progress)
-  - Update `.bat`, `.sh`, `_docker.bat`, `_docker.sh`.
-  - Add parameter parsing, environment selection, and error handling.
+  - Update `.bat` ✔️,  `.sh`, `_docker.bat`, `_docker.sh`.
+  - Add parameter parsing and variable definitions. ✔️
+  - Add logs and error handling. ✔️
 
 - **Email Notifications (SMTP)**
   - Implement e-mail success/failure alerts after each project's run.
@@ -80,8 +81,9 @@ ___
   - Implement backfill loading option in `.bat`, `.sh`, `_docker.bat`, `_docker.sh` files.
   - Create a separate backfill project that accepts `project_name`, `start_date`, `end_date`, `load_days` to load data incrementally.
 
-- **Additional Connectors**
-  - PostgreSQL (implemented) 
+- **Connectors**
+  - Add more connectors:
+  - PostgreSQL (implemented) ✔️  
   - Oracle
   - MySQL
   - Salesforce

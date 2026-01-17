@@ -4,12 +4,13 @@
 :: are local to this execution and don't leak into the global environment.
 setlocal
 
+:: Define start time to measure duration of the script
 set "START_TIME=%time%"
 
 :: 2. Set the console window title (without .bat extension)
 title %~n0
 
-:: 3 Generate a formatted timestamp
+:: 3 Generate a formatted timestamp using PowerShell.
 for /f "delims=" %%i in ('powershell -command "get-date -format 'ddd yyyy-MM-dd HH:mm:ss'"') do set "STAMP=%%i"
 
 :: 4. Capture command-line arguments passed to the script
@@ -19,8 +20,8 @@ for /f "delims=" %%i in ('powershell -command "get-date -format 'ddd yyyy-MM-dd 
 set "ARG1=%~1"
 set "ARG2=%~2"
 
-:: This is a trick, if CMD split 'config=F20' into %2=config and %3=F20,
-:: we re-combine them into a single variable.
+:: This is a trick, if CMD splits 'config=FX' into %2=config and %3=FX,
+:: we re-combine them into a single variable (=config=FX), where X is an integer.
 if "%~2"=="config" if not "%~3"=="" (
     set "ARG2=%~2=%~3"
 )
@@ -52,10 +53,11 @@ set "ENVIRONMENT=%SCRIPT_RUNNER_ENV%"
 set "BASE_DIR=%BASEDIR%"
 set "ETLS_DIR=%ETLS%"
 
-:: Get the path of the active python executable
-:: venv is in datawarehouse folder (=%BASE_DIR%)
+:: Get the path of the active python executable,
+:: venv is in the datawarehouse folder (=%BASE_DIR%)
 set "VENV_PATH=%BASE_DIR%\venv\Scripts\activate.bat"
 
+:: Check if the path exists and call it
 if exist "%VENV_PATH%" (
     call "%VENV_PATH%"
     :: Force the script to use the venv's python executable
@@ -65,12 +67,15 @@ if exist "%VENV_PATH%" (
     exit /b 1
 )
 
-:: 8. PYTHONPATH enables imports, tells where else to look for shared code
+:: Get the python version string from the executable.
+for /f "tokens=*" %%v in ('"%PYTHON_EXE%" --version 2^>^&1') do set "PYTHON_VERSION=%%v"
+
+:: 8. PYTHONPATH enables imports, tells where else to look for shared code.
 :: Level 1 (..): Point to project_folder
 :: Level 3 (..\..\..): Point to etls for 'utilities' and 'connectors'
 set "PYTHONPATH=%SCRIPT_DIR%..;%SCRIPT_DIR%..\..\.."
 
-:: 9. Print the Unified Header
+:: 9. Print a unified header
 echo ============================================================
 echo RUNNING SCRIPT:  %~n0
 echo STARTED AT:      %STAMP%
@@ -80,12 +85,6 @@ echo [PARAMETERS]
 echo  Parameter 1 (date):             %ARG1%
 echo  Parameter 2 (configuration):    %ARG2%
 echo.
-
-:: --- ADD THIS PART HERE ---
-:: Verification: Get the version string from the actual executable
-for /f "tokens=*" %%v in ('"%PYTHON_EXE%" --version 2^>^&1') do set "PYTHON_VERSION=%%v"
-:: --------------------------
-
 echo [INFRASTRUCTURE]
 echo  BASE_DIR:       %BASEDIR%
 echo  ETLS_DIR:       %ETLS%
