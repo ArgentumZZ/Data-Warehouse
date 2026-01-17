@@ -36,7 +36,8 @@ echo.
 :: --rm -> delete the container automatically after it exits
 :: Use host-gateway to map localhost to your Windows machine
 echo Running container...
-docker run --rm --add-host=localhost:host-gateway %SCRIPT_NAME% "%~1" "%~2=%~3"
+:: docker run --rm --add-host=localhost:host-gateway %SCRIPT_NAME% "%~1" "%~2=%~3"
+docker run --add-host=localhost:host-gateway %SCRIPT_NAME% "%~1" "%~2=%~3"
 
 echo.
 echo Done.
