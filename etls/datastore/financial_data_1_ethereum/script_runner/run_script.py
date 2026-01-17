@@ -58,12 +58,12 @@ def main():
 
             # The loop range is (retries + 1).
             # If retries=1, the loop runs for attempt 0 (initial) and attempt 1 (retry).
-            for attempt in range(1, t_retries + 1):
+            for attempt in range(0, t_retries + 1):
                 try:
                     if attempt > 0:
                         lg.info(f"Retrying task '{t_name}'... (Attempt {attempt} of {t_retries})")
 
-                    lg.info(f"Executing: {t_name} - {task['description']}")
+                    lg.info(f"Executing: {t_name} - {t_desc}")
 
                     # Trigger the partial function with all its pre-set arguments
                     t_func()
@@ -97,11 +97,14 @@ def main():
         # 7. FINAL STATUS
         if success:
             lg.info("ETL run completed successfully.")
+            sys.exit(0)  # Explicit success
         else:
             lg.error("ETL run finished with errors.")
+            sys.exit(1)
 
     except Exception as e:
         lg.error(f"Critical error during factory initialization: {e}")
+        sys.exit(1)  # Tell Batch there was a crash
 
 
 if __name__ == "__main__":
