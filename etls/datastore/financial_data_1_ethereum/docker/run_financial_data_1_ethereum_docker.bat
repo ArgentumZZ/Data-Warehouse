@@ -27,15 +27,16 @@ echo Parameter 2: %2
 :: The dot . means to use the Dockerfile in the current directory.
 echo.
 echo Building Docker image...
-docker build -t %SCRIPT_NAME% .
+docker build -f Dockerfile -t %SCRIPT_NAME% ..\..\..\..
 
 :: 3. Print a blank line
 echo.
 
 :: 4. Run the container
 :: --rm -> delete the container automatically after it exits
+:: Use host-gateway to map localhost to your Windows machine
 echo Running container...
-docker run --rm %SCRIPT_NAME% %1 %2
+docker run --rm --add-host=localhost:host-gateway %SCRIPT_NAME% "%~1" "%~2=%~3"
 
 echo.
 echo Done.

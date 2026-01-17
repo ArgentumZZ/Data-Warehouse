@@ -317,26 +317,37 @@ class EtlAuditManager:
         self.etl_runs_key = self.pg_connector.run_query(query=insert_query, commit=True, get_result=True).iat[0, 0]
         lg.info(f"Etl_runs_key: {self.etl_runs_key}")
 
-    def update_etl_runs_table_record(self, status: str):
+    def update_etl_runs_table_record(self, status: str) -> None:
         """
         1. Fetch the number of records in the df.
         2. Get the data min/max dates.
         3. Update audit.etl_runs record.
         """
+
         # 1. Fetch the number of records in the df
         # self.num_records = getattr(self.swc, 'num_of_records')
         self.num_of_records = self.swc.num_of_records
         lg.info(f"Final count pulled from script worker: {self.num_of_records}")
 
+        # Fetch data_min_date from Script Worker
+        self.data_min_date = self.swc.data_min_date
+        lg.info(f"Data min date pulled from script worker: {self.data_min_date}")
+
+        # Fetch data_min_date from Script Worker
+        self.data_max_date = self.swc.data_max_date
+        lg.info(f"Data min date pulled from script worker: {self.data_max_date}")
+
         # 2. Format dates for SQL
+        data_min_val = f"'{self.data_min_date.strftime('%Y-%m-%d %H:%M:%S')}'" if self.data_min_date is not None else "NULL"
+        data_max_val = f"'{self.data_max_date.strftime('%Y-%m-%d %H:%M:%S')}'" if self.data_max_date is not None else "NULL"
         prev_date_val = f"'{self.prev_max_date.strftime('%Y-%m-%d %H:%M:%S')}'" if self.prev_max_date else "NULL"
 
         # 3. Update Query
         update_query = f"""
             UPDATE audit.etl_runs 
             SET  
-                data_min_date = '{self.data_min_date.strftime("%Y-%m-%d %H:%M:%S")}',
-                data_max_date = '{self.data_max_date.strftime("%Y-%m-%d %H:%M:%S")}',
+                data_min_date = {data_min_val},
+                data_max_date = {data_max_val},
                 script_execution_end_time = CURRENT_TIMESTAMP(0),
                 status = '{status}',
                 num_of_records = {self.num_of_records},
