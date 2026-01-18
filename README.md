@@ -14,7 +14,7 @@
   - `data_quality_checks` - Custom data quality checks.
   - `aggregations` - Data aggregations.
   - `docker` - Dockerfile, requirements.txt and .sh run files.
-  - `customer_code` - Custom code for each project.
+  - `custom_code` - Custom code for each project.
   - `sript_factory` - Central assembly factory, take info from all other files to create the tasks for execution.
   - `script_runner` - Files (`.bat / .sh`) that run `script_runner.py` which initializes the `script_factory.py`.
 - **Main files**
@@ -106,7 +106,7 @@ datawarehouse/
 │   │   │       │      ├── test_worker.py
 │   │   │       │      └── ... other test .py files ...
 │   │   │       ├── __init__.py
-│   │   └── ... other project folders ...
+│   │   └── ... other datastore project folders ...
 │   │
 │   ├── utilities/
 │   │   ├── argument_parser.py
@@ -124,11 +124,11 @@ datawarehouse/
 │       ├── dim_1_staging_crypto_transactions/
 │       ├── fact_1_fact_shares_revenue/
 │       ├── fact_1_staging_shares_revenue/
-│       ├── ... other project folders ...
+│       ├── ... other warehouse project folders ...
 │       │  
 │       └── views/
 │             ├── view_1_revenue.py
-│             └── ... other utils files ...
+│             └── ... other view files ...
 ```
 ___
 ## 📝 Project To‑Do Plan
