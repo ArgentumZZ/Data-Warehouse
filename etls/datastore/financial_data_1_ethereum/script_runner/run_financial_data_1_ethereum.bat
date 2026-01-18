@@ -1,4 +1,4 @@
-:: 1. Turn off command echoing so only our explicit echo statements are shown
+:: 1. Hide all commands from being printed to the console
 @echo off
 :: Enable 'setlocal' to ensure all variables defined in this script
 :: are local to this execution and don't leak into the global environment.

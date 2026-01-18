@@ -50,10 +50,10 @@ RUN echo "Using basedir: $basedir"
 ENV PYTHONPATH="${basedir}:${basedir}/${project_name}"
 RUN echo "The PYTHONPATH ENV is set to: $PYTHONPATH"
 
-ENV DATA_DIR=/app/data
+ENV DATA_DIR=$basedir/data
 RUN echo "The DATA_DIR ENV is set to: $DATA_DIR"
 
-ENV CONFIG_DIR=/app/config/db_config.cfg
+ENV CONFIG_DIR=$basedir/config/db_config.cfg
 RUN echo "The CONFIG_DIR ENV is set to: $CONFIG_DIR"
 
 ENV BASEDIR=$basedir
@@ -66,6 +66,7 @@ RUN mkdir -p $basedir
 WORKDIR $basedir
 
 # 7. Install individual libraries for the project
+RUN echo "Installing individual libraries"
 RUN pip install numpy==$numpy_version
 
 # 8. Install dependencies (cached layer)
@@ -74,16 +75,18 @@ RUN pip install numpy==$numpy_version
 COPY etls/datastore/$project_name/docker/requirements.txt .
 
 # Install dependencies
+RUN echo "Installing project dependencies"
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 9. Copy config file
 RUN mkdir -p $BASEDIR/config
 
-# COPY <file_path_1> into <file_path_2>
+# COPY <file_path_1> to <file_path_2>
 COPY config/local/db_config.cfg $BASEDIR/config/db_config.cfg
 
 # 10. Copy Shared Modules
 # Copy these so they are available at the same level as the project
+# COPY <file_path_1> to <file_path_2>
 COPY etls/utilities $BASEDIR/utilities
 COPY etls/connectors $BASEDIR/connectors
 
@@ -92,13 +95,7 @@ COPY etls/connectors $BASEDIR/connectors
 # Recommendation: Copy it into its own folder to keep the structure clean
 COPY etls/datastore/$project_name $BASEDIR/$project_name
 
-# 11. Copy Project Files
-# Copy the specific project folder into a subfolder or directly into app
-# Recommendation: Copy it into its own folder to keep the structure clean
-COPY etls/datastore/$project_name $BASEDIR/$project_name
-
-
-# 11. Default command
+# 12. Default command
 
 # Command to run the script
 # CMD ["python", "script_runner.py"]
@@ -106,6 +103,6 @@ COPY etls/datastore/$project_name $BASEDIR/$project_name
 # the executable that always runs
 ENTRYPOINT ["python", "/app/financial_data_1_ethereum/script_runner/run_script.py"]
 
-# In the terminal
+# In the terminal:
 # docker build -t my-python-test .
 # docker run --rm my-python-test
