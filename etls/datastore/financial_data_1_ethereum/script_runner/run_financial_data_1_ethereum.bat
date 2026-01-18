@@ -5,13 +5,15 @@
 setlocal
 
 :: Define start time to measure duration of the script
-set "START_TIME=%time%"
+:: Capture start timestamp
+for /f "delims=" %%i in ('powershell -NoProfile -Command "Get-Date -Format \"yyyy-MM-dd HH:mm:ss\""') do set "START_TS=%%i"
+:: set "START_TIME=%time%"
 
 :: 2. Set the console window title (without .bat extension)
 title %~n0
 
-:: 3 Generate a formatted timestamp using PowerShell.
-for /f "delims=" %%i in ('powershell -command "get-date -format 'ddd yyyy-MM-dd HH:mm:ss'"') do set "STAMP=%%i"
+:: 3 Generate a formatted timestamp (e.g. Sun 01/18/2026 11:29:48.74)
+set "STAMP=%date% %time%"
 
 :: 4. Capture command-line arguments passed to the script
 :: %1 - The first argument passed to the script.
@@ -112,13 +114,29 @@ echo.
 :: We do this before any other commands to ensure %ERRORLEVEL% isn't overwritten.
 set "EXIT_CODE=%ERRORLEVEL%"
 
-:: 13. Calculate duration (HH:MM:SS.ff) using PowerShell
-for /f "tokens=*" %%i in ('powershell -command "([datetime]::Now - [datetime]'%START_TIME%').ToString('hh\:mm\:ss\.ff')"') do set "DURATION=%%i"
+:: 13. Calculate duration in 0 days 00 hours 00 minutes 03 seconds format.
+:: Capture end timestamp
+for /f "delims=" %%i in ('powershell -NoProfile -Command "Get-Date -Format \"yyyy-MM-dd HH:mm:ss\""') do set "END_TS=%%i"
+
+:: Calculate duration as d.hh:mm:ss
+for /f "delims=" %%i in (
+    'powershell -NoProfile -Command "(New-TimeSpan -Start ([datetime]\"%START_TS%\") -End ([datetime]\"%END_TS%\")).ToString(\"d\.hh\:mm\:ss\")"'
+) do set "RAW_DURATION=%%i"
+
+:: RAW_DURATION looks like: 1.07:30:12
+:: Split into components
+for /f "tokens=1-4 delims=.: " %%a in ("%RAW_DURATION%") do (
+    set "DAYS=%%a"
+    set "HOURS=%%b"
+    set "MINUTES=%%c"
+    set "SECONDS=%%d"
+)
+
 echo.
 echo ============================================================
-echo  Started:  %START_TIME%
-echo  Ended:    %time%
-echo  Duration: %DURATION%
+echo  Started:  %START_TS%
+echo  Ended:    %END_TS%
+echo  Duration: %DAYS% days %HOURS% hours %MINUTES% minutes %SECONDS% seconds
 echo ============================================================
 echo.
 
