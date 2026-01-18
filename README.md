@@ -64,12 +64,13 @@ ___
   - Control with a boolean operator, whether the file will be deleted from the folder. ✔️
 
 - **Containerization** (in progress)
-  - Add a `Dockerfile` for containerized execution.
-  - Add the correct file paths needed to run `_docker.bat` and `_docker.sh`.
+  - Add a `Dockerfile` for containerized execution. ✔️
+  - Update `_docker.bat` to run the container. ✔️
+  - Update `_docker.sh` to run the container.
   - Ensure compatibility with Windows/Linux.
 
 - **Launcher scripts** (in progress)
-  - Update `.bat` ✔️,  `.sh`, `_docker.bat`, `_docker.sh`.
+  - Update `.bat` ✔️,  `.sh`, `_docker.bat` ✔️, `_docker.sh`.
   - Add parameter parsing and variable definitions. ✔️
   - Add logs and error handling. ✔️
 
