@@ -4,13 +4,14 @@
   - Extract, transform and load data from different sources into a PostgresSQL database.
 - **Main folders**
   - `dags` - DAG files for Airflow.
-  - `connectors` folder - Connectors to different DB and non-DB sources.
-  - `utilities` folder - Utilities files.
-  - `metadata/logs` - logs generated for each project's run.
-  - `metadata/output` - files generated for each project's run.
-  - `tests` folder - Unit tests.
-  - `warehouse` folder - dim and fact tables.
-  - `data_quality_checks` folder - Custom data quality checks.
+  - `connectors` - Connectors to different DB and non-DB sources.
+  - `utilities` - Utilities files.
+  - `metadata/logs` - Logs generated for each project's run.
+  - `metadata/output` - Files generated for each project's run.
+  - `tests` - Unit tests.
+  - `warehouse` - Dim and fact tables.
+  - `views` - Custom views.
+  - `data_quality_checks` - Custom data quality checks.
   - `aggregations` - Data aggregations.
   - `docker` - Dockerfile, requirements.txt and .sh run files.
   - `customer_code` - Custom code for each project.
@@ -25,7 +26,69 @@
   - `script_factory.py` - Assemble the tasks for the project.
   - `script_runner.py` - Run the tasks in `script_factory.py`.
   - `.bat/.sh` files to run `script_runner.py`.
-
+-------------------------------
+## General structure
+```
+datawarehouse/
+├── .gitignore
+├── README.md
+├── venv/
+│
+├── config/
+│   ├── local/
+│   │   ├── db_config.cfg
+│   │   ├── keyfile_1.pem
+│   │   ├── keyfile_2.pkk
+│   │   ├── setenv.bat
+│   │   ├── setenv.sh
+│   │   └── ... other pem/pkk files ...
+│
+├── dags/
+│   ├── dwh_main_dag.py
+│   └── ... other DAG .py files ...
+│
+├── etls/
+│   ├── _templates/
+│   │   └── (general template files)
+│   │
+│   ├── aggregations/
+│   │   ├── aggregation_1_revenue/
+│   │   └── ... other aggregation projects ...
+│   │
+│   ├── connectors/
+│   │   ├── postgresql_connector.py
+│   │   ├── mysql_connector.py
+│   │   ├── oracle_connector.py
+│   │   └── ... other connectors...
+│   │
+│   ├── data_quality_checks/
+│   │   ├── dqc_1_calculate_record_discrepancies/
+│   │   └── ... other DQC projects ...
+│   │
+│   ├── datastore/
+│   │   ├── alpaca_1_revenue/
+│   │   ├── crypto_1_transactions/
+│   │   ├── financial_data_1_ethereum/
+│   │   └── ... other project folders ...
+│   │
+│   ├── utilities/
+│   │   ├── argument_parser.py
+│   │   ├── email_manager.py
+│   │   ├── etl_audit_manager.py
+│   │   ├── etl_utils.py
+│   │   ├── date_utils.py
+│   │   ├── db_utils.py
+│   │   ├── dq_utils.py
+│   │   ├── file_utils.py
+│   │   └── ... other utils files ...
+│   │
+│   └── warehouse/
+│       ├── dim_1_dim_crypto_transactions/
+│       ├── dim_1_staging_crypto_transactions/
+│       ├── fact_1_fact_shares_revenue/
+│       ├── fact_1_staging_shares_revenue/
+│       └── views/
+```
 ___
 ## 📝 Project To‑Do Plan
 
