@@ -133,7 +133,7 @@ ___
   - Ensure compatibility with Windows/Linux.
 
 - **Launcher scripts** (in progress)
-  - Update `.bat` ✔️,  `.sh`, `_docker.bat` ✔️, `_docker.sh`.
+  - Update `.bat` ✔️, `_docker.bat` ✔️, `.sh`, `_docker.sh`.
   - Add parameter parsing and variable definitions. ✔️
   - Add logs and error handling. ✔️
 
@@ -142,8 +142,8 @@ ___
   - Include run summary and error details.
 
 - **Backfill**
-  - Implement backfill loading option in `.bat`, `.sh`, `_docker.bat`, `_docker.sh` files.
-  - Create a separate backfill project that accepts `project_name`, `start_date`, `end_date`, `load_days` to load data incrementally.
+  - Implement backfill loading option in `.bat` ✔️, `_docker.bat` ✔️, `.sh`, `_docker.sh` files.
+  - Create a separate backfill project that accepts `project_name`, `start_date`, `end_date`, `load_days` to run a given project and load data incrementally.
 
 - **Connectors**
   - Add more connectors:
