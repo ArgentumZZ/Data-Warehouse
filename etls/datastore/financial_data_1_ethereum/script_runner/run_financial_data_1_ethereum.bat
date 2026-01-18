@@ -1,16 +1,19 @@
-:: 1. Turn off command echoing so only our explicit echo statements are shown
+:: 1. Hide all commands from being printed to the console
 @echo off
 :: Enable 'setlocal' to ensure all variables defined in this script
 :: are local to this execution and don't leak into the global environment.
 setlocal
 
-set "START_TIME=%time%"
+:: Define start time to measure duration of the script
+:: Capture start timestamp
+for /f "delims=" %%i in ('powershell -NoProfile -Command "Get-Date -Format \"yyyy-MM-dd HH:mm:ss\""') do set "START_TS=%%i"
+:: set "START_TIME=%time%"
 
 :: 2. Set the console window title (without .bat extension)
 title %~n0
 
-:: 3 Generate a formatted timestamp
-for /f "delims=" %%i in ('powershell -command "get-date -format 'ddd yyyy-MM-dd HH:mm:ss'"') do set "STAMP=%%i"
+:: 3 Generate a formatted timestamp (e.g. Sun 01/18/2026 11:29:48.74)
+set "STAMP=%date% %time%"
 
 :: 4. Capture command-line arguments passed to the script
 :: %1 - The first argument passed to the script.
@@ -19,8 +22,8 @@ for /f "delims=" %%i in ('powershell -command "get-date -format 'ddd yyyy-MM-dd 
 set "ARG1=%~1"
 set "ARG2=%~2"
 
-:: This is a trick, if CMD split 'config=F20' into %2=config and %3=F20,
-:: we re-combine them into a single variable.
+:: This is a trick, if CMD splits 'config=FX' into %2=config and %3=FX,
+:: we re-combine them into a single variable (=config=FX), where X is an integer.
 if "%~2"=="config" if not "%~3"=="" (
     set "ARG2=%~2=%~3"
 )
@@ -52,10 +55,11 @@ set "ENVIRONMENT=%SCRIPT_RUNNER_ENV%"
 set "BASE_DIR=%BASEDIR%"
 set "ETLS_DIR=%ETLS%"
 
-:: Get the path of the active python executable
-:: venv is in datawarehouse folder (=%BASE_DIR%)
+:: Get the path of the active python executable,
+:: venv is in the datawarehouse folder (=%BASE_DIR%)
 set "VENV_PATH=%BASE_DIR%\venv\Scripts\activate.bat"
 
+:: Check if the path exists and call it
 if exist "%VENV_PATH%" (
     call "%VENV_PATH%"
     :: Force the script to use the venv's python executable
@@ -65,12 +69,15 @@ if exist "%VENV_PATH%" (
     exit /b 1
 )
 
-:: 8. PYTHONPATH enables imports, tells where else to look for shared code
+:: Get the python version string from the executable.
+for /f "tokens=*" %%v in ('"%PYTHON_EXE%" --version 2^>^&1') do set "PYTHON_VERSION=%%v"
+
+:: 8. PYTHONPATH enables imports, tells where else to look for shared code.
 :: Level 1 (..): Point to project_folder
 :: Level 3 (..\..\..): Point to etls for 'utilities' and 'connectors'
 set "PYTHONPATH=%SCRIPT_DIR%..;%SCRIPT_DIR%..\..\.."
 
-:: 9. Print the Unified Header
+:: 9. Print a unified header
 echo ============================================================
 echo RUNNING SCRIPT:  %~n0
 echo STARTED AT:      %STAMP%
@@ -80,12 +87,6 @@ echo [PARAMETERS]
 echo  Parameter 1 (date):             %ARG1%
 echo  Parameter 2 (configuration):    %ARG2%
 echo.
-
-:: --- ADD THIS PART HERE ---
-:: Verification: Get the version string from the actual executable
-for /f "tokens=*" %%v in ('"%PYTHON_EXE%" --version 2^>^&1') do set "PYTHON_VERSION=%%v"
-:: --------------------------
-
 echo [INFRASTRUCTURE]
 echo  BASE_DIR:       %BASEDIR%
 echo  ETLS_DIR:       %ETLS%
@@ -113,13 +114,29 @@ echo.
 :: We do this before any other commands to ensure %ERRORLEVEL% isn't overwritten.
 set "EXIT_CODE=%ERRORLEVEL%"
 
-:: 13. Calculate duration (HH:MM:SS.ff) using PowerShell
-for /f "tokens=*" %%i in ('powershell -command "([datetime]::Now - [datetime]'%START_TIME%').ToString('hh\:mm\:ss\.ff')"') do set "DURATION=%%i"
+:: 13. Calculate duration in 0 days 00 hours 00 minutes 03 seconds format.
+:: Capture end timestamp
+for /f "delims=" %%i in ('powershell -NoProfile -Command "Get-Date -Format \"yyyy-MM-dd HH:mm:ss\""') do set "END_TS=%%i"
+
+:: Calculate duration as d.hh:mm:ss
+for /f "delims=" %%i in (
+    'powershell -NoProfile -Command "(New-TimeSpan -Start ([datetime]\"%START_TS%\") -End ([datetime]\"%END_TS%\")).ToString(\"d\.hh\:mm\:ss\")"'
+) do set "RAW_DURATION=%%i"
+
+:: RAW_DURATION looks like: 1.07:30:12
+:: Split into components
+for /f "tokens=1-4 delims=.: " %%a in ("%RAW_DURATION%") do (
+    set "DAYS=%%a"
+    set "HOURS=%%b"
+    set "MINUTES=%%c"
+    set "SECONDS=%%d"
+)
+
 echo.
 echo ============================================================
-echo  Started:  %START_TIME%
-echo  Ended:    %time%
-echo  Duration: %DURATION%
+echo  Started:  %START_TS%
+echo  Ended:    %END_TS%
+echo  Duration: %DAYS% days %HOURS% hours %MINUTES% minutes %SECONDS% seconds
 echo ============================================================
 echo.
 
