@@ -69,6 +69,43 @@ datawarehouse/
 │   │   ├── alpaca_1_revenue/
 │   │   ├── crypto_1_transactions/
 │   │   ├── financial_data_1_ethereum/
+│   │   │       ├── custom_code/
+│   │   │       │      ├── alter_tables.sql
+│   │   │       │      ├── script_factory.py
+│   │   │       │      ├── script_parameters.py
+│   │   │       │      ├── script_worker.py
+│   │   │       │      └── sql_queries.py
+│   │   │       ├── docker/
+│   │   │       │      ├── Dockerfile
+│   │   │       │      ├── requirements.py
+│   │   │       │      ├── run_financial_data_1_ethereum_docker.bat
+│   │   │       │      └── run_financial_data_1_ethereum_docker.sh
+│   │   │       ├── metadata/
+│   │   │       │      ├── logs/
+│   │   │       │      │      ├── 2026-01-18_11-36-19_etl.log
+│   │   │       │      │      ├── 2026-01-18_11-40-17_etl.log
+│   │   │       │      │      └── ... other log _etl.log files ...
+│   │   │       │      ├── output/
+│   │   │       │      │      ├── 2026-01-18_11-36-19.csv
+│   │   │       │      │      ├── 2026-01-18_11-40-17.csv
+│   │   │       │      │      └── ... other output .csv files ...
+│   │   │       │      ├── dictionary.yaml
+│   │   │       │      ├── mapping.yaml
+│   │   │       │      ├── schema.yaml
+│   │   │       │      ├── validation.yaml
+│   │   │       │      └── ... other .yaml files ...
+│   │   │       ├── script_runner/
+│   │   │       │      ├── __init__.py
+│   │   │       │      ├── run_financial_data_1_ethereum.bat
+│   │   │       │      ├── run_financial_data_1_ethereum.sh
+│   │   │       │      └── run_script.py
+│   │   │       ├── test/
+│   │   │       │      ├── __init__.py
+│   │   │       │      ├── test_connectors.py
+│   │   │       │      ├── test_utilspy
+│   │   │       │      ├── test_worker.py
+│   │   │       │      └── ... other test .py files ...
+│   │   │       ├── __init__.py
 │   │   └── ... other project folders ...
 │   │
 │   ├── utilities/
@@ -87,7 +124,11 @@ datawarehouse/
 │       ├── dim_1_staging_crypto_transactions/
 │       ├── fact_1_fact_shares_revenue/
 │       ├── fact_1_staging_shares_revenue/
+│       ├── ... other project folders ...
+│       │  
 │       └── views/
+│             ├── view_1_revenue.py
+│             └── ... other utils files ...
 ```
 ___
 ## 📝 Project To‑Do Plan
