@@ -3,9 +3,9 @@ sql_queries = {}
 
 # 2. Create a source_cols_create variable with columns and data types
 source_columns_create = '''
-            id                      TEXT NOT NULL, 
+            id                      TEXT, 
             raw_number_value        BIGINT,
-            tax_hash                TEXT,
+            tax_hash                TEXT NOT NULL,
             ethereum_amount         NUMERIC,
             transaction_index       INT, 
             gas_limit               NUMERIC,

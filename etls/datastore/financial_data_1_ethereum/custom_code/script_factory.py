@@ -41,8 +41,7 @@ class ScriptFactory:
             'script_description'     : settings.script_description,
             'script_frequency'       : settings.script_frequency,
             'script_primary_owner'   : settings.script_primary_owner,
-            'script_secondary_owner' : settings.script_secondary_owner,
-            'email_recipients'       : settings.email_recipients
+            'script_secondary_owner' : settings.script_secondary_owner
         }
 
         # forced_sdt, load_type, max_days_to_load = parse_arguments(sys.argv, settings)
