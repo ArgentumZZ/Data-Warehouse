@@ -21,7 +21,7 @@ import os
 
 script_name = 'FINANCIAL DATA 1 ETHEREUM'
 script_version = '1.0'
-script_description = 'ETL pipeline for ingesting and transforming order data'
+script_description = 'ETL pipeline for ingesting and transforming ethereum data'
 script_frequency = "daily"  # "hourly", "daily", "weekly", "monthly"
 script_primary_owner = "Mihail Mihaylov"
 script_secondary_owner = ""

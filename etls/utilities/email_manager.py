@@ -54,7 +54,7 @@ class EmailManager:
             'port'          : config.getint('SMTP_SERVER', 'port'),
             'username'      : config.get('SMTP_SERVER', 'username'),
             'password'      : config.get('SMTP_SERVER', 'password'),
-            'from_address'  : config.get('SMTP_SERVER', 'from_addr')
+            'from_address'  : config.get('SMTP_SERVER', 'from_address')
         }
 
         return config_dict
@@ -278,7 +278,7 @@ class EmailManager:
 
         # Set the sender address that will appear in the email client.
         # This must match the authenticated SMTP account for Gmail.
-        msg["From"] = self.smtp_config['from_addr']
+        msg["From"] = self.smtp_config['from_address']
 
         # Join the list of recipient email addresses into a single comma-separated string.
         # This is only for display in the email header; the actual delivery uses the 'to' list in sendmail() below
@@ -296,9 +296,9 @@ class EmailManager:
                          self.smtp_config['password'])
 
             # Send the email message over the authenticated, encrypted SMTP session.
-            server.sendmail(self.smtp_config['from_addr'],  # Sender email address
-                            to, 				            # List of recipient email addresses
-                            msg.as_string()		            # Full MIME email (headers + HTML body)
+            server.sendmail(self.smtp_config['from_address'],  # Sender email address
+                            to, 				               # List of recipient email addresses
+                            msg.as_string()		               # Full MIME email (headers + HTML body)
                             )
 
         lg.info("Email sent successfully.")
