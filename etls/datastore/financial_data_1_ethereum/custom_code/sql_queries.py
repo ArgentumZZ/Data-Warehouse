@@ -55,7 +55,7 @@ sql_queries['get_data'] = '''
                                 confirmed_at,
                                 f_is_vld_bool   
                           FROM financial_data.ethereum
-                          WHERE (source_created_at  BETWEEN '{sdt}' AND '{edt}'
+                          WHERE (source_created_at BETWEEN '{sdt}' AND '{edt}'
                             OR source_updated_at BETWEEN '{sdt}' AND '{edt}');
                           '''
 
