@@ -1,10 +1,12 @@
-import time
-import utilities.logging_manager as lg
-import sys
+# import libraries
+import time, sys
 
+# import custom libraries
 from custom_code.script_factory import ScriptFactory
 import custom_code.script_parameters as settings
+import utilities.logging_manager as lg
 from utilities.argument_parser import parse_arguments
+from utilities.email_manager import EmailManager
 
 def main():
     lg.info("Starting ETL run")
@@ -19,12 +21,16 @@ def main():
         # Create the factory instance
         forced_sdt, load_type, max_days_to_load = parse_arguments(sys.argv, settings)
 
+        # initialize ScriptFactory
         factory = ScriptFactory(
             forced_sdt=forced_sdt,
             load_type=load_type,
             max_days_to_load=max_days_to_load,
             settings=settings
         )
+
+        # initialize EmailManager
+        email_manager = EmailManager(factory=factory)
 
         # Fetch the list of task dictionaries
         tasks = factory.init_tasks()
@@ -53,6 +59,8 @@ def main():
             # If the parent task failed or was skipped, this child task cannot run.
             if t_dep and (t_dep not in success_registry):
                 lg.error(f"Stopping pipeline: Task '{t_name}' depends on '{t_dep}', but '{t_dep}' was not successful.")
+                error_msg = f"Dependency {t_dep} failed."
+                email_manager.add_task_result_to_email(task, "SKIPPED", error_msg)
                 success = False
                 break
 
@@ -77,6 +85,9 @@ def main():
                     # Mark as success for future dependencies
                     success_registry.add(t_name)
 
+                    # add task result to email
+                    email_manager.add_task_result_to_email(task, "SUCCESS")
+
                     # Exit the retry loop early
                     break
 
@@ -89,6 +100,8 @@ def main():
                     else:
                         lg.error(f"Task '{t_name}' exhausted all retry attempts.")
 
+                        email_manager.add_task_result_to_email(task, "FAILED", error_msg=e)
+
             # 6. PIPELINE HALT
             # If the task failed all retries, 'task_passed_finally' remains False.
             # We stop the entire ETL process to prevent data corruption or inconsistent states in subsequent tasks.
@@ -96,6 +109,12 @@ def main():
                 success = False
                 lg.error(f"Pipeline execution halted due to failure in: {t_name}")
                 break
+
+        # Prepare the mails
+        email_manager.prepare_mails()
+
+        # send the mails, negate success variable at the top of the script
+        email_manager.send_mails(is_error=not success)
 
         # 7. FINAL STATUS
         if success:

@@ -58,14 +58,15 @@ class ScriptFactory:
             self.database = settings.prod_database
             self.schema = settings.prod_schema
             self.table = settings.prod_table
+
             self.delete_log = settings.prod_delete_log
-            self.delete_mail_logfile = settings.prod_delete_mail_logfile
             self.delete_output = settings.prod_delete_output
-            self.send_mail_report = settings.prod_send_mail_report
-            self.send_mail_log_report = settings.prod_send_mail_log_report
+            self.send_mail_etl_summary_report = settings.prod_send_mail_etl_summary_report
+
             self.list_recipients_admin = settings.prod_list_recipients_admin
             self.list_recipients_business = settings.prod_list_recipients_business
             self.list_recipients_error = settings.prod_list_recipients_error
+
             self.is_admin_email_enabled = settings.prod_is_admin_email_alert_enabled
             self.is_business_email_enabled = settings.prod_is_business_email_alert_enabled
             self.is_error_email_enabled = settings.prod_is_error_email_alert_enabled
@@ -73,14 +74,15 @@ class ScriptFactory:
             self.database = settings.dev_database
             self.schema = settings.dev_schema
             self.table = settings.dev_table
+
             self.delete_log = settings.dev_delete_log
-            self.delete_mail_logfile = settings.dev_delete_mail_logfile
             self.delete_output = settings.dev_delete_output
-            self.send_mail_report = settings.dev_send_mail_report
-            self.send_mail_log_report = settings.dev_send_mail_log_report
+            self.send_mail_etl_summary_report = settings.dev_send_mail_etl_summary_report
+
             self.list_recipients_admin = settings.dev_list_recipients_admin
             self.list_recipients_business = settings.dev_list_recipients_business
             self.list_recipients_error = settings.dev_list_recipients_error
+
             self.is_admin_email_enabled = settings.dev_is_admin_email_alert_enabled
             self.is_business_email_enabled = settings.dev_is_business_email_alert_enabled
             self.is_error_email_enabled = settings.dev_is_error_email_alert_enabled
@@ -185,14 +187,10 @@ class ScriptFactory:
         }
 
         return [
-            task_1,  # self.etl_audit_manager.create_etl_runs_table_record,
-                     # create_trigger,
-            task_2,  # create_comments,
-            task_3,  # self.script_worker.get_data,
-            task_4,  # self.pg_connector.upload_to_pg
-            task_5   # self.etl_audit_manager.update_etl_runs_table_record
-
-            # Email tasks
-            # self.prepare_mails,
-            # self.send_all
-        ]
+                task_1,  # self.etl_audit_manager.create_etl_runs_table_record,
+                         # create_trigger,
+                task_2,  # create_comments,
+                task_3,  # self.script_worker.get_data,
+                task_4,  # self.pg_connector.upload_to_pg
+                task_5   # self.etl_audit_manager.update_etl_runs_table_record
+                ]

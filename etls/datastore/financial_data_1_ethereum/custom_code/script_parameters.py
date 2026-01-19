@@ -92,12 +92,12 @@ prod_is_business_email_alert_enabled = prod_is_email_enabled_dict["business"]
 prod_is_error_email_alert_enabled = prod_is_email_enabled_dict["error"]
 
 # Whether to send summary report emails
-prod_send_mail_report = True
+prod_send_mail_etl_summary_report = True
 ###################################################################
 dev_email_recipients = {
     "admin"         : ["admin-team@company.com"],
-    "business"      : ["business-owner@company.com"],
-    "error"         : ["etl-alerts@company.com"]
+    "business"      : ["liahim13@gmail.com"],
+    "error"         : ["liahim13@gmail.com"]
 }
 
 # 3.2 Flattened email structure (DEV)
@@ -106,8 +106,8 @@ dev_list_recipients_business = dev_email_recipients["business"]
 dev_list_recipients_error = dev_email_recipients["error"]
 
 dev_is_email_enabled_dict = {
-    "admin"      : True,
-    "business"   : False,
+    "admin"      : False,
+    "business"   : True,
     "error"      : True
 }
 
@@ -116,7 +116,7 @@ dev_is_business_email_alert_enabled = dev_is_email_enabled_dict["business"]
 dev_is_error_email_alert_enabled = dev_is_email_enabled_dict["error"]
 
 # Whether to send summary report emails
-dev_send_mail_report = True
+dev_send_mail_etl_summary_report = True
 # ===========================================================
 # 4. Database configuration (production)
 # ===========================================================
@@ -152,26 +152,10 @@ sources = ['financial_data.ethereum']
 
 # Options for log and output folders
 prod_delete_log = True
-prod_delete_mail_logfile = True
 prod_delete_output = True
 
-
-
-# Conditions for sending log emails
-prod_send_mail_log_report = {
-    "success"   : False,
-    "fail"      : True
-}
 ###################################################################
 # Options for log and output folders
 dev_delete_log = True
-dev_delete_mail_logfile = True
 dev_delete_output = True
-
-
-# Conditions for sending log emails
-dev_send_mail_log_report = {
-    "success"   : False,
-    "fail"      : True
-}
 ####################################################################
