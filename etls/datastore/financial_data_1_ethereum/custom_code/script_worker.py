@@ -72,7 +72,7 @@ class ScriptWorker:
         # 3. Run the query and assign it to a dataframe
         df = pg_connector.run_query(query=query, commit=False, get_result=True)
 
-        if len(df):
+        if len(df) > 0:
 
             # 1. Take the etl_runs_key from the audit table and pass it to the dataframe
             df['etl_runs_key'] = self.sfc.etl_audit_manager.etl_runs_key

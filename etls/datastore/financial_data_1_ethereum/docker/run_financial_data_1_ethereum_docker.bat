@@ -1,9 +1,14 @@
 :: 1. Hide all commands from being printed to the console
 @echo off
 
+:: Always switch to the directory where this .bat file is located
+cd /d "%~dp0"
+
 :: Enable 'setlocal' to ensure all variables defined in this script
 :: are local to this execution and don't leak into the global environment.
 setlocal
+
+
 
 :: Define start time to measure duration of the script
 set "START_TIME=%date% %time%"
@@ -61,7 +66,7 @@ echo.
 ::                    Dockerfile
 echo.
 echo Building Docker image...
-docker build -f Dockerfile -t %SCRIPT_NAME% --build-arg ..\..\..\..
+docker build -f Dockerfile -t %SCRIPT_NAME% ..\..\..\..
 echo.
 
 :: 8. Run the container
