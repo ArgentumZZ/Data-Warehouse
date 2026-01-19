@@ -17,7 +17,6 @@ from custom_code.sql_queries import sql_queries
 from connectors.postgresql_connector import PostgresConnector
 
 
-
 class ScriptFactory:
     """
     - Load/Read settings
@@ -42,8 +41,7 @@ class ScriptFactory:
             'script_description'     : settings.script_description,
             'script_frequency'       : settings.script_frequency,
             'script_primary_owner'   : settings.script_primary_owner,
-            'script_secondary_owner' : settings.script_secondary_owner,
-            'email_recipients'       : settings.email_recipients
+            'script_secondary_owner' : settings.script_secondary_owner
         }
 
         # forced_sdt, load_type, max_days_to_load = parse_arguments(sys.argv, settings)
@@ -65,6 +63,12 @@ class ScriptFactory:
             self.delete_output = settings.prod_delete_output
             self.send_mail_report = settings.prod_send_mail_report
             self.send_mail_log_report = settings.prod_send_mail_log_report
+            self.list_recipients_admin = settings.prod_list_recipients_admin
+            self.list_recipients_business = settings.prod_list_recipients_business
+            self.list_recipients_error = settings.prod_list_recipients_error
+            self.is_admin_email_enabled = settings.prod_is_admin_email_alert_enabled
+            self.is_business_email_enabled = settings.prod_is_business_email_alert_enabled
+            self.is_error_email_enabled = settings.prod_is_error_email_alert_enabled
         else:
             self.database = settings.dev_database
             self.schema = settings.dev_schema
@@ -74,12 +78,17 @@ class ScriptFactory:
             self.delete_output = settings.dev_delete_output
             self.send_mail_report = settings.dev_send_mail_report
             self.send_mail_log_report = settings.dev_send_mail_log_report
+            self.list_recipients_admin = settings.dev_list_recipients_admin
+            self.list_recipients_business = settings.dev_list_recipients_business
+            self.list_recipients_error = settings.dev_list_recipients_error
+            self.is_admin_email_enabled = settings.dev_is_admin_email_alert_enabled
+            self.is_business_email_enabled = settings.dev_is_business_email_alert_enabled
+            self.is_error_email_enabled = settings.dev_is_error_email_alert_enabled
 
         # 4. Initialize components
         self.etl_utils = EtlUtils(self)
         self.script_worker = ScriptWorker(self)
         self.etl_audit_manager = EtlAuditManager(self, self.script_worker, self.database)
-        self.email = EmailManager(self)
 
         # Create an instance of the connector
         self.pg_connector = PostgresConnector(credential_name=self.database)

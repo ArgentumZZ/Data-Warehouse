@@ -67,21 +67,56 @@ sqlserver_driver = os.environ.get("SQLSERVER_DRIVER")   # e.g. ODBC+Driver+13+fo
 # custom_tools_path = os.environ.get("CUSTOM_TOOLS_PATH")
 
 # ===========================================================
-# 3. Email routing configuration
+# 3. Email routing configuration (PROD / DEV)
 # ===========================================================
 
-email_recipients = {
+prod_email_recipients = {
     "admin"         : ["admin-team@company.com"],
     "business"      : ["business-owner@company.com"],
-    "error_only"    : ["etl-alerts@company.com"]
+    "error"         : ["etl-alerts@company.com"]
 }
 
-# 3.1 Flattened email structure
-recipients_list_admin = email_recipients["admin"]
-recipients_list_business = email_recipients["business"]
-error_recipients = email_recipients["error_only"]
+# 3.1 Flattened email structure (PROD)
+prod_list_recipients_admin = prod_email_recipients["admin"]
+prod_list_recipients_business = prod_email_recipients["business"]
+prod_list_recipients_error = prod_email_recipients["error"]
 
+prod_is_email_enabled_dict = {
+    "admin"      : True,
+    "business"   : False,
+    "error"      : True
+}
 
+prod_is_admin_email_alert_enabled = prod_is_email_enabled_dict["admin"]
+prod_is_business_email_alert_enabled = prod_is_email_enabled_dict["business"]
+prod_is_error_email_alert_enabled = prod_is_email_enabled_dict["error"]
+
+# Whether to send summary report emails
+prod_send_mail_report = True
+###################################################################
+dev_email_recipients = {
+    "admin"         : ["admin-team@company.com"],
+    "business"      : ["business-owner@company.com"],
+    "error"         : ["etl-alerts@company.com"]
+}
+
+# 3.2 Flattened email structure (DEV)
+dev_list_recipients_admin = dev_email_recipients["admin"]
+dev_list_recipients_business = dev_email_recipients["business"]
+dev_list_recipients_error = dev_email_recipients["error"]
+
+dev_is_email_enabled_dict = {
+    "admin"      : True,
+    "business"   : False,
+    "error"      : True
+}
+
+dev_is_admin_email_alert_enabled = dev_is_email_enabled_dict["admin"]
+dev_is_business_email_alert_enabled = dev_is_email_enabled_dict["business"]
+dev_is_error_email_alert_enabled = dev_is_email_enabled_dict["error"]
+
+# Whether to send summary report emails
+dev_send_mail_report = True
 # ===========================================================
 # 4. Database configuration (production)
 # ===========================================================
@@ -89,8 +124,6 @@ error_recipients = email_recipients["error_only"]
 prod_database = 'postgresql: prod'
 prod_schema = 'financial_data'
 prod_table = 'ethereum'
-# prod_file_name = f'{prod_table}.csv'
-
 
 # ===========================================================
 # 5. Database configuration (development)
@@ -99,7 +132,6 @@ prod_table = 'ethereum'
 dev_database = 'postgresql: dev'
 dev_schema = 'financial_data'
 dev_table = 'ethereum'
-# dev_file_name = f'{prod_table}.csv'
 
 # ===========================================================
 # 6. ETL behavior configuration
@@ -123,8 +155,7 @@ prod_delete_log = True
 prod_delete_mail_logfile = True
 prod_delete_output = True
 
-# Whether to send summary report emails
-prod_send_mail_report = True
+
 
 # Conditions for sending log emails
 prod_send_mail_log_report = {
@@ -137,8 +168,6 @@ dev_delete_log = True
 dev_delete_mail_logfile = True
 dev_delete_output = True
 
-# Whether to send summary report emails
-dev_send_mail_report = True
 
 # Conditions for sending log emails
 dev_send_mail_log_report = {

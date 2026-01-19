@@ -50,20 +50,22 @@ RUN echo "Using basedir: $basedir"
 ENV PYTHONPATH="${basedir}:${basedir}/${project_name}"
 RUN echo "The PYTHONPATH ENV is set to: $PYTHONPATH"
 
-ENV DATA_DIR=$basedir/data
+ENV DATA_DIR=${basedir}/data
 RUN echo "The DATA_DIR ENV is set to: $DATA_DIR"
 
-ENV CONFIG_DIR=$basedir/config/db_config.cfg
+ENV CONFIG_DIR=${basedir}/config/db_config.cfg
 RUN echo "The CONFIG_DIR ENV is set to: $CONFIG_DIR"
 
-ENV BASEDIR=$basedir
+ENV BASEDIR=${basedir}
 RUN echo "The BASEDIR ENV is set to: $BASEDIR"
 
+ENV PROJECT_NAME=${project_name}
+RUN echo "The PROJECT_NAME ENV is set to: $PROJECT_NAME"
 # 6. Create working directory
-RUN mkdir -p $basedir
+RUN mkdir -p ${basedir}
 
 # Set working directory inside the container (every command runs from there.)
-WORKDIR $basedir
+WORKDIR ${basedir}
 
 # 7. Install individual libraries for the project
 RUN echo "Installing individual libraries"
@@ -72,28 +74,28 @@ RUN pip install numpy==$numpy_version
 # 8. Install dependencies (cached layer)
 
 # Copy dependency list first (better for caching)
-COPY etls/datastore/$project_name/docker/requirements.txt .
+COPY etls/datastore/${project_name}/docker/requirements.txt .
 
 # Install dependencies
 RUN echo "Installing project dependencies"
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 9. Copy config file
-RUN mkdir -p $BASEDIR/config
+RUN mkdir -p ${basedir}/config
 
 # COPY <file_path_1> to <file_path_2>
-COPY config/local/db_config.cfg $BASEDIR/config/db_config.cfg
+COPY config/local/db_config.cfg ${basedir}/config/db_config.cfg
 
 # 10. Copy Shared Modules
 # Copy these so they are available at the same level as the project
 # COPY <file_path_1> to <file_path_2>
-COPY etls/utilities $BASEDIR/utilities
-COPY etls/connectors $BASEDIR/connectors
+COPY etls/utilities ${basedir}/utilities
+COPY etls/connectors ${basedir}/connectors
 
 # 11. Copy Project Files
 # Copy the specific project folder into a subfolder or directly into app
 # Recommendation: Copy it into its own folder to keep the structure clean
-COPY etls/datastore/$project_name $BASEDIR/$project_name
+COPY etls/datastore/${project_name} ${basedir}/${project_name}
 
 # 12. Default command
 
@@ -102,6 +104,8 @@ COPY etls/datastore/$project_name $BASEDIR/$project_name
 
 # the executable that always runs
 ENTRYPOINT ["python", "/app/financial_data_1_ethereum/script_runner/run_script.py"]
+# ENTRYPOINT python ${BASEDIR}/${PROJECT_NAME}/script_runner/run_script.py
+
 
 # In the terminal:
 # docker build -t my-python-test .

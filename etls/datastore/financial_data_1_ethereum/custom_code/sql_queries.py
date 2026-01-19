@@ -3,9 +3,9 @@ sql_queries = {}
 
 # 2. Create a source_cols_create variable with columns and data types
 source_columns_create = '''
-            id                      TEXT NOT NULL, 
+            id                      TEXT, 
             raw_number_value        BIGINT,
-            tax_hash                TEXT,
+            tax_hash                TEXT NOT NULL,
             ethereum_amount         NUMERIC,
             transaction_index       INT, 
             gas_limit               NUMERIC,
@@ -55,7 +55,7 @@ sql_queries['get_data'] = '''
                                 confirmed_at,
                                 f_is_vld_bool   
                           FROM financial_data.ethereum
-                          WHERE (source_created_at  BETWEEN '{sdt}' AND '{edt}'
+                          WHERE (source_created_at BETWEEN '{sdt}' AND '{edt}'
                             OR source_updated_at BETWEEN '{sdt}' AND '{edt}');
                           '''
 
