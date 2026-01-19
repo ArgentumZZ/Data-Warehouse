@@ -14,7 +14,7 @@
   - `data_quality_checks` - Custom data quality checks.
   - `aggregations` - Data aggregations.
   - `docker` - Dockerfile, requirements.txt and .sh run files.
-  - `customer_code` - Custom code for each project.
+  - `custom_code` - Custom code for each project.
   - `sript_factory` - Central assembly factory, take info from all other files to create the tasks for execution.
   - `script_runner` - Files (`.bat / .sh`) that run `script_runner.py` which initializes the `script_factory.py`.
 - **Main files**
@@ -106,7 +106,7 @@ datawarehouse/
 │   │   │       │      ├── test_worker.py
 │   │   │       │      └── ... other test .py files ...
 │   │   │       ├── __init__.py
-│   │   └── ... other project folders ...
+│   │   └── ... other datastore project folders ...
 │   │
 │   ├── utilities/
 │   │   ├── argument_parser.py
@@ -124,18 +124,19 @@ datawarehouse/
 │       ├── dim_1_staging_crypto_transactions/
 │       ├── fact_1_fact_shares_revenue/
 │       ├── fact_1_staging_shares_revenue/
-│       ├── ... other project folders ...
+│       ├── ... other warehouse project folders ...
 │       │  
 │       └── views/
 │             ├── view_1_revenue.py
-│             └── ... other utils files ...
+│             └── ... other view files ...
 ```
 ___
 ## 📝 Project To‑Do Plan
 
 - **Partial Task Functions**
-  - Add parameter‑accepting partial functions inside `script_factory.py` .✔️
+  - Add parameter‑accepting partial functions inside `script_factory.py`. ✔️
   - Improve modularity and reusability of task definitions. ✔️
+  - Add task name and description, retries, is_enabled and dependency parameters. ✔️
 
 - **ETL Audit Manager**
   - Create an audit table to track project's run metadata. ✔️
@@ -167,13 +168,13 @@ ___
   - Format `output/file_name_timestamp.csv`. ✔️
   - Control with a boolean operator, whether the file will be deleted from the folder. ✔️
 
-- **Containerization** (in progress)
+- **Containerization**
   - Add a `Dockerfile` for containerized execution. ✔️
   - Update `_docker.bat` to run the container. ✔️
   - Update `_docker.sh` to run the container.
   - Ensure compatibility with Windows/Linux.
 
-- **Launcher scripts** (in progress)
+- **Launcher scripts**
   - Update `.bat` ✔️, `_docker.bat` ✔️, `.sh`, `_docker.sh`.
   - Add parameter parsing and variable definitions. ✔️
   - Add logs and error handling. ✔️
@@ -181,10 +182,36 @@ ___
 - **Email Notifications (SMTP)**
   - Implement e-mail success/failure alerts after each project's run.
   - Include run summary and error details.
+  - Add business, admin and error recipients.
+  - Add boolean operators to control whether the recipients should receive an e-mail.
 
 - **Backfill**
   - Implement backfill loading option in `.bat` ✔️, `_docker.bat` ✔️, `.sh`, `_docker.sh` files.
   - Create a separate backfill project that accepts `project_name`, `start_date`, `end_date`, `load_days` to run a given project and load data incrementally.
+
+- **Fact and dimensional tables**
+  - Add staging and normal fact and dimensional tables (staging_dim -> warehouse_dim -> staging_fact -> warheouse_fact). 
+  - Build a staging_dim table to extract data from the source and checks for null values, duplicates, missing data.
+  - In warehouse_dim, implement slowly changing dimensions (type 1 and type2) updates - close SCD2 rows, insert new SCD2 rows, apply SCD1 updates and insert new rows.
+  - Add indices for SCD detection and ETL MERGE/UPDATEs, partial unique index, fast fact and point-in-time lookups, prevent SCD2 ranges overlapping.
+  - Implement staging_fact table to extract data from the source, correct fact grain and data quality checks.
+  - In warehouse_fact, enforce referential integrity to prevent orphaned surrogate keys, partition the table by date/date_key, add partition-based deletion and build an index strategy.
+
+- **Orchestration**
+  - Implement orchestration with Airflow.
+  - Build DAG for specific cases (daily, 30 min , weekly, monthly DAGs).
+
+- **Monitoring**
+  - Implement data warehouse health monitoring with dashboards in Apache Superset (or similar tools).
+  - Build reports to monitor blocked queries, long-running queries, index efficiency and usage, dead tuple counts (vacuum and bloat monitoring).
+  - Buffer cache and I/O performance, connection pool health, add transaction and throughput metrics.
+
+- **Data quality checks**
+  - Add general data quality checks that run after the DAGS.
+  - Monitor record discrepancies, null values, referential integrity, SLA checks (arrival delay), schema drift.
+
+- **Documentation**
+  - Add documentation explaining the different modules and processes in the data warehouse (in Confluence).
 
 - **Connectors**
   - Add more connectors:
