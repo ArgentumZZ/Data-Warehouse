@@ -16,7 +16,7 @@ if not logger.handlers:
 
     # 5. Formatter defining how console log lines should look (timestamp, level, file, line, message)
     console_formatter = logging.Formatter(
-        "[%(filename)s:%(lineno)d] - %(asctime)s - %(levelname)s: %(message)s",
+        "[%(filename)s:%(lineno)d] - %(asctime)s - %(levelname)s:\n%(message)s\n",
         "%Y-%m-%d %H:%M:%S"
     )
 
@@ -110,7 +110,7 @@ if not logger.handlers:
     # %(message)s -> actual log message
 
     file_formatter = logging.Formatter(
-        "[%(filename)s:%(lineno)d] - %(asctime)s - %(levelname)s: %(message)s",
+        "[%(filename)s:%(lineno)d] - %(asctime)s - %(levelname)s:\n%(message)s\n",
         "%Y-%m-%d %H:%M:%S"
     )
 
