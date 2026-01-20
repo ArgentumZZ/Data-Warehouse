@@ -110,10 +110,11 @@ def main():
                 lg.error(f"Pipeline execution halted due to failure in: {t_name}")
                 break
 
-        # read the log in metadata/logs and assign it to a variable that can be attached to a file
+        # Read the log in metadata/logs and assign it to a variable that can be attached to the e-mail alert
+        current_logs = lg.get_current_log_content()
 
         # Prepare the mails
-        email_manager.prepare_mails()
+        email_manager.prepare_mails(log_content=current_logs)
 
         # send the mails, negate success variable at the top of the script
         email_manager.send_mails(is_error=not success)

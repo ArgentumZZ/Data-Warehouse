@@ -109,7 +109,7 @@ class EmailManager:
             </tr>
         """
 
-    def prepare_mails(self) -> None:
+    def prepare_mails(self, log_content: str = "") -> None:
         """
         1. Finalize the HTML structure and prepare email payloads for delivery.
 
@@ -117,6 +117,7 @@ class EmailManager:
         task execution rows into a single HTML document. It then stores
         these as dictionaries in 'prepared_success_email' and 'prepared_error_email'.
 
+        3. Read the log content of the run and display it in the e-mail alert.
         Raises:
             KeyError: If 'script_name' is missing from factory.info.
         """
@@ -154,7 +155,15 @@ class EmailManager:
         </tr>
         """
 
-        # 3. Combine header + accumulated rows + table closing tags
+        # 3. Format the log content for HTML (wrap in <pre> tags for spacing)
+        log_section_html = f"""
+                <h2>Technical Log Details</h2>
+                <div style="background-color: #f8f9fa; border: 1px solid #ddd; padding: 10px; font-family: monospace; white-space: pre-wrap; font-size: 12px; color: #333;">
+                    {log_content}
+                </div>
+                """
+
+        # 4. Combine header + accumulated rows + table closing tags
         # This creates the full HTML document string
         html_body = f"""
         <html>
@@ -163,6 +172,8 @@ class EmailManager:
             {task_table_header}
             {self.html_tasks_rows}
         </table>
+        <br>
+            {log_section_html}
         </body>
         </html>
         """

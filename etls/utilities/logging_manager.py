@@ -71,6 +71,9 @@ if not logger.handlers:
     log_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_file = os.path.join(log_dir, f"{log_timestamp}_etl.log")
 
+    # make the path globally accessible in the module
+    current_log_path = log_file
+
     # 15. Delete .logs files based on number of runs (keep the N most recent).
     max_runs = 5
 
@@ -116,6 +119,18 @@ if not logger.handlers:
 
     # 22. Attach the configured handler to the "etl" logger
     logger.addHandler(file_handler)
+
+def get_current_log_content():
+    """
+    Reads the content of the current log file.
+    """
+    try:
+        if os.path.exists(current_log_path):
+            with open(current_log_path, 'r', encoding='utf-8') as f:
+                return f.read()
+    except Exception as e:
+        return f"Could not read log file: {e}"
+    return "Log file not found."
 
 
 def _log(func, *args, **kwargs):
