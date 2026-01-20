@@ -38,8 +38,9 @@ class ScriptFactory:
         self.info = {
             'script_name'            : settings.script_name,
             'script_version'         : settings.script_version,
-            'script_description'     : settings.script_description,
             'run_environment'        : settings.environment,
+            'script_execution_time'  : 'not implemented yet',
+            'script_description'     : settings.script_description,
             'reference_page'         : "not implemented yet",
             'script_frequency'       : settings.script_frequency,
             'script_primary_owner'   : settings.script_primary_owner,
@@ -116,7 +117,7 @@ class ScriptFactory:
         """
 
         task_1 = {
-            "func"          : partial(self.etl_audit_manager.insert_audit_etl_runs_record,
+            "function"      : partial(self.etl_audit_manager.insert_audit_etl_runs_record,
                                       script_version=self.info['script_version'],
                                       load_type=self.load_type,
                                       max_days_to_load=self.max_days_to_load,
@@ -128,37 +129,37 @@ class ScriptFactory:
                                                                                                     table=self.table)
                             ),
             "task_name"     : "create_etl_runs_record",
-            "description"   : "Create the etl_runs table record for the current execution of the tasks.",
-            "enabled"       : True,
+            "description"   : "Create an audit record for the current execution of the project.",
+            "is_enabled"    : True,
             "retries"       : 1,
             "depends_on"    : None
         }
 
         task_2 = {
-            "func"          : partial(self.pg_connector.run_query,
+            "function"      : partial(self.pg_connector.run_query,
                                       query=sql_queries['set_comments'].format(schema=self.schema, table=self.table),
                                       commit=True,
                                       get_result=True
                                       ),
             "task_name"     : "set_comments",
-            "description"   : "Set table and column comments for documentation.",
-            "enabled"       : True,
+            "description"   : "Add a description of the table and each field for documentation.",
+            "is_enabled"    : True,
             "retries"       : 1,
-            "depends_on"    : None
+            "depends_on"    : "create_etl_runs_record"
         }
 
         task_3 = {
-            "func"          : partial(self.script_worker.get_data,
+            "function"      : partial(self.script_worker.get_data,
                                       file_path=self.file_path),
             "task_name"     : "get_data",
-            "description"   : "Extract data from the source.",
-            "enabled"       : True,
+            "description"   : "Extract the data from the source system.",
+            "is_enabled"    : True,
             "retries"       : 1,
-            "depends_on"    : None
+            "depends_on"    : "set_comments"
         }
 
         task_4 = {
-            "func"          : partial(self.script_worker.upload_to_dwh,
+            "function"      : partial(self.script_worker.upload_to_dwh,
                                       database_connector=self.pg_connector,
                                       etl_audit_manager=self.etl_audit_manager,
                                       delete_output=self.delete_output,
@@ -171,26 +172,25 @@ class ScriptFactory:
                                       insert_values=sql_queries['insert_values']
                             ),
             "task_name"    : "upload_to_pg",
-            "description"  : "Upload data to data warehouse.",
-            "enabled"      : True,
+            "description"  : "Load the data into the data warehouse.",
+            "is_enabled"   : True,
             "retries"      : 1,
-            "depends_on"   : None
+            "depends_on"   : "get_data"
         }
 
         task_5 = {
-            "func"          : partial(self.etl_audit_manager.update_etl_runs_table_record,
+            "function"      : partial(self.etl_audit_manager.update_etl_runs_table_record,
                                       status='Complete'
                                       ),
             "task_name"     : "update_etl_runs_table_record",
-            "description"   : "Update audit.etl_runs record.",
-            "enabled"       : True,
+            "description"   : "Update the corresponding record in the audit table.",
+            "is_enabled"    : True,
             "retries"       : 1,
-            "depends_on"    : None
+            "depends_on"    : "upload_to_pg"
         }
 
         return [
                 task_1,  # self.etl_audit_manager.create_etl_runs_table_record,
-                         # create_trigger,
                 task_2,  # create_comments,
                 task_3,  # self.script_worker.get_data,
                 task_4,  # self.pg_connector.upload_to_pg

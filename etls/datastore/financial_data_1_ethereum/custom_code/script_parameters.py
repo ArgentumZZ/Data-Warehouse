@@ -24,7 +24,7 @@ script_version = '1.0'
 script_description = 'ETL pipeline for ingesting and transforming ethereum data'
 script_frequency = "daily"  # "hourly", "daily", "weekly", "monthly"
 script_primary_owner = "Mihail Mihaylov"
-script_secondary_owner = ""
+script_secondary_owner = "None, I am alone on this journey."
 
 # ===========================================================
 # 2. Environment configuration

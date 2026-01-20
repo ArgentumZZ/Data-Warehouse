@@ -59,7 +59,7 @@ class EmailManager:
 
         return config_dict
 
-    def add_task_result_to_email(self, task: dict, status: str, error_msg: str ="") -> None:
+    def add_task_result_to_email(self, task: dict, status: str, error_msg: str = "") -> None:
         """
         1. Appends a formatted HTML table row to the internal task log string.
 
@@ -74,12 +74,20 @@ class EmailManager:
         """
 
         # 1. Extract function keywords/parameters
-        func = task["func"]
+        func = task["function"]
         params_repr = ""
+
+        # A number that will be displayed next to the task name
+        if not hasattr(self, 'task_count'):
+            self.task_count = 0
+
+        # Increment the counter
+        self.task_count += 1
 
         # Check if the function has 'keywords' attribute
         if hasattr(func, "keywords") and func.keywords:
-            params_repr = ", ".join(f"{k}={v!r}" for k, v in func.keywords.items())
+            # Use <br/> to ensure that each pair starts on a new line in the HTML table
+            params_repr = "<br/>".join(f"{k}={v!r}" for k, v in func.keywords.items())
 
         # 2. Determine row styling and status text based on outcome (green/red)
         color = "#d4edda" if status == "SUCCESS" else "#f8d7da"
@@ -90,9 +98,10 @@ class EmailManager:
         # 3. Append the formatted row to the class variable self.html_tasks_rows
         self.html_tasks_rows += f"""
             <tr style="background-color: {color};">
+                <td style="text-align: center;">{self.task_count}</td>
                 <td>{task['task_name']}</td>
                 <td>{task.get('description', '')}</td>
-                <td>{task.get("enabled")}</td>
+                <td>{task.get("is_enabled")}</td>
                 <td>{task.get("retries")}</td>
                 <td>{task.get("depends_on")}</td>
                 <td>{status_text}</td>
@@ -134,13 +143,14 @@ class EmailManager:
         <h2>Task Execution Log</h2>
         <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse; width: 100%;">
         <tr style="background-color: #f2f2f2;">
+            <th>#</th>
             <th>Task name</th>
             <th>Description</th>
-            <th>Enabled</th>
+            <th>Is enabled</th>
             <th>Retries</th>
             <th>Depends on</th>
             <th>Status</th>
-            <th>Parameters / Errors</th>
+            <th>Parameters</th>
         </tr>
         """
 
