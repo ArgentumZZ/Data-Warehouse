@@ -16,16 +16,16 @@
   - `docker` - Dockerfile, requirements.txt and .sh run files.
   - `custom_code` - Custom code for each project.
   - `sript_factory` - Central assembly factory, take info from all other files to create the tasks for execution.
-  - `script_runner` - Files (`.bat / .sh`) that run `script_runner.py` which initializes the `script_factory.py`.
+  - `script_runner` - Files (`.bat / .sh`) that run `run_script.py` which initializes the `script_factory.py`.
 - **Main files**
-  - `etl_audit_manager.py` - audit table.
-  - `etl_utils.py` - general ETL utils functions.
-  - `script_worker.py` - custom functions for a given project. 
-  - `sql_queries.py` - SQL queries that are parametrized.
-  - `alter_tables.sql` - Track executed SQL queries. 
+  - `etl_audit_manager.py` - Audit table to keep track of project's run metadata.
+  - `etl_utils.py` - ETL transformation functions.
+  - `script_worker.py` - Custom functions for a given project. 
+  - `sql_queries.py` - Parametrized SQL queries.
+  - `alter_tables.sql` - History of executed SQL queries. 
   - `script_factory.py` - Assemble the tasks for the project.
-  - `script_runner.py` - Run the tasks in `script_factory.py`.
-  - `.bat/.sh` files to run `script_runner.py`.
+  - `run_script.py` - Run the tasks in `script_factory.py`.
+  - `.bat/.sh` files to run `run_script.py`.
 -------------------------------
 ## General structure
 ```
@@ -181,7 +181,7 @@ ___
 
 - **Email Notifications (SMTP)**
   - Implement e-mail success/failure alerts after each project's run.
-  - Include run summary and error details.
+  - Include ETL run summary, logs and error details.
   - Add business, admin and error recipients.
   - Add boolean operators to control whether the recipients should receive an e-mail.
 
