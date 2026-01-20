@@ -4,11 +4,6 @@
 :: are local to this execution and don't leak into the global environment.
 setlocal
 
-:: Define start time to measure duration of the script
-:: Capture start timestamp
-for /f "delims=" %%i in ('powershell -NoProfile -Command "Get-Date -Format \"yyyy-MM-dd HH:mm:ss\""') do set "START_TS=%%i"
-:: set "START_TIME=%time%"
-
 :: 2. Set the console window title (without .bat extension)
 title %~n0
 
@@ -114,33 +109,7 @@ echo.
 :: We do this before any other commands to ensure %ERRORLEVEL% isn't overwritten.
 set "EXIT_CODE=%ERRORLEVEL%"
 
-:: 13. Calculate duration in 0 days 00 hours 00 minutes 03 seconds format.
-:: Capture end timestamp
-for /f "delims=" %%i in ('powershell -NoProfile -Command "Get-Date -Format \"yyyy-MM-dd HH:mm:ss\""') do set "END_TS=%%i"
-
-:: Calculate duration as d.hh:mm:ss
-for /f "delims=" %%i in (
-    'powershell -NoProfile -Command "(New-TimeSpan -Start ([datetime]\"%START_TS%\") -End ([datetime]\"%END_TS%\")).ToString(\"d\.hh\:mm\:ss\")"'
-) do set "RAW_DURATION=%%i"
-
-:: RAW_DURATION looks like: 1.07:30:12
-:: Split into components
-for /f "tokens=1-4 delims=.: " %%a in ("%RAW_DURATION%") do (
-    set "DAYS=%%a"
-    set "HOURS=%%b"
-    set "MINUTES=%%c"
-    set "SECONDS=%%d"
-)
-
-echo.
-echo ============================================================
-echo  Started:  %START_TS%
-echo  Ended:    %END_TS%
-echo  Duration: %DAYS% days %HOURS% hours %MINUTES% minutes %SECONDS% seconds
-echo ============================================================
-echo.
-
-:: 14. Final status report and exit code handling
+:: 13. Final status report and exit code handling
 
 echo ============================================================
 if %EXIT_CODE% EQU 0 (
