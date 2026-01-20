@@ -93,6 +93,8 @@ class EmailManager:
                 <td>{task['task_name']}</td>
                 <td>{task.get('description', '')}</td>
                 <td>{task.get("enabled")}</td>
+                <td>{task.get("retries")}</td>
+                <td>{task.get("depends_on")}</td>
                 <td>{status_text}</td>
                 <td style="font-size: 10px;">{params_repr}</td>
             </tr>
@@ -132,9 +134,11 @@ class EmailManager:
         <h2>Task Execution Log</h2>
         <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse; width: 100%;">
         <tr style="background-color: #f2f2f2;">
-            <th>Task Name</th>
+            <th>Task name</th>
             <th>Description</th>
             <th>Enabled</th>
+            <th>Retries</th>
+            <th>Depends on</th>
             <th>Status</th>
             <th>Parameters / Errors</th>
         </tr>
