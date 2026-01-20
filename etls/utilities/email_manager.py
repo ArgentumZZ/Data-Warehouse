@@ -92,6 +92,7 @@ class EmailManager:
             <tr style="background-color: {color};">
                 <td>{task['task_name']}</td>
                 <td>{task.get('description', '')}</td>
+                <td>{task.get("enabled")}</td>
                 <td>{status_text}</td>
                 <td style="font-size: 10px;">{params_repr}</td>
             </tr>
@@ -120,7 +121,7 @@ class EmailManager:
         <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;">
         """
 
-        # With grey background
+        # With gray background
         for key, value in info.items():
             general_info_html += f"<tr><td style='background-color: #f2f2f2; width: 30%;'><b>{key}</b></td><td>{value}</td></tr>"
         general_info_html += "</table><br>"
@@ -133,6 +134,7 @@ class EmailManager:
         <tr>
             <th>Task Name</th>
             <th>Description</th>
+            <th>Enabled</th>
             <th>Status</th>
             <th>Parameters / Errors</th>
         </tr>
