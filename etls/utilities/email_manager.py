@@ -59,40 +59,6 @@ class EmailManager:
 
         return config_dict
 
-    def _generate_header_html(self) -> str:
-
-        """
-        Generate the initial HTML structure for the email report.
-
-        This includes the 'General Script Information' section (populated from
-        the factory info) and the headers for the 'Execution Log' table.
-
-        Returns:
-            str: A formatted HTML string containing the tables and headers.
-        """
-
-        # Retrieve general script metadata (e.g., environment, script name, primary_owner)
-        info = self.factory.info
-
-        # Initialize the HTML string with the general information table
-        header = """<h2>General Script Information</h2>
-                    <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;">"""
-
-        # Iterate over factory info to build rows for each metadata item
-        for key, value in info.items():
-            header += f"<tr><td><b>{key}</b></td><td>{value}</td></tr>"
-
-        # Close the general info table and start the execution log table with column headers
-        header += "</table><br><h2>Execution Log</h2>"
-        header += """<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;">
-                             <tr>
-                                <th>Task Name</th>
-                                <th>Description</th>
-                                <th>Status</th>
-                                <th>Parameters</th>
-                             </tr>"""
-        return header
-
     def add_task_result_to_email(self, task: dict, status: str, error_msg: str ="") -> None:
         """
         1. Appends a formatted HTML table row to the internal task log string.
@@ -153,8 +119,10 @@ class EmailManager:
         <h2>General Script Information</h2>
         <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;">
         """
+
+        # With grey background
         for key, value in info.items():
-            general_info_html += f"<tr><td><b>{key}</b></td><td>{value}</td></tr>"
+            general_info_html += f"<tr><td style='background-color: #f2f2f2; width: 30%;'><b>{key}</b></td><td>{value}</td></tr>"
         general_info_html += "</table><br>"
 
         # 2. Build the task table header
