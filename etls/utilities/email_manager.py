@@ -130,8 +130,8 @@ class EmailManager:
         # Defines the column structure for the execution results appended during the run
         task_table_header = """
         <h2>Task Execution Log</h2>
-        <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;">
-        <tr>
+        <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse; width: 100%;">
+        <tr style="background-color: #f2f2f2;">
             <th>Task Name</th>
             <th>Description</th>
             <th>Enabled</th>
