@@ -19,7 +19,7 @@ def main():
         # 1. INITIALIZATION
         # Parse the .bat/.sh file for input parameters
         # Create the factory instance
-        forced_sdt, load_type, max_days_to_load = parse_arguments(sys.argv, settings)
+        forced_sdt, load_type, max_days_to_load = parse_arguments(settings)
 
         # initialize ScriptFactory
         factory = ScriptFactory(

@@ -17,10 +17,24 @@ set "STAMP=%date% %time%"
 set "ARG1=%~1"
 set "ARG2=%~2"
 
+set "ARG3=%~3"
+set "ARG4=%~4"
+set "ARG5=%~5"
+
 :: This is a trick, if CMD splits 'config=FX' into %2=config and %3=FX,
 :: we re-combine them into a single variable (=config=FX), where X is an integer.
+:: Argument 3 is still FX, so we re-assign and overwrite with the next argument
+:: .bat 2025-01-01 config=30 TEST3 HELLO OMG, becomes:
+:: ARG1=2025-01-01, ARG2=config=30, ARG3=TEST3, ARG4=HELLO, ARG5=OMG
 if "%~2"=="config" if not "%~3"=="" (
     set "ARG2=%~2=%~3"
+    set "ARG3=%~4"
+    set "ARG4=%~5"
+    set "ARG5=%~6"
+) else (
+    set "ARG3=%~3"
+    set "ARG4=%~4"
+    set "ARG5=%~5"
 )
 
 :: 5. Get the directory where this .bat sits.
@@ -81,6 +95,9 @@ echo.
 echo [PARAMETERS]
 echo  Parameter 1 (date):             %ARG1%
 echo  Parameter 2 (configuration):    %ARG2%
+echo  Parameter 3 (not implemented):  %ARG3%
+echo  Parameter 4 (not implemented):  %ARG4%
+echo  Parameter 5 (not implemented):  %ARG5%
 echo.
 echo [INFRASTRUCTURE]
 echo  BASE_DIR:       %BASEDIR%
@@ -100,9 +117,41 @@ if not exist "%SCRIPT_DIR%run_script.py" (
 
 :: 11. Run the program
 echo Running the run_script.py ...
+
+:: ============================================================
+:: CONDITIONAL PYTHON INVOCATION
+:: We only pass arguments to Python if they actually exist.
+:: This prevents empty strings ("") from being sent as arguments,
+:: which would cause Python to think arguments were provided.
+::
+:: CASE 1 — No arguments provided to the .bat file:
+::   ARG1 = "" and ARG2 = ""
+::   → Call Python with zero arguments
+::
+:: CASE 2 — Exactly one argument provided:
+::   ARG1 = <value>, ARG2 = ""
+::   → Call Python with only ARG1
+::
+:: CASE 3 — Two arguments or more provided:
+::   ARG1 = <value>, ARG2 = <value>, ... , ARGX = <value>
+::   → Call Python with both ARG1, ARG2 and/or more arguments
+:: ============================================================
+
+if "%ARG1%"=="" (
+    :: No arguments → run script with defaults
+    "%PYTHON_EXE%" "%SCRIPT_DIR%run_script.py"
+) else if "%ARG2%"=="" (
+    :: One argument → pass only the first one
+    "%PYTHON_EXE%" "%SCRIPT_DIR%run_script.py" "%ARG1%"
+) else (
+    :: Two arguments or more → pass both
+    "%PYTHON_EXE%" "%SCRIPT_DIR%run_script.py" "%ARG1%" "%ARG2%" "%ARG3%" "%ARG4%" "%ARG5%"
+)
+
+
 :: python "%SCRIPT_DIR%run_script.py" %* , where %* means “all arguments passed to the .bat file”
 :: python "%SCRIPT_DIR%run_script.py" "%~1" "%~2"
-"%PYTHON_EXE%" "%SCRIPT_DIR%run_script.py" "%ARG1%" "%ARG2%"
+:: "%PYTHON_EXE%" "%SCRIPT_DIR%run_script.py" "%ARG1%" "%ARG2%"
 echo.
 
 :: 12. Capture exit code IMMEDIATELY after Python execution
