@@ -39,6 +39,8 @@ class ScriptFactory:
             'script_name'            : settings.script_name,
             'script_version'         : settings.script_version,
             'script_description'     : settings.script_description,
+            'run_environment'        : settings.environment,
+            'reference_page'         : "not implemented yet",
             'script_frequency'       : settings.script_frequency,
             'script_primary_owner'   : settings.script_primary_owner,
             'script_secondary_owner' : settings.script_secondary_owner
