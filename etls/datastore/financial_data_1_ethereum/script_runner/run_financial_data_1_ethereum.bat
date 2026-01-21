@@ -168,7 +168,6 @@ if %EXIT_CODE% EQU 0 (
     echo FAILURE: Script exited with error code %EXIT_CODE%
     echo Return code: 1
 )
-echo ============================================================
 
 :: 15. Return the exit code to the caller (e.g., Task Scheduler or another .bat)
 exit /b %EXIT_CODE%
