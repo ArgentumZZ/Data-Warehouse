@@ -9,32 +9,31 @@ from utilities.argument_parser import parse_arguments
 from utilities.email_manager import EmailManager
 
 def main():
-    lg.info("Starting ETL run")
+    lg.info("Starting the ETL run")
     success = True
     # success_registry stores the 'task_name' of every task that finished without error.
     # This is used to validate the 'depends_on' requirements.
     success_registry = set()
 
+    # 1. Initialization
+    # Parse the .bat/.sh file for input parameters
+    forced_sdt, load_type, max_days_to_load = parse_arguments(settings)
+
+    # Initialize ScriptFactory
+    factory = ScriptFactory(
+        forced_sdt=forced_sdt,
+        load_type=load_type,
+        max_days_to_load=max_days_to_load,
+        settings=settings
+    )
+
+    # Initialize EmailManager
+    email_manager = EmailManager(factory=factory)
+
+    # Fetch the list of task dictionaries
+    tasks = factory.init_tasks()
+
     try:
-        # 1. Initialization
-        # Parse the .bat/.sh file for input parameters
-        # Create the factory instance
-        forced_sdt, load_type, max_days_to_load = parse_arguments(settings)
-
-        # initialize ScriptFactory
-        factory = ScriptFactory(
-            forced_sdt=forced_sdt,
-            load_type=load_type,
-            max_days_to_load=max_days_to_load,
-            settings=settings
-        )
-
-        # initialize EmailManager
-        email_manager = EmailManager(factory=factory)
-
-        # Fetch the list of task dictionaries
-        tasks = factory.init_tasks()
-
         for task in tasks:
             # 2. Data extraction
             # Match the keys exactly as defined in init_tasks() dictionaries.
@@ -125,28 +124,42 @@ def main():
                 lg.error(f"Pipeline execution halted due to failure in: {t_name}")
                 break
 
-        # 7. Capture final messages into a block
-        # final_summary_logs = lg.get_logs_from_position(log_start_position)
-        # email_manager.add_log_block_to_email("Final Execution Summary", final_summary_logs)
+    except Exception as e:
+        lg.error(f"Critical error during execution: {e}")
+        success = False
 
-        # 8. Prepare the mails
-        email_manager.prepare_mails()
-
-        # 9. Send the mails
-        email_manager.send_mails(is_error=not success)
-
-        # 10. Final status, exit the script
+    finally:
+        # 7. Log the final status
         if success:
             lg.info("ETL run completed successfully.")
-            sys.exit(0)  # Explicit success
         else:
             lg.error("ETL run finished with errors.")
-            sys.exit(1)  # Explicit crash
 
-    except Exception as e:
-        lg.error(f"Critical error during factory initialization: {e}")
-        sys.exit(1)  # Explicit crash
+        try:
+            # 8. Prepare the mails
+            email_manager.prepare_mails()
 
+            # 9. Send the mails
+            email_manager.send_mails(is_error=not success)
+        except Exception as email_error:
+            lg.info(f"Failed to send emails: {email_error}")
+
+        try:
+            # 10. Log maintenance
+            lg.info("Performing log maintenance...")
+            lg.cleanup_old_logs(
+                                log_dir=lg.log_dir,
+                                retention_number=5,
+                                is_enabled=factory.delete_log,
+                                mode='N'
+                                )
+        except Exception as maintenance_error:
+            print(f"Log maintenance failed: {maintenance_error}")
+
+        # 11. Final system exit
+        # sys.exit(0)  # Explicit success
+        # sys.exit(1)  # Explicit crash
+        sys.exit(0 if success else 1)
 
 if __name__ == "__main__":
     main()
