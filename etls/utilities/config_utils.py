@@ -7,8 +7,9 @@ import utilities.logging_manager as lg
 
 def load_smtp_config() -> Dict[str, str]:
     """
-    1. Internal helped function used to read the SMTP configuration files db_config.cfg
-    2. Returns a dictionary.
+    Reads the SMTP configuration files db_config.cfg
+
+    Returns: a dictionary with credentials.
     """
 
     # 1. Initialize the config
