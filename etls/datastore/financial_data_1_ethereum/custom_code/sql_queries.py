@@ -1,4 +1,4 @@
-# 1. Initialize an empty sql_queries dict
+# 1. Initialize an empty sql_queries dictionary
 sql_queries = {}
 
 # 2. Create a source_cols_create variable with columns and data types
@@ -23,7 +23,7 @@ source_columns_create = '''
 # 3. Create a source_cols_unique variable with unique columns
 source_columns_unique = '''tax_hash'''
 
-# 4. Create table query
+# 4. Define a create_table query
 sql_queries['create_table'] = '''
         CREATE TABLE IF NOT EXISTS {schema}.{table} (
         etl_runs_key                    BIGINT,
@@ -37,7 +37,7 @@ sql_queries['create_table'] = '''
         CREATE INDEX ON {schema}.{table}(''' + source_columns_unique + ''');
     '''
 
-# 5. GET data query
+# 5. Create a get_data query
 sql_queries['get_data'] = '''
                           SELECT id, 
                                 BLCK_NBR_raw_VAL, 
@@ -59,20 +59,20 @@ sql_queries['get_data'] = '''
                             OR source_updated_at BETWEEN '{sdt}' AND '{edt}');
                           '''
 
-# 6. Create comments query
+# 6. Create a set_comments query
 sql_queries['set_comments'] = '''
         COMMENT ON TABLE {schema}.{table} IS 'Table sourced from {schema}.';
         COMMENT ON COLUMN {schema}.{table}.{table}_key IS 'Serial key generated for each record in the table.';
         COMMENT ON COLUMN {schema}.{table}.etl_runs_key IS 'Serial key of the ETL run.';
         '''
 
-# Use this to read table comment
+# 6.1. Use this to read the table comment
 """
 SELECT obj_description('financial_data.ethereum'::regclass, 'pg_class') AS table_comment;
 """
 
 
-# Use this to read column comments
+# 6.2. Use this to read column comments
 """SELECT
     a.attname AS column_name,
     d.description AS column_comment
@@ -91,42 +91,39 @@ sql_queries['prev_max_date_query'] = """SELECT data_max_date
                                                        """
 
 
-# 8. MERGE INTO syntax
-# 8.1. Construct MERGE ON clause using target (t) and source (s) unique columns
-# Later need to add "etl_runs_key = excluded.etl_runs_key, "
+# 8. MERGE INTO syntax for on_clause, update_clause, insert_columns and insert_values
+
+# 8.1. Construct ON_CLAUSE using target (t) and source (s) UNIQUE columns
 sql_queries['on_clause'] = " AND ".join([f"t.{col.strip()} = s.{col.strip()}" for col in source_columns_unique.split(',')])
 
-# 8.2. UPDATE CLAUSE for MERGE INTO query
-# ------------------------------------------------------------
+# 8.2. Construct the UPDATE_CLAUSE
+
 # Extract all column names from source_cols_create
-# ------------------------------------------------------------
 source_cols_general_list = [
-    line.split()[0]                                         # Take the first word as column name
+    line.split()[0]                                            # Take the first word as column name
     for line in source_columns_create.strip().split('\n')      # Remove whitespace and split into lines
-    if line.strip() and not line.strip().startswith('--')   # Skip empty lines & comments
+    if line.strip() and not line.strip().startswith('--')      # Skip empty lines & comments
 ]
 
-# ------------------------------------------------------------
-# Identify "normal" columns (non-unique)
-# ------------------------------------------------------------
+# Identify non-unique columns
 normal_cols_list = [col for col in source_cols_general_list
     if col not in [u.strip() for u in source_columns_unique.split(',')]
 ]
 
-# ------------------------------------------------------------
-# Construct the UPDATE clause for MERGE
-# ------------------------------------------------------------
+# Assemble the update_clause
 update_parts = ["etl_runs_key = s.etl_runs_key"] + \
                [f"{col} = s.{col}" for col in normal_cols_list] + \
                ["modified_at = CURRENT_TIMESTAMP(0)"]
 
 sql_queries['update_clause'] = ", ".join(update_parts)
 
-# 8.3. INSERT for MERGE INTO
+# 8.3. Construct the INSERT_COLUMNS and INSERT_VALUES for MERGE INTO
+
 # Extract normal columns from CREATE TABLE, skip comments
 cols = [line.split()[0] for line in source_columns_create.strip().split('\n') if line.strip() and not line.strip().startswith('--')]
 
-# Include etl_runs_key in the column list and the source values
+# Add etl_runs_key, the source columns, created_at and modified_at in the column list
 sql_queries['insert_columns'] = 'etl_runs_key, ' + ', '.join(cols) + ', created_at, modified_at'
 
+# Add etl_runs_key value, the source values, and two current_timestamps (for created_at and modified_at)
 sql_queries['insert_values'] = 's.etl_runs_key, ' + ', '.join([f"s.{c}" for c in cols]) + ', current_timestamp, current_timestamp'
