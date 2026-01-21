@@ -16,7 +16,7 @@ if not logger.handlers:
 
     # 5. Formatter defining how console log lines should look (timestamp, level, file, line, message)
     console_formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d]: %(message)s",
+        "[%(filename)s:%(lineno)d] - [%(asctime)s - %(levelname)s]:\n%(message)s\n",
         "%Y-%m-%d %H:%M:%S"
     )
 
@@ -71,6 +71,9 @@ if not logger.handlers:
     log_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_file = os.path.join(log_dir, f"{log_timestamp}_etl.log")
 
+    # make the path globally accessible in the module
+    current_log_path = log_file
+
     # 15. Delete .logs files based on number of runs (keep the N most recent).
     max_runs = 5
 
@@ -107,7 +110,7 @@ if not logger.handlers:
     # %(message)s -> actual log message
 
     file_formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d]: %(message)s",
+        "[%(filename)s:%(lineno)d] - [%(asctime)s - %(levelname)s]:\n%(message)s\n",
         "%Y-%m-%d %H:%M:%S"
     )
 
@@ -116,6 +119,53 @@ if not logger.handlers:
 
     # 22. Attach the configured handler to the "etl" logger
     logger.addHandler(file_handler)
+
+
+def get_current_log_content():
+    """
+    Reads the content of the current log file.
+    """
+    try:
+        if os.path.exists(current_log_path):
+            with open(current_log_path, 'r', encoding='utf-8') as f:
+                return f.read()
+    except Exception as e:
+        return f"Could not read log file: {e}"
+    return "Log file not found."
+
+
+def get_current_log_size() -> int:
+    """
+    1. Returns the current size of the log file in bytes.
+    2. Acts as a pointer for the start of a task.
+
+    Returns: bytes size
+    """
+    try:
+        # Check if current_log_path is defined and the file exists
+        if 'current_log_path' in globals() and os.path.exists(current_log_path):
+            return os.path.getsize(current_log_path)
+
+    except Exception as e:
+        print(f"Error getting log size: {e}")
+    return 0
+
+
+def get_logs_from_position(position: int) -> str:
+    """
+    1. Reads and returns the log content from a specific byte offset to the end.
+    2. This isolates the logs for a specific task.
+    """
+    try:
+        if 'current_log_path' in globals() and os.path.exists(current_log_path):
+            with open(current_log_path, 'r', encoding='utf-8', errors='ignore') as f:
+                # Move the 'cursor' to the starting position
+                f.seek(position)
+                # Read everything from that point onwards
+                return f.read()
+    except Exception as e:
+        return f"Could not retrieve task-specific logs: {e}"
+    return ""
 
 
 def _log(func, *args, **kwargs):

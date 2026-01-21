@@ -20,15 +20,28 @@ title %~n0
 :: %1 - The first argument passed to the script.
 :: %~1 - The first argument, stripped of surrounding quotes.
 :: set "VAR=..." - Safely assigns a value to a variable, protecting against special characters.
-Set "ARG1=%~1"
+set "ARG1=%~1"
 set "ARG2=%~2"
+
+set "ARG3=%~3"
+set "ARG4=%~4"
+set "ARG5=%~5"
 
 :: 4. This is a trick, if CMD splits 'config=FX' into %2=config and %3=FX,
 :: we re-combine them into a single variable (=config=FX), where X is an integer.
+:: Argument 3 is still FX, so we re-assign and overwrite with the next argument
+:: .bat 2025-01-01 config=30 TEST3 HELLO OMG, becomes:
+:: ARG1=2025-01-01, ARG2=config=30, ARG3=TEST3, ARG4=HELLO, ARG5=OMG
 if "%~2"=="config" if not "%~3"=="" (
     set "ARG2=%~2=%~3"
+    set "ARG3=%~4"
+    set "ARG4=%~5"
+    set "ARG5=%~6"
+) else (
+    set "ARG3=%~3"
+    set "ARG4=%~4"
+    set "ARG5=%~5"
 )
-
 :: 5. Set  variables you may want to use
 set "CURRENT_DIR=%cd%"
 set "SCRIPT_NAME=financial_data_1_ethereum"
@@ -75,7 +88,16 @@ echo.
 :: Inside the container, treat localhost as the host machine.
 :: It allows the container to access services running on Windows.
 echo Running container...
-docker run --rm --add-host=localhost:host-gateway %SCRIPT_NAME% "%~1" "%~2=%~3"
+if "%ARG1%"=="" (
+    :: CASE 1: No arguments provided
+    docker run --rm --add-host=localhost:host-gateway %SCRIPT_NAME%
+) else if "%ARG2%"=="" (
+    :: CASE 2: Only one argument (ARG1)
+    docker run --rm --add-host=localhost:host-gateway %SCRIPT_NAME% "%ARG1%"
+) else (
+    :: CASE 3: Two or more arguments
+    docker run --rm --add-host=localhost:host-gateway %SCRIPT_NAME% "%ARG1%" "%ARG2%" "%ARG3%" "%ARG4%" "%ARG5%"
+)
 :: docker run --add-host=localhost:host-gateway %SCRIPT_NAME% "%~1" "%~2=%~3"
 
 :: 9. Capture exit code IMMEDIATELY after Docker execution

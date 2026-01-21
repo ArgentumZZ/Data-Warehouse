@@ -157,8 +157,8 @@ ___
 - **Logging**
   - Create a logging_manager.py to standardize log format. ✔️
   - Create a `logs/` folder to store logs for each project's run. ✔️
-  - (Optionally) Automatically delete .logs older than 7 days. ✔️
-  - (Optionally) Automatically delete .logs older than N runs. ✔️
+  - (Optionally) Automatically delete .logs older than 7 days. ✔️ (probably need to move into a separate function that can be activated with a boolean)
+  - (Optionally) Automatically delete .logs older than N runs. ✔️ (probably need to move into a separate function that can be activated with a boolean)
   
 - **Utilities folder**
   - Create utilities .py files for ETL processes (e.g. file_utils.py, argument_parser.py, errors_utils, db_utils.py)️. ✔️
@@ -184,6 +184,12 @@ ___
   - Include ETL run summary, logs and error details.
   - Add business, admin and error recipients.
   - Add boolean operators to control whether the recipients should receive an e-mail.
+  - Add a `load_smtp_config` function to read e-mail credentials. ✔️ (moved to config_utils.py in utilities)
+  - Add a `add_task_result_to_email` function to build task execution log incrementally. ✔️ 
+  - Add a `add_log_block_to_email` function to build technical log details incrementally. ✔️
+  - Add a `prepare_mails` function to build e-mails based on general info, task execution log and technical log details. ✔️
+  - Add a `send_mails` function that sends the prepared e-mails. ✔️
+  - Add a `smtp_send` function that executes the technical transmission of an email via SMTP. ✔️
 
 - **Backfill**
   - Implement backfill loading option in `.bat` ✔️, `_docker.bat` ✔️, `.sh`, `_docker.sh` files.
