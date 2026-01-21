@@ -60,13 +60,22 @@ def main():
             if t_dep and (t_dep not in success_registry):
                 lg.error(f"Stopping pipeline: Task '{t_name}' depends on '{t_dep}', but '{t_dep}' was not successful.")
                 error_msg = f"Dependency {t_dep} failed."
-                email_manager.add_task_result_to_email(task, "SKIPPED", error_msg)
+
+                # Append a formatted HTML table row to the `internal task log` string
+                email_manager.add_task_result_to_email(task=task, status="SKIPPED", error_msg=error_msg)
+
+                # Captures the error log created for the `technical log details` section
+                email_manager.add_log_block_to_email(t_name, f"SKIPPED: {error_msg}")
+
                 success = False
                 break
 
-            # 5. EXECUTION & RETRY LOOP
+            # 5. Execution and retry loop
             # Define a boolean variable to track the success of a task
             task_passed_finally = False
+
+            # a pointer for the start of a task
+            log_start_position = lg.get_current_log_size()
 
             # If retries=1, the loop runs for attempt 0 (initial) and attempt 1 (retry).
             for attempt in range(0, t_retries + 1):
@@ -102,7 +111,13 @@ def main():
 
                         email_manager.add_task_result_to_email(task=task, status="FAILED", error_msg=e)
 
-            # 6. PIPELINE HALT
+            # Read and return the log content from a specific byte offset to the end
+            task_specific_logs = lg.get_logs_from_position(log_start_position)
+
+            # Add the logs to the e-mail
+            email_manager.add_log_block_to_email(t_name, task_specific_logs)
+
+            # 6. Pipeline halt
             # If the task failed all retries, 'task_passed_finally' remains False.
             # We stop the entire ETL process to prevent data corruption or inconsistent states in subsequent tasks.
             if not task_passed_finally:
@@ -110,16 +125,17 @@ def main():
                 lg.error(f"Pipeline execution halted due to failure in: {t_name}")
                 break
 
-        # Read the log in metadata/logs and assign it to a variable that can be attached to the e-mail alert
-        current_logs = lg.get_current_log_content()
+        # 7. Capture final messages into a block
+        # final_summary_logs = lg.get_logs_from_position(log_start_position)
+        # email_manager.add_log_block_to_email("Final Execution Summary", final_summary_logs)
 
-        # Prepare the mails
-        email_manager.prepare_mails(log_content=current_logs)
+        # 8. Prepare the mails
+        email_manager.prepare_mails()
 
-        # send the mails, negate success variable at the top of the script
+        # 9. Send the mails
         email_manager.send_mails(is_error=not success)
 
-        # 7. FINAL STATUS
+        # 10. Final status, exit the script
         if success:
             lg.info("ETL run completed successfully.")
             sys.exit(0)  # Explicit success

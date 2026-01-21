@@ -1,8 +1,11 @@
-import utilities.logging_manager as lg
+# import libraries
 import smtplib, os, configparser
 from typing import Dict
-from datetime import datetime
 from email.mime.text import MIMEText
+
+# import custom libraries
+import utilities.logging_manager as lg
+from utilities.config_utils import load_smtp_config
 
 class EmailManager:
 
@@ -10,56 +13,33 @@ class EmailManager:
 
         self.factory = factory
 
-        # from factory (they change based on PROD/DEV environment)
+        # Lists of recipients that change based on PROD/DEV environment.
         self.recipients_admin = self.factory.list_recipients_admin
         self.recipients_business = self.factory.list_recipients_business
         self.recipients_error = self.factory.list_recipients_error
 
-        # Determine if e-mail alerts are enabled
+        # Determine if e-mail alerts are enabled.
         self.is_admin_email_alert_enabled = self.factory.is_admin_email_enabled
         self.is_business_email_alert_enabled = self.factory.is_business_email_enabled
         self.is_error_email_alert_enabled = self.factory.is_error_email_enabled
 
         # SMTP config loaded by the internal helper function
-        self.smtp_config = self._load_smtp_config()
+        self.smtp_config = None
 
         # Define prepared emails payloads
         self.prepared_success_email = None
         self.prepared_error_email = None
 
         # Initialize the dynamic HTML content
+        self.task_count = 0
         self.html_tasks_rows = ""
-        self.start_time = datetime.now()
+        self.html_logs_blocks = ""  # Initialize the log block accumulator
 
-    def _load_smtp_config(self) -> Dict[str, str]:
-        """
-        1. Read the configuration files db_config.cfg
-        2. Return a dictionary.
-        """
 
-        # initialize the config
-        config = configparser.ConfigParser()
-        config_path = os.path.join(os.environ['CONFIG_DIR'])
-
-        # check if the path exists
-        if not os.path.exists(config_path):
-            lg.error(f"Configuration file not found: {config_path}")
-            raise FileNotFoundError(f"Missing {config_path}")
-
-        # read the config_path
-        config.read(config_path)
-
-        config_dict = {
-            'host'          : config.get('SMTP_SERVER', 'host'),
-            'port'          : config.getint('SMTP_SERVER', 'port'),
-            'username'      : config.get('SMTP_SERVER', 'username'),
-            'password'      : config.get('SMTP_SERVER', 'password'),
-            'from_address'  : config.get('SMTP_SERVER', 'from_address')
-        }
-
-        return config_dict
-
-    def add_task_result_to_email(self, task: dict, status: str, error_msg: str = "") -> None:
+    def add_task_result_to_email(self,
+                                 task: dict,
+                                 status: str,
+                                 error_msg: str = "") -> None:
         """
         1. Appends a formatted HTML table row to the internal task log string.
 
@@ -77,11 +57,7 @@ class EmailManager:
         func = task["function"]
         params_repr = ""
 
-        # A number that will be displayed next to the task name
-        if not hasattr(self, 'task_count'):
-            self.task_count = 0
-
-        # Increment the counter
+        # A number that will be displayed next to the task name, increment the counter
         self.task_count += 1
 
         # Check if the function has 'keywords' attribute
@@ -95,7 +71,7 @@ class EmailManager:
         # If failed, add the 'FAILED' tag to the error message
         status_text = status if status == "SUCCESS" else f"FAILED: {error_msg}"
 
-        # 3. Append the formatted row to the class variable self.html_tasks_rows
+        # 3. Append the formatted row to the instance variable self.html_tasks_rows
         self.html_tasks_rows += f"""
             <tr style="background-color: {color};">
                 <td style="text-align: center;">{self.task_count}</td>
@@ -108,6 +84,26 @@ class EmailManager:
                 <td style="font-size: 10px;">{params_repr}</td>
             </tr>
         """
+
+    def add_log_block_to_email(self,
+                               task_name: str,
+                               logs: str) -> None:
+        """
+        Append a formatted block of logs.
+        """
+
+        display_logs = logs.strip() if (logs and logs.strip()) else "No logs captured for this task."
+
+        # Keep the HTML tags for the container indented,
+        # but the content and its immediate parent MUST be at the start of the line.
+        self.html_logs_blocks += f"""
+                <div style="border: 1px solid #dddddd; border-bottom: none; overflow: hidden;">
+                <div style="background-color: #343a40; color: #ffffff; padding: 6px 12px; font-family: monospace; font-size: 13px; font-weight: bold;">
+                TASK {self.task_count}: {task_name}
+                </div>
+                <div style="background-color: #f8f9fa; padding: 10px 15px; font-family: 'Consolas', monospace; white-space: pre-wrap; font-size: 12px; color: #333333;">{display_logs}</div>
+                </div>
+                """
 
     def prepare_mails(self, log_content: str = "") -> None:
         """
@@ -155,13 +151,15 @@ class EmailManager:
         </tr>
         """
 
-        # 3. Format the log content for HTML (wrap in <pre> tags for spacing)
+        # 3. Use the accumulated blocks instead of a single string
+        # Wrap the accumulated blocks in a div that adds the final bottom border
         log_section_html = f"""
-                <h2>Technical Log Details</h2>
-                <div style="background-color: #f8f9fa; border: 1px solid #ddd; padding: 10px; font-family: monospace; white-space: pre-wrap; font-size: 12px; color: #333;">
-                    {log_content}
-                </div>
-                """
+                        <hr style="border: 1px solid #eee; margin: 30px 0;">
+                        <h2>Technical Log Details</h2>
+                        <div style="border-bottom: 1px solid #dddddd;"> 
+                            {self.html_logs_blocks if self.html_logs_blocks else "<em>No logs captured.</em>"}
+                        </div>
+                        """
 
         # 4. Combine header + accumulated rows + table closing tags
         # This creates the full HTML document string
@@ -260,6 +258,8 @@ class EmailManager:
         Raises:
             smtplib.SMTPException: If there is an error during connection or authentication.
         """
+
+        self.smtp_config = load_smtp_config()
 
         lg.info(f"Sending email to: {to}")
         lg.info(f"Subject: {subject}")
