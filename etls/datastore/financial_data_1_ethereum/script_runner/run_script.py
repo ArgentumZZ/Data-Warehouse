@@ -77,7 +77,7 @@ def main():
             log_start_position = lg.get_current_log_size()
 
             # If retries=1, the loop runs for attempt 0 (initial) and attempt 1 (retry).
-            for attempt in range(0, t_retries):
+            for attempt in range(0, t_retries + 1):
                 try:
                     if attempt > 0:
                         lg.info(f"Retrying task '{t_name}'... (Attempt {attempt} of {t_retries})")
@@ -104,6 +104,7 @@ def main():
 
                     # If there are still retries left, wait 5 second before trying again
                     if attempt < t_retries:
+                        lg.info("Waiting 5 seconds before next retry...")
                         time.sleep(5)
                     else:
                         lg.error(f"Task '{t_name}' exhausted all retry attempts.")

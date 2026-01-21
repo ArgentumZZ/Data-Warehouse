@@ -128,7 +128,7 @@ class ScriptFactory:
             "task_name"     : "insert_etl_runs_record",
             "description"   : "Insert an audit record for the current execution of the project.",
             "is_enabled"    : True,
-            "retries"       : 1,
+            "retries"       : 0,
             "depends_on"    : None
         }
 
@@ -141,7 +141,7 @@ class ScriptFactory:
             "task_name"     : "set_comments",
             "description"   : "Add a description of the table and each field for documentation.",
             "is_enabled"    : True,
-            "retries"       : 1,
+            "retries"       : 0,
             "depends_on"    : "insert_etl_runs_record"
         }
 
@@ -151,7 +151,7 @@ class ScriptFactory:
             "task_name"     : "get_data",
             "description"   : "Extract the data from the source system.",
             "is_enabled"    : True,
-            "retries"       : 1,
+            "retries"       : 0,
             "depends_on"    : "set_comments"
         }
 
@@ -171,7 +171,7 @@ class ScriptFactory:
             "task_name"    : "upload_to_pg",
             "description"  : "Load the data into the data warehouse.",
             "is_enabled"   : True,
-            "retries"      : 1,
+            "retries"      : 0,
             "depends_on"   : "get_data"
         }
 
@@ -182,7 +182,7 @@ class ScriptFactory:
             "task_name"     : "update_etl_runs_table_record",
             "description"   : "Update the corresponding record in the audit table.",
             "is_enabled"    : True,
-            "retries"       : 1,
+            "retries"       : 0,
             "depends_on"    : "upload_to_pg"
         }
 
