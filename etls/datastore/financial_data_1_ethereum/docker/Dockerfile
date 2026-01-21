@@ -1,10 +1,10 @@
 # 1. Use an official Python base image
-FROM python:3.11-slim
+FROM python:3.12-slim-bookworm
 
 # 2. Update package lists and install system dependencies required
 # for building Python packages that compile C extensions
 RUN \
-    # Update the package index so apt knows about the latest package versions
+    # Update the package index, so apt knows about the latest package versions
     apt-get update && \
     # Install system-level build tools and headers needed to compile Python C extensions
     apt-get install -y \
@@ -21,59 +21,52 @@ RUN \
     # Remove cached package lists to keep the image size smaller
     && rm -rf /var/lib/apt/lists/*
 
-
 # 3. Upgrade pip
-RUN pip install --upgrade pip
+# python -m pip ensures that pip is updated for the correct interpreter.
+# --no-cache-dir keeps the image smaller
+RUN python -m pip install --upgrade --no-cache-dir pip
 
 # 4. Build-time arguments (ARG)
 # Can override them at build time: docker build --build-arg basedir=/custom/path -t my-image .
 
 # name of the project
 ARG project_name=financial_data_1_ethereum
-RUN echo "The project_name is set to: $project_name"
 
 # library versions
 ARG numpy_version=1.26.0
-RUN echo "Using numpy version: $numpy_version"
 
- # root directory inside the container
+# root directory inside the container
+# Python treats /app as the base for all imports
 ARG basedir=/app
-RUN echo "Using basedir: $basedir"
 
 # 5. Runtime environment variables (ENV)
 
-# They exist inside the running container and are needed when the script needs to read the value (e.g. mode, API keys, config, log level)
-# Python code can read tehem using os.getenv()
+# They exist inside the running container and are needed when the script needs to read values
+# (e.g. mode, API keys, config, log level)
+# Python code can read ENV variables using os.getenv()
 # Can override them at runtime: docker run -e APP_ENV=dev my-image
 
-# Python treats /app as the base for all imports
 ENV PYTHONPATH="${basedir}:${basedir}/${project_name}"
-RUN echo "The PYTHONPATH ENV is set to: $PYTHONPATH"
-
-ENV DATA_DIR=${basedir}/data
-RUN echo "The DATA_DIR ENV is set to: $DATA_DIR"
-
 ENV CONFIG_DIR=${basedir}/config/db_config.cfg
-RUN echo "The CONFIG_DIR ENV is set to: $CONFIG_DIR"
 
-ENV BASEDIR=${basedir}
-RUN echo "The BASEDIR ENV is set to: $BASEDIR"
+# ENV DATA_DIR=${basedir}/data
+# ENV BASEDIR=${basedir}
+# ENV PROJECT_NAME=${project_name}
 
-ENV PROJECT_NAME=${project_name}
-RUN echo "The PROJECT_NAME ENV is set to: $PROJECT_NAME"
-# 6. Create working directory
+# 6. Create a working directory
 RUN mkdir -p ${basedir}
 
-# Set working directory inside the container (every command runs from there.)
+# Set the working directory inside the container (every command runs from there)
 WORKDIR ${basedir}
 
 # 7. Install individual libraries for the project
 RUN echo "Installing individual libraries"
 RUN pip install numpy==$numpy_version
 
-# 8. Install dependencies (cached layer)
+# 8. Install dependencies
+# Libraries from point 7 shouldn't exist in the requirements.txt
 
-# Copy dependency list first (better for caching)
+# Copy dependency list first
 COPY etls/datastore/${project_name}/docker/requirements.txt .
 
 # Install dependencies
@@ -93,8 +86,7 @@ COPY etls/utilities ${basedir}/utilities
 COPY etls/connectors ${basedir}/connectors
 
 # 11. Copy Project Files
-# Copy the specific project folder into a subfolder or directly into app
-# Recommendation: Copy it into its own folder to keep the structure clean
+# Copy the specific project folder directly into app
 COPY etls/datastore/${project_name} ${basedir}/${project_name}
 
 # 12. Default command
