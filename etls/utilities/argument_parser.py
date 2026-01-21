@@ -1,121 +1,88 @@
-import datetime, sys, re
-from typing import Optional, Tuple
+import sys, re
+from typing import Optional, Tuple, Any
 import utilities.logging_manager as lg
 
-def parse_arguments(settings) -> Tuple[Optional[str], str, int]:
+def parse_arguments(settings: Any) -> Tuple[Optional[str], str, int]:
     """
-    Parse and validate command-line arguments passed from the .bat launcher.
+    1. A flexible argument parser supporting any order and optional parameters.
+    2. Enforces <name>=<value> format.
+    3. sdt and config arguments must be passed together, otherwise a ValueError will be raised.
+    4. sdt overrides the default start date time, in config=F<number> <number> is an integer
+    that overrides the default max_days_to_load.
+    5. edt and project have been added but not logic has been implemented for them.
 
-    This function overrides default ETL settings based on user-supplied arguments.
-    It supports:
-        - 0 arguments → use defaults
-        - 1 argument  → invalid (date must be paired with config)
-        - 2+ arguments → validate the first two, ignore the rest for now
+    Args:
+        settings: the file for the project script parameters
 
-    Argument rules:
-        1. First argument must be a valid date in YYYY-MM-DD format.
-        2. Second argument must be in the form config=FX, where X is an integer.
-           X becomes the new max_days_to_load.
-        3. Arguments 3, 4, 5 are logged but not yet validated.
-
-    Example:
-        If the user runs:
-            python argument_parser.py 2025-01-01 config=F30 TEST OMG HELLO
-
-        Then:
-            sys.argv[0] = "argument_parser.py"
-            sys.argv[1] = "2025-01-01"
-            sys.argv[2] = "config=F30"
-            sys.argv[3] = "TEST"
-            sys.argv[4] = "OMG"
-            sys.argv[5] = "HELLO"
-
-    Parameters
-    ----------
-    settings : object
-        A settings object containing default values:
-            - settings.load_type
-            - settings.max_days_to_load
-
-    Returns
-    -------
-    tuple
-        (forced_sdt, load_type, max_days_to_load)
-            forced_sdt:                → overridden start date or None
-            load_type:                 → "F" or default from settings
-            max_days_to_load           → overridden or default value
+    Returns:
+        A tuple of start date time, load type and maximum number of days to load
     """
+
     lg.info(f"DEBUG sys.argv: {sys.argv}")
+
+    # 1. Define a dictionary storage for parsed arguments
+    parsed = {}
+
+    # 2. Define regex validation rules for each argument
+    validation_rules = {
+        "sdt"       : r"^\d{4}-\d{2}-\d{2}$",
+        "edt"       : r"^\d{4}-\d{2}-\d{2}$",
+        "config"    : r"^F\d*$",
+        "project"   : r"^[A-Za-z0-9_]+$",
+    }
+
+    # 3. Iterate over all arguments (except sys.argv[0] = ... .run_script_py name)
+    for argument in sys.argv[1:]:
+
+        # 4. Check if equality exists in the argument
+        if "=" not in argument:
+            raise ValueError(f"Invalid argument '{argument}'. Expected format <name>=<value>.")
+
+        # 5. Split the argument by (maximum one) equality sign
+        name, value = argument.split("=", 1)
+
+        # 6. Check if the name exists in the validation_rules dictionary
+        if name not in validation_rules.keys():
+            raise ValueError(f"Unknown argument '{name}'. Allowed arguments: {list(validation_rules.keys())}")
+
+        # 7. Check if duplicated argument names were provided
+        if name in parsed:
+            raise ValueError(f"Duplicate argument '{name}' is not allowed.")
+
+        # 8. Assign the regex pattern to a variable
+        pattern = validation_rules[name]
+
+        # 9. Check if the value matches the regex pattern
+        if not re.match(pattern, value):
+            raise ValueError(f"Invalid value for '{name}': '{value}'.")
+
+        # 10. Log the argument
+        parsed[name] = value
+        lg.info(f"Parsed argument: {name}={value}")
+
+    # 11. Require both, start date time (=sdt) and config arguments, to be provided.
+    if ("sdt" in parsed and "config" not in parsed) or ("sdt" not in parsed and "config" in parsed):
+        raise ValueError("Arguments 'sdt' and 'config' must be provided together.")
+
+    # 12. Extract default values
     forced_sdt = None
-    load_type = None
-    max_days_to_load = None
+    load_type = settings.load_type
+    max_days_to_load = settings.max_days_to_load
 
+    # 13. Override forced_sdt with start date time value (=sdt)
+    if "sdt" in parsed:
+        forced_sdt = parsed["sdt"]
 
-    lg.info(f"The script name: {sys.argv[0]}")
+    # 14. Override the max_days_to_load with <number> from config=F<number>
+    # If config=F was provided, use the default max_days_to_load
+    if "config" in parsed:
+        load_type = "F"
+        value = parsed["config"][1:]  # strip the F and select the value
 
-    # The number of user-supplied arguments:
-    num_arguments = len(sys.argv) - 1
-
-    # Case 1. No arguments
-    if num_arguments == 0:
-        # No arguments provided → acceptable, set the defaults
-        print("No arguments provided. Running with defaults.")
-
-    # Case 2. One argument
-    if num_arguments == 1:
-        # not allowed
-        raise ValueError("You must provide either 0 arguments or at least 2 arguments. If you provide arguments, the first must be YYYY-MM-DD and the second must be config=FX.")
-
-    # 3. Two or more arguments
-    if num_arguments >= 2:
-        arg1 = sys.argv[1]
-        arg2 = sys.argv[2]
-        arg3 = sys.argv[3]
-        arg4 = sys.argv[4]
-        arg5 = sys.argv[5]
-
-        lg.info(f"Argument 1: {arg1}")
-        lg.info(f"Argument 2: {arg2}")
-        lg.info(f"Argument 3: {arg3}")
-        lg.info(f"Argument 4: {arg4}")
-        lg.info(f"Argument 5: {arg5}")
-
-        try:
-            datetime.datetime.strptime(arg1, "%Y-%m-%d")
-
-            # override the start date time with the first argument
-            forced_sdt = arg1
-        except ValueError:
-            raise ValueError("First argument must be a valid date in YYYY-MM-DD format.")
-
-        # Validate the second argument: config=F<number>
-        if not re.match(r"^config=F\d+$", arg2):
-            raise ValueError("In addition to a first date argument (YYYY-MM-DD), a second argument is needed in the format config=FX where X is an integer.")
+        # If config=F was provided (no override), use the default max_days_to_load
+        if value == "":
+            max_days_to_load = settings.max_days_to_load
         else:
-            load_type = "F"
-            # if arg2 = "config=F30"
-            # then arg2.split("=", 1) -> ["config", "F30"]
-            # then arg.split("=", 1)[1] -> ["F30"]
-            # then arg.split("=", 1)[1][1:] -> "30"
-            # Defensively, use .strip() to remove any whitespace
-            x = arg2.split("=", 1)[1][1:]
-            x = x.strip()
-
-            # If no number is provided, fallback to default settings
-            if x == "":
-                max_days_to_load = settings.max_days_to_load
-            else:
-                max_days_to_load = int(x)
-
-        # Future validation logic for arguments 3, 4 and 5
-
-    # Defaults if not overridden
-    # Use the one from the script_parameters.py file
-    if load_type is None:
-        load_type = settings.load_type
-
-    # Use the one from the script_parameters.py file
-    if max_days_to_load is None:
-        max_days_to_load = settings.max_days_to_load
+            max_days_to_load = int(value)
 
     return forced_sdt, load_type, max_days_to_load

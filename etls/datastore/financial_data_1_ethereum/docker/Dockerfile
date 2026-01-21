@@ -96,10 +96,12 @@ COPY etls/datastore/${project_name} ${basedir}/${project_name}
 
 # sh -> shell, command runner, expands variables
 # -c -> execute the following string as a shell command
+# $@ -> forward all arguments
+# -- -> prevent arguments from being interpreted as options to sh
 
 # ENTRYPOINT python ${BASEDIR}/${PROJECT_NAME}/script_runner/run_script.py
 # ENTRYPOINT ["python", "/app/financial_data_1_ethereum/script_runner/run_script.py"]
-ENTRYPOINT ["sh", "-c", "python ${BASEDIR}/${PROJECT_NAME}/script_runner/run_script.py"]
+ENTRYPOINT ["sh", "-c", "python ${BASEDIR}/${PROJECT_NAME}/script_runner/run_script.py \"$@\"", "--"]
 
 # Command to run the script
 # CMD ["python", "script_runner.py"]

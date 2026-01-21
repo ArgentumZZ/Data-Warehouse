@@ -136,7 +136,7 @@ dev_table = 'ethereum'
 load_type = "I"
 
 # 6.2 Maximum number of days allowed for incremental loads
-max_days_to_load = 365
+max_days_to_load = 30
 
 # 6.3 Source for the project
 sources = ['financial_data.ethereum']
