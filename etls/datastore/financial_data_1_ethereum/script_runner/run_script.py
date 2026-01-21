@@ -78,7 +78,7 @@ def main():
             log_start_position = lg.get_current_log_size()
 
             # If retries=1, the loop runs for attempt 0 (initial) and attempt 1 (retry).
-            for attempt in range(0, t_retries + 1):
+            for attempt in range(0, t_retries):
                 try:
                     if attempt > 0:
                         lg.info(f"Retrying task '{t_name}'... (Attempt {attempt} of {t_retries})")
