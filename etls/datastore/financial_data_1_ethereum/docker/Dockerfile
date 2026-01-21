@@ -27,6 +27,7 @@ RUN \
 RUN python -m pip install --upgrade --no-cache-dir pip
 
 # 4. Build-time arguments (ARG)
+# ARG values do not exist at runtime
 # Can override them at build time: docker build --build-arg basedir=/custom/path -t my-image .
 
 # name of the project
@@ -42,6 +43,7 @@ ARG basedir=/app
 # 5. Runtime environment variables (ENV)
 
 # They exist inside the running container and are needed when the script needs to read values
+# They exist at runtime
 # (e.g. mode, API keys, config, log level)
 # Python code can read ENV variables using os.getenv()
 # Can override them at runtime: docker run -e APP_ENV=dev my-image
@@ -49,9 +51,10 @@ ARG basedir=/app
 ENV PYTHONPATH="${basedir}:${basedir}/${project_name}"
 ENV CONFIG_DIR=${basedir}/config/db_config.cfg
 
+# Will be used in ENTRYPOINT, because it needs runtime variables
+ENV BASEDIR=${basedir}
+ENV PROJECT_NAME=${project_name}
 # ENV DATA_DIR=${basedir}/data
-# ENV BASEDIR=${basedir}
-# ENV PROJECT_NAME=${project_name}
 
 # 6. Create a working directory
 RUN mkdir -p ${basedir}
@@ -89,15 +92,17 @@ COPY etls/connectors ${basedir}/connectors
 # Copy the specific project folder directly into app
 COPY etls/datastore/${project_name} ${basedir}/${project_name}
 
-# 12. Default command
+# 12. Run the script
+
+# sh -> shell, command runner, expands variables
+# -c -> execute the following string as a shell command
+
+# ENTRYPOINT python ${BASEDIR}/${PROJECT_NAME}/script_runner/run_script.py
+# ENTRYPOINT ["python", "/app/financial_data_1_ethereum/script_runner/run_script.py"]
+ENTRYPOINT ["sh", "-c", "python ${BASEDIR}/${PROJECT_NAME}/script_runner/run_script.py"]
 
 # Command to run the script
 # CMD ["python", "script_runner.py"]
-
-# the executable that always runs
-ENTRYPOINT ["python", "/app/financial_data_1_ethereum/script_runner/run_script.py"]
-# ENTRYPOINT python ${BASEDIR}/${PROJECT_NAME}/script_runner/run_script.py
-
 
 # In the terminal:
 # docker build -t my-python-test .
