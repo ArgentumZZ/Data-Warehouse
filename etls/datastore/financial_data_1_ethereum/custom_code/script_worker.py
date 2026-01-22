@@ -43,8 +43,8 @@ class ScriptWorker:
 
         # 2. Format the query
         query = sql_queries['get_data'].format(
-                            sdt=self.sfc.etl_audit_manager.sdt.strftime('%Y-%m-%d %H:%M:%S'),
-                            edt=self.sfc.etl_audit_manager.edt.strftime('%Y-%m-%d %H:%M:%S'))
+                            sdt=self.sfc.etl_audit_manager.sdt.strftime('%Y-%m-%d %H:%M:%S.%f%z'),
+                            edt=self.sfc.etl_audit_manager.edt.strftime('%Y-%m-%d %H:%M:%S.%f%z'))
 
         lg.info(f"The query: {query}")
 

@@ -300,8 +300,8 @@ class EtlAuditManager:
                 '{sources_string}', 
                 '{target_database}', 
                 '{target_table}', 
-                '{self.sdt.strftime("%Y-%m-%d %H:%M:%S")}', 
-                '{self.edt.strftime("%Y-%m-%d %H:%M:%S")}', 
+                '{self.sdt.strftime('%Y-%m-%d %H:%M:%S.%f%z')}', 
+                '{self.edt.strftime('%Y-%m-%d %H:%M:%S.%f%z')}', 
                 CURRENT_TIMESTAMP, 
                 '{os.environ.get('MACHINE_SCRIPT_RUNNER_ENV')}', 
                 'In Progress', 
@@ -338,9 +338,9 @@ class EtlAuditManager:
         lg.info(f"Data min date pulled from script worker: {self.data_max_date}")
 
         # 2. Format dates for SQL
-        data_min_val = f"'{self.data_min_date.strftime('%Y-%m-%d %H:%M:%S')}'" if self.data_min_date is not None else "NULL"
-        data_max_val = f"'{self.data_max_date.strftime('%Y-%m-%d %H:%M:%S')}'" if self.data_max_date is not None else "NULL"
-        prev_date_val = f"'{self.prev_max_date.strftime('%Y-%m-%d %H:%M:%S')}'" if self.prev_max_date else "NULL"
+        data_min_val = f"'{self.data_min_date.strftime('%Y-%m-%d %H:%M:%S.%f%z')}'" if self.data_min_date is not None else "NULL"
+        data_max_val = f"'{self.data_max_date.strftime('%Y-%m-%d %H:%M:%S.%f%z')}'" if self.data_max_date is not None else "NULL"
+        prev_date_val = f"'{self.prev_max_date.strftime('%Y-%m-%d %H:%M:%S.%f%z')}'" if self.prev_max_date else "NULL"
 
         # 3. Update Query
         update_query = f"""
