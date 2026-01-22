@@ -2,6 +2,7 @@
 import smtplib, os, configparser
 from typing import Dict
 from email.mime.text import MIMEText
+from datetime import datetime
 
 # import custom libraries
 import utilities.logging_manager as lg
@@ -176,18 +177,20 @@ class EmailManager:
         </html>
         """
 
+        today = datetime.now().strftime("%Y-%m-%d")
+
         # 4. Store in payloads for the send_mails() method
         # Success payload: Sent to Business recipients
         self.prepared_success_email = {
             "to": self.recipients_business,
-            "subject": f"SUCCESS: {info['script_name']}",
+            "subject": f"SUCCESS: {info['script_name']} - [{today}]",
             "body": html_body
         }
 
         # Error payload: Sent to Error recipients
         self.prepared_error_email = {
             "to": self.recipients_error,
-            "subject": f"ERROR: {info['script_name']}",
+            "subject": f"ERROR: {info['script_name']} - [{today}]",
             "body": html_body
         }
 
@@ -209,7 +212,7 @@ class EmailManager:
 
         # Check that the HTML body has been constructed
         if email_payload is None:
-            lg.error("No prepared email found. Call prepare_mails() first.")
+            lg.info("No prepared email found. Call prepare_mails() first.")
             return
 
         # 2. Admin group
@@ -223,7 +226,7 @@ class EmailManager:
 
         # 3. Business group: only send if the script succeeded
         if not is_error and self.is_business_email_alert_enabled:
-            lg.info("Sending dedicated email to Business group (Success Path).")
+            lg.info("Sending dedicated email to Business group.")
             self.smtp_send(
                 to=self.recipients_business,
                 subject=email_payload['subject'],
@@ -232,7 +235,7 @@ class EmailManager:
 
         # 4. Error group: only send if the script failed
         if is_error and self.is_error_email_alert_enabled:
-            lg.info("Sending dedicated email to Error group (Failure Path).")
+            lg.info("Sending dedicated email to Error group.")
             self.smtp_send(
                 to=self.recipients_error,
                 subject=email_payload['subject'],

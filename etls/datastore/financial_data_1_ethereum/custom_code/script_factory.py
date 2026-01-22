@@ -1,10 +1,9 @@
 # import libraries
-# import script_factory.settings as settings
 from functools import partial
-import os, sys, psycopg2, datetime
-from datetime import datetime
+from typing import Any, List, Dict
 
 # import custom libraries
+# import script_factory.settings as settings
 from utilities.etl_utils import EtlUtils
 from utilities.etl_audit_manager import EtlAuditManager
 from utilities.email_manager import EmailManager
@@ -24,14 +23,15 @@ class ScriptFactory:
     - Build a list of tasks (functions)
     - Instantiate ScriptWorker, EtlUtils, EtlAuditManager
     - Expose settings to them
-    - Upload CSV to PostgresSQL directly (no DB handler)
+    - Upload CSV to PostgresSQL
     """
 
     def __init__(self,
                  forced_sdt: str,
                  load_type: str,
                  max_days_to_load: int,
-                 settings):
+                 settings: Any):
+
         lg.info("Initializing ScriptFactory")
 
         # 1. General script information
@@ -47,7 +47,6 @@ class ScriptFactory:
             'script_secondary_owner' : settings.script_secondary_owner
         }
 
-        # forced_sdt, load_type, max_days_to_load = parse_arguments(sys.argv, settings)
         self.forced_sdt = forced_sdt
         self.load_type = load_type
         self.max_days_to_load = max_days_to_load
@@ -63,8 +62,10 @@ class ScriptFactory:
             self.table = settings.prod_table
 
             self.delete_log = settings.prod_delete_log
+            self.log_retention_number = settings.prod_log_retention_number
+            self.log_mode = settings.prod_log_mode
+
             self.delete_output = settings.prod_delete_output
-            self.send_mail_etl_summary_report = settings.prod_send_mail_etl_summary_report
 
             self.list_recipients_admin = settings.prod_list_recipients_admin
             self.list_recipients_business = settings.prod_list_recipients_business
@@ -79,8 +80,10 @@ class ScriptFactory:
             self.table = settings.dev_table
 
             self.delete_log = settings.dev_delete_log
+            self.log_retention_number = settings.dev_log_retention_number
+            self.log_mode = settings.dev_log_mode
+
             self.delete_output = settings.dev_delete_output
-            self.send_mail_etl_summary_report = settings.dev_send_mail_etl_summary_report
 
             self.list_recipients_admin = settings.dev_list_recipients_admin
             self.list_recipients_business = settings.dev_list_recipients_business
@@ -98,22 +101,22 @@ class ScriptFactory:
         # Create an instance of the connector
         self.pg_connector = PostgresConnector(credential_name=self.database)
 
-        # Create schema and table
+        # 5. Create schema and table
         self.pg_connector.init_schema_and_table(query=sql_queries['create_table'],
                                                 schema=self.schema,
                                                 table=self.table)
 
-        # Build file path for the output folder
+        # 6. Build file path for the output folder
         self.file_path = build_output_file_path(table=self.table)
         lg.info(f"The file will be saved to: {self.file_path}")
 
-    # ----------------------------------------------------------------------
-    # Task list
-    # ----------------------------------------------------------------------
-    def init_tasks(self):
+
+    def init_tasks(self) -> List[Dict[str, Any]]:
         """
         Initialize a list of parametrized tasks.
-        Returns the ordered list of ETL tasks to be executed.
+
+        Returns:
+             A list of ETL tasks to be executed for this project.
         """
 
         task_1 = {
@@ -128,10 +131,10 @@ class ScriptFactory:
                                       prev_max_date_query=sql_queries['prev_max_date_query'].format(schema=self.schema,
                                                                                                     table=self.table)
                             ),
-            "task_name"     : "create_etl_runs_record",
-            "description"   : "Create an audit record for the current execution of the project.",
+            "task_name"     : "insert_etl_runs_record",
+            "description"   : "Insert an audit record for the current execution of the project.",
             "is_enabled"    : True,
-            "retries"       : 1,
+            "retries"       : 0,
             "depends_on"    : None
         }
 
@@ -144,8 +147,8 @@ class ScriptFactory:
             "task_name"     : "set_comments",
             "description"   : "Add a description of the table and each field for documentation.",
             "is_enabled"    : True,
-            "retries"       : 1,
-            "depends_on"    : "create_etl_runs_record"
+            "retries"       : 0,
+            "depends_on"    : "insert_etl_runs_record"
         }
 
         task_3 = {
@@ -154,7 +157,7 @@ class ScriptFactory:
             "task_name"     : "get_data",
             "description"   : "Extract the data from the source system.",
             "is_enabled"    : True,
-            "retries"       : 1,
+            "retries"       : 0,
             "depends_on"    : "set_comments"
         }
 
@@ -174,7 +177,7 @@ class ScriptFactory:
             "task_name"    : "upload_to_pg",
             "description"  : "Load the data into the data warehouse.",
             "is_enabled"   : True,
-            "retries"      : 1,
+            "retries"      : 0,
             "depends_on"   : "get_data"
         }
 
@@ -185,7 +188,7 @@ class ScriptFactory:
             "task_name"     : "update_etl_runs_table_record",
             "description"   : "Update the corresponding record in the audit table.",
             "is_enabled"    : True,
-            "retries"       : 1,
+            "retries"       : 0,
             "depends_on"    : "upload_to_pg"
         }
 

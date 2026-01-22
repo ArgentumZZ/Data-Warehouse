@@ -1,6 +1,6 @@
 """
-Purpose:
-    Centralized configuration file for the ETL script. A static configuration.
+    Centralized static configuration file for the ETL script.
+
     Contains:
         - script metadata
         - environment-specific settings
@@ -9,8 +9,7 @@ Purpose:
         - email routing configuration
         - ETL behavior flags (load type, batch size, query names)
 
-    This file should contain ONLY configuration and constants.
-    No logic should be implemented here.
+    This file must contain ONLY configuration and constants. No logic should be implemented here.
 """
 
 import os
@@ -91,8 +90,6 @@ prod_is_admin_email_alert_enabled = prod_is_email_enabled_dict["admin"]
 prod_is_business_email_alert_enabled = prod_is_email_enabled_dict["business"]
 prod_is_error_email_alert_enabled = prod_is_email_enabled_dict["error"]
 
-# Whether to send summary report emails
-prod_send_mail_etl_summary_report = True
 ###################################################################
 dev_email_recipients = {
     "admin"         : ["admin-team@company.com"],
@@ -115,8 +112,6 @@ dev_is_admin_email_alert_enabled = dev_is_email_enabled_dict["admin"]
 dev_is_business_email_alert_enabled = dev_is_email_enabled_dict["business"]
 dev_is_error_email_alert_enabled = dev_is_email_enabled_dict["error"]
 
-# Whether to send summary report emails
-dev_send_mail_etl_summary_report = True
 # ===========================================================
 # 4. Database configuration (production)
 # ===========================================================
@@ -141,7 +136,7 @@ dev_table = 'ethereum'
 load_type = "I"
 
 # 6.2 Maximum number of days allowed for incremental loads
-max_days_to_load = 365
+max_days_to_load = 30
 
 # 6.3 Source for the project
 sources = ['financial_data.ethereum']
@@ -152,10 +147,15 @@ sources = ['financial_data.ethereum']
 
 # Options for log and output folders
 prod_delete_log = True
-prod_delete_output = True
+prod_log_retention_number = 5
+prod_log_mode = 'N'
 
+prod_delete_output = True
 ###################################################################
 # Options for log and output folders
 dev_delete_log = True
+dev_log_retention_number = 5
+dev_log_mode = 'N'
+
 dev_delete_output = True
 ####################################################################

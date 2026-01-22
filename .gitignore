@@ -1,8 +1,12 @@
 .idea/
-*.iml
 **/config/
 **/logs/
 **/output/
 __pycache__/
 *.pyc
-.venv*/
+*.exe
+*.iml
+*.pem
+*.ppk
+venv/
+.venv/

@@ -1,5 +1,5 @@
 # import libraries
-import time, sys
+import time, sys, traceback
 
 # import custom libraries
 from custom_code.script_factory import ScriptFactory
@@ -9,44 +9,41 @@ from utilities.argument_parser import parse_arguments
 from utilities.email_manager import EmailManager
 
 def main():
-    lg.info("Starting ETL run")
+    lg.info("Starting the ETL run")
     success = True
     # success_registry stores the 'task_name' of every task that finished without error.
     # This is used to validate the 'depends_on' requirements.
     success_registry = set()
 
+    # 1. Initialization
+    # Parse the .bat/.sh file for input parameters
+    forced_sdt, load_type, max_days_to_load = parse_arguments(settings)
+
+    # Initialize ScriptFactory
+    factory = ScriptFactory(
+        forced_sdt=forced_sdt,
+        load_type=load_type,
+        max_days_to_load=max_days_to_load,
+        settings=settings
+    )
+
+    # Initialize EmailManager
+    email_manager = EmailManager(factory=factory)
+
+    # Fetch the list of task dictionaries
+    tasks = factory.init_tasks()
+
     try:
-        # 1. Initialization
-        # Parse the .bat/.sh file for input parameters
-        # Create the factory instance
-        forced_sdt, load_type, max_days_to_load = parse_arguments(settings)
-
-        # initialize ScriptFactory
-        factory = ScriptFactory(
-            forced_sdt=forced_sdt,
-            load_type=load_type,
-            max_days_to_load=max_days_to_load,
-            settings=settings
-        )
-
-        # initialize EmailManager
-        email_manager = EmailManager(factory=factory)
-
-        # Fetch the list of task dictionaries
-        tasks = factory.init_tasks()
-
         for task in tasks:
             # 2. Data extraction
             # Match the keys exactly as defined in init_tasks() dictionaries.
-            # Using .get() for 'enabled', 'retries' and 'description' provide a fallback value,
-            # if those keys are missing from a specific dictionary.
 
-            t_name = task["task_name"]                 # Name of the task
-            t_func = task["function"]                  # This is the partial() object
-            t_dep = task["depends_on"]                 # The name of the required previous task
-            t_enabled = task.get("is_enabled", True)   # Default to True if key is missing
-            t_retries = task.get("retries", 0)         # Default to 0 if key is missing
-            t_desc = task.get("description", "")       # Get description for logging
+            t_name = task["task_name"]                   # Name of the task
+            t_func = task["function"]                    # This is the partial() object
+            t_dep = task["depends_on"]                   # The name of the required previous task (dependency)
+            t_enabled = task["is_enabled"]               # Determines if the task is enabled or disabled
+            t_retries = task["retries"]                  # The number of retries for each task
+            t_desc = task["description"]                 # Description of the task
 
             # 3. Is enabled check.
             # If a task is explicitly set to False, we log it and move to the next item.
@@ -55,16 +52,16 @@ def main():
                 continue
 
             # 4. Dependency check.
-            # If 'depends_on' is not None, we check if that task name exists in our success_registry.
-            # If the parent task failed or was skipped, this child task cannot run.
+            # If 'depends_on' is not None, we check if that task name exists in the success_registry.
+            # If the previous task failed or was skipped, this task can't run.
             if t_dep and (t_dep not in success_registry):
-                lg.error(f"Stopping pipeline: Task '{t_name}' depends on '{t_dep}', but '{t_dep}' was not successful.")
+                lg.info(f"Stopping pipeline: Task '{t_name}' depends on '{t_dep}', but '{t_dep}' was not successful.")
                 error_msg = f"Dependency {t_dep} failed."
 
-                # Append a formatted HTML table row to the `internal task log` string
+                # Append a formatted HTML table row to the `internal task log` section
                 email_manager.add_task_result_to_email(task=task, status="SKIPPED", error_msg=error_msg)
 
-                # Captures the error log created for the `technical log details` section
+                # Capture the error the log created for the `technical log details` section
                 email_manager.add_log_block_to_email(t_name, f"SKIPPED: {error_msg}")
 
                 success = False
@@ -78,7 +75,7 @@ def main():
             log_start_position = lg.get_current_log_size()
 
             # If retries=1, the loop runs for attempt 0 (initial) and attempt 1 (retry).
-            for attempt in range(0, t_retries):
+            for attempt in range(0, t_retries + 1):
                 try:
                     if attempt > 0:
                         lg.info(f"Retrying task '{t_name}'... (Attempt {attempt} of {t_retries})")
@@ -94,22 +91,26 @@ def main():
                     # Mark as success for future dependencies
                     success_registry.add(t_name)
 
-                    # add task result to email
+                    # Add the task result to the email
                     email_manager.add_task_result_to_email(task=task, status="SUCCESS")
 
                     # Exit the retry loop early
                     break
 
                 except Exception as e:
-                    lg.error(f"Attempt {attempt} failed for '{t_name}': {str(e)}")
+                    # full traceback as string
+                    tb = traceback.format_exc()
+                    lg.info(f"Attempt {attempt} failed for '{t_name}': {str(e)}")
 
                     # If there are still retries left, wait 5 second before trying again
                     if attempt < t_retries:
+                        lg.info("Waiting 5 seconds before next retry...")
                         time.sleep(5)
                     else:
-                        lg.error(f"Task '{t_name}' exhausted all retry attempts.")
+                        lg.info(f"Task '{t_name}' exhausted all retry attempts.\n{tb}")
 
-                        email_manager.add_task_result_to_email(task=task, status="FAILED", error_msg=e)
+                        # pass the traceback to the e-mail
+                        email_manager.add_task_result_to_email(task=task, status="FAILED", error_msg="See Technical Log Details below")
 
             # Read and return the log content from a specific byte offset to the end
             task_specific_logs = lg.get_logs_from_position(log_start_position)
@@ -122,31 +123,45 @@ def main():
             # We stop the entire ETL process to prevent data corruption or inconsistent states in subsequent tasks.
             if not task_passed_finally:
                 success = False
-                lg.error(f"Pipeline execution halted due to failure in: {t_name}")
+                lg.info(f"Pipeline execution halted due to failure in: {t_name}")
                 break
 
-        # 7. Capture final messages into a block
-        # final_summary_logs = lg.get_logs_from_position(log_start_position)
-        # email_manager.add_log_block_to_email("Final Execution Summary", final_summary_logs)
+    except Exception as e:
+        lg.info(f"Critical error during execution: {e}")
+        success = False
 
-        # 8. Prepare the mails
-        email_manager.prepare_mails()
-
-        # 9. Send the mails
-        email_manager.send_mails(is_error=not success)
-
-        # 10. Final status, exit the script
+    finally:
+        # 7. Log the final status
         if success:
             lg.info("ETL run completed successfully.")
-            sys.exit(0)  # Explicit success
         else:
-            lg.error("ETL run finished with errors.")
-            sys.exit(1)  # Explicit crash
+            lg.info("ETL run finished with errors.")
 
-    except Exception as e:
-        lg.error(f"Critical error during factory initialization: {e}")
-        sys.exit(1)  # Explicit crash
+        try:
+            # 8. Prepare the mails
+            email_manager.prepare_mails()
 
+            # 9. Send the mails
+            email_manager.send_mails(is_error=not success)
+        except Exception as email_error:
+            lg.info(f"Failed to send emails: {email_error}")
+
+        try:
+            # 10. Log maintenance
+            lg.info("Performing log maintenance...")
+            lg.cleanup_old_logs(
+                                log_dir=lg.log_dir,
+                                retention_number=factory.log_retention_number,
+                                is_enabled=factory.delete_log,
+                                mode=factory.log_mode
+                                )
+        except Exception as maintenance_error:
+            print(f"Log maintenance failed: {maintenance_error}")
+
+        # 11. Final system exit
+        # sys.exit(0)  # Explicit success
+        # sys.exit(1)  # Explicit crash
+        sys.exit(0 if success else 1)
 
 if __name__ == "__main__":
     main()
