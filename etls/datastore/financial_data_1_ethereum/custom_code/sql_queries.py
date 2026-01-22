@@ -113,7 +113,7 @@ normal_cols_list = [col for col in source_cols_general_list
 # Assemble the update_clause
 update_parts = ["etl_runs_key = s.etl_runs_key"] + \
                [f"{col} = s.{col}" for col in normal_cols_list] + \
-               ["modified_at = CURRENT_TIMESTAMP(0)"]
+               ["modified_at = CURRENT_TIMESTAMP"]
 
 sql_queries['update_clause'] = ", ".join(update_parts)
 

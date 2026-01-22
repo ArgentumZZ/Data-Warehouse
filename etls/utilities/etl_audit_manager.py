@@ -118,8 +118,8 @@ class EtlAuditManager:
                     script_execution_end_time       TIMESTAMPTZ,  
                     target_database                 TEXT,
                     target_table                    TEXT,
-                    created_at                      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP(0),
-                    modified_at                     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP(0) 
+                    created_at                      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                    modified_at                     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP 
                 );
                 """
 
@@ -302,7 +302,7 @@ class EtlAuditManager:
                 '{target_table}', 
                 '{self.sdt.strftime("%Y-%m-%d %H:%M:%S")}', 
                 '{self.edt.strftime("%Y-%m-%d %H:%M:%S")}', 
-                CURRENT_TIMESTAMP(0), 
+                CURRENT_TIMESTAMP, 
                 '{os.environ.get('MACHINE_SCRIPT_RUNNER_ENV')}', 
                 'In Progress', 
                 '{script_version}'
@@ -348,11 +348,11 @@ class EtlAuditManager:
             SET  
                 data_min_date = {data_min_val},
                 data_max_date = {data_max_val},
-                script_execution_end_time = CURRENT_TIMESTAMP(0),
+                script_execution_end_time = CURRENT_TIMESTAMP,
                 status = '{status}',
                 num_of_records = {self.num_of_records},
                 prev_max_date = {prev_date_val},
-                modified_at = CURRENT_TIMESTAMP(0)
+                modified_at = CURRENT_TIMESTAMP
             WHERE etl_runs_key = {self.etl_runs_key};
         """
 
