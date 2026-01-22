@@ -109,11 +109,8 @@ class ScriptWorker:
 
         else:
             # 4.7. No records are returned, then leave the min and max dates at the start date
+            # The next run will start from the same point
             self.num_of_records = 0
-            self.data_min_date = None
-            self.data_max_date = None
-
-            # 4.9. The next run will start from the same point
             self.sfc.etl_audit_manager.data_min_date = self.sfc.etl_audit_manager.sdt
             self.sfc.etl_audit_manager.data_max_date = self.sfc.etl_audit_manager.sdt
 
@@ -151,8 +148,13 @@ class ScriptWorker:
 
         # 1. Check if the file exists
         if not os.path.exists(file_path):
-            lg.info(f"No data to upload for {table}. Skipping this step.")
+            lg.info(f"No data to upload for {table}. Skipping upload step.")
+
+            # Mark run as complete
             self.status = 'Complete'
+
+            # Persist audit record
+            etl_audit_manager.update_etl_runs_table_record(status=self.status)
             return
 
         try:
