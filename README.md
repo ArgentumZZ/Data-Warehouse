@@ -229,3 +229,22 @@ ___
   - Snowflake
   - Google BigQuery
   - S3
+
+___
+
+- **I. Create a virtual environment (Windows)**
+  - Go to your project folder -> cd C:\Users\Mihail\PycharmProjects\datawarehouse
+  - Create the environment -> python -m venv venv
+
+- **II. Activate the virtual environment**
+  - Activate the environment -> .\venv\Scripts\activate
+  - where python -> the first path should point to ...\datawarehouse\venv\Scripts\python.exe
+- **III. Check locally installed dependencies**
+  - pip list
+
+- **IV. Install the dependencies**
+  - pip install -r <file_path>\requirements.txt
+
+- **V. Final check**
+  - pip list
+  - where python -> the first path should point to ...\datawarehouse\venv\Scripts\python.exe
