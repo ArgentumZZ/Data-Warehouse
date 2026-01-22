@@ -1,4 +1,4 @@
-## Data Warehouse
+## 🛢️Data Warehouse
 
 - **Data Warehouse**
   - Extract, transform and load data from different sources into a PostgresSQL database.
@@ -27,7 +27,7 @@
   - `run_script.py` - Run the tasks in `script_factory.py`.
   - `.bat/.sh` files to run `run_script.py`.
 -------------------------------
-## General structure
+## 📁 Folder structure
 ```
 datawarehouse/
 ├── .gitignore
@@ -231,7 +231,7 @@ ___
   - S3
 
 ___
-
+## 💻 Environment setup
 - **I. Create a virtual environment (Windows)**
   - Go to your project folder -> cd C:\Users\Mihail\PycharmProjects\datawarehouse
   - Create the environment -> python -m venv venv
