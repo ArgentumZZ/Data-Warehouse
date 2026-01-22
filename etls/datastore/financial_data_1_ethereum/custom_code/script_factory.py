@@ -62,6 +62,9 @@ class ScriptFactory:
             self.table = settings.prod_table
 
             self.delete_log = settings.prod_delete_log
+            self.log_retention_number = settings.prod_log_retention_number
+            self.log_mode = settings.prod_log_mode
+
             self.delete_output = settings.prod_delete_output
 
             self.list_recipients_admin = settings.prod_list_recipients_admin
@@ -77,6 +80,9 @@ class ScriptFactory:
             self.table = settings.dev_table
 
             self.delete_log = settings.dev_delete_log
+            self.log_retention_number = settings.dev_log_retention_number
+            self.log_mode = settings.dev_log_mode
+
             self.delete_output = settings.dev_delete_output
 
             self.list_recipients_admin = settings.dev_list_recipients_admin

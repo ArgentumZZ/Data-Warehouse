@@ -147,10 +147,15 @@ sources = ['financial_data.ethereum']
 
 # Options for log and output folders
 prod_delete_log = True
-prod_delete_output = True
+prod_log_retention_number = 5
+prod_log_mode = 'N'
 
+prod_delete_output = True
 ###################################################################
 # Options for log and output folders
 dev_delete_log = True
+dev_log_retention_number = 5
+dev_log_mode = 'N'
+
 dev_delete_output = True
 ####################################################################
