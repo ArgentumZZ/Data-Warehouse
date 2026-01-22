@@ -137,39 +137,35 @@ class PostgresConnector:
             get_result: If True, fetch and return rows (empty if none).
             commit: If True, commit the transaction after execution.
 
-        Returns: A list of rows if get_result=True and the query returns data, otherwise an empty list.
+        Returns: A list of rows if get_result=True and the query returns data, otherwise an empty dataframe.
 
         COMMIT RULES (PostgreSQL):
 
-        CREATE SCHEMA
         ✅ COMMIT
-        Creates database structure
-        Rolled back otherwise
+        CREATE SCHEMA:
+        - Creates database structure
+        - Rolled back otherwise
 
-        CREATE TABLE / ALTER TABLE / DROP TABLE
-        ✅ COMMIT
-        Modifies schema
-        Rolled back otherwise
+        CREATE TABLE / ALTER TABLE / DROP TABLE:
+        - Modifies schema
+        - Rolled back otherwise
 
-        INSERT
-        ✅ COMMIT
-        Adds new rows
-        Rolled back otherwise
+        INSERT:
+        - Adds new rows
+        - Rolled back otherwise
 
-        UPDATE
-        ✅ COMMIT
-        Modifies existing rows
-        Rolled back otherwise
+        UPDATE:
+        - Modifies existing rows
+        - Rolled back otherwise
 
-        DELETE
-        ✅ COMMIT
-        Removes rows
-        Rolled back otherwise
+        DELETE:
+        - Removes rows
+        - Rolled back otherwise
 
-        SELECT
         ❌ DO NOT COMMIT
-        Read-only
-        Commit has no effect
+        SELECT:
+        - Read-only
+        - Commit has no effect
         """
 
         # 1. Open a new PostgreSQL database connection.
