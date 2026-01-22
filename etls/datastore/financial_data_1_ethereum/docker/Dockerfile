@@ -34,7 +34,7 @@ RUN python -m pip install --upgrade --no-cache-dir pip
 ARG project_name=financial_data_1_ethereum
 
 # library versions
-ARG numpy_version=1.26.0
+ARG numpy_version=2.4.1
 
 # root directory inside the container
 # Python treats /app as the base for all imports
