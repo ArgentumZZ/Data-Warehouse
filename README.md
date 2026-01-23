@@ -262,7 +262,7 @@ ___
   - SaaS/API connectors: Salesforce, REST APIs (with requests)
   - SFTP and local files (file based ingestion): SFTP (with pysftp/paramiko), pandas (for local files)
 
-- ***Streaming and event processing*
+- **Streaming and event processing**
   - Set up a message broker (Apache Kafka)
   - Build producers and consumers
   - Stream transformation (windowed aggregations and watermarking)
