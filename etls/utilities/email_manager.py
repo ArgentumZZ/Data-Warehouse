@@ -209,10 +209,10 @@ class EmailManager:
         # 7. Calculate the run date
         today = datetime.now().strftime("%Y-%m-%d")
 
-        # 8. Store in payloads for the send_mails() method
+        # 8. Store in payloads for the send_emails() method
         # Add the run date to the title of the e-mail
 
-        # Success payload: Sent to business recipients
+        # Success payload: Send to business recipients
         self.prepared_success_email = {
             "to"        : self.recipients_business,
             "subject"   : f"SUCCESS: {info['script_name']} - [{today}]",
@@ -226,11 +226,12 @@ class EmailManager:
             "body"      : html_body
         }
 
-    def send_mails(self, is_error: bool = False) -> None:
+    def send_emails(self, is_error: bool = False) -> None:
         """
-        1. Orchestrate the distribution of separate emails to admin, business and error groups.
-        2. This method ensures the correct recipients receive the appropriate report based on the script's
-        final status and the environment.
+        1. Builds the email_payload based on the script outcome.
+        2. Checks whether the e-mail alert is enabled.
+        3. If the script outcome is successful, prepares an e-mail to business recipients. If there is an error,
+        prepares an e-mail to error recipients. Admin recipients always receive an e-mail.
 
         Args:
             is_error: Flag indicating if the script failed. Defaults to False (Success).
@@ -242,12 +243,12 @@ class EmailManager:
         # This determines whether the subject lines will display 'SUCCESS' or 'ERROR'
         email_payload = self.prepared_error_email if is_error else self.prepared_success_email
 
-        # Check that the HTML body has been constructed
+        # 2. Check that the HTML body has been constructed
         if email_payload is None:
             lg.info("No prepared email found. Call prepare_emails() first.")
             return
 
-        # 2. Admin group
+        # 3. Admin group (send an e-mail no matter the outcome)
         if self.is_admin_email_alert_enabled:
             lg.info("Sending dedicated email to Admin group.")
             self.smtp_send(
@@ -256,7 +257,7 @@ class EmailManager:
                 body=email_payload['body']
             )
 
-        # 3. Business group: only send if the script succeeded
+        # 4. Business group: only send if the script succeeded
         if not is_error and self.is_business_email_alert_enabled:
             lg.info("Sending dedicated email to Business group.")
             self.smtp_send(
@@ -265,7 +266,7 @@ class EmailManager:
                 body=email_payload['body']
             )
 
-        # 4. Error group: only send if the script failed
+        # 5. Error group: only send if the script failed
         if is_error and self.is_error_email_alert_enabled:
             lg.info("Sending dedicated email to Error group.")
             self.smtp_send(

@@ -149,7 +149,7 @@ def main():
             email_manager.prepare_emails()
 
             # 9. Send the mails
-            email_manager.send_mails(is_error=not success)
+            email_manager.send_emails(is_error=not success)
         except Exception as email_error:
             lg.info(f"Failed to send emails: {email_error}")
 
