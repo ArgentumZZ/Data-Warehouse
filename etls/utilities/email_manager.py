@@ -9,6 +9,28 @@ import utilities.logging_manager as lg
 from utilities.config_utils import load_smtp_config
 
 class EmailManager:
+    """
+        EmailManager algorithm:
+
+        1.  Initialize:
+            - Capture recipient lists and alert settings from the ScriptFactory.
+        2.  Collect data (built by iteration):
+            - As tasks execute, use 'add_task_result_to_email' to build a high-level summary table row with
+              conditional color-coding based on the status.
+            - Use 'add_log_block_to_email' to capture technical details, stripping whitespace and extracting
+              function parameters from 'functools.partial' objects if available.
+        3.  Assemble:
+            - Use 'prepare_emails' to stitch together  the general script metadata, the accumulated
+            task execution table, and the technical log blocks into a single cohesive HTML document.
+        4.  Distribute:
+            - Use 'send_emails' to apply logic to route the final report.
+            - Admin recipients always receive the alert.
+            - Business recipients receive only success alerts.
+            - Error recipients receive only failure alerts.
+        5.  Transmit:
+            - Use 'smtp_send' to handle the low-level SMTP protocol, including TLS encryption
+            and authentication, to deliver the final MIME messages.
+        """
 
     def __init__(self, factory: 'ScriptFactory') -> None:
 
