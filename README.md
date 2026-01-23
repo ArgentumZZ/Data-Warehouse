@@ -217,7 +217,7 @@ ___
   - Create a separate backfill project that accepts `project_name`, `start_date`, `end_date`, `load_days` to run a given project and load data incrementally.
 
 - **Fact and dimensional tables**
-  - Add staging and normal fact and dimensional tables (staging_dim -> warehouse_dim -> staging_fact -> warheouse_fact). 
+  - Add staging and normal fact and dimensional tables (staging_dim → warehouse_dim → staging_fact → warehouse_fact). 
   - Build a staging_dim table to extract data from the source and checks for null values, duplicates, missing data.
   - In warehouse_dim, implement slowly changing dimensions (type 1 and type2) updates - close SCD2 rows, insert new SCD2 rows, apply SCD1 updates and insert new rows.
   - Add indices for SCD detection and ETL MERGE/UPDATEs, partial unique index, fast fact and point-in-time lookups, prevent SCD2 ranges overlapping.
@@ -241,32 +241,42 @@ ___
   - Monitor cost and resource governance - cost per query, user/role resource consumption, storage growth trends.
 
 - **Data quality checks**
-  - Add general data quality checks that run after the DAGS.
-  - Monitor record discrepancies, null values, referential integrity, SLA checks (arrival delay), schema drift.
+  - Add general data quality checks that run after the DAGs.
+  - Monitor record discrepancies (row counts), null values, referential integrity (foreign key checks).
+  - Monitor SLA checks (arrival delays), schema drift (new/missing columns), gaps (missing data per day).
+  - Late-arriving data handling.
 
 - **Documentation**
-  - Add documentation explaining the different modules and processes in the data warehouse (in Confluence).
+  - Add documentation in Confluence for the different processes in the data warehouse.
+  - Overall data architecture (data lineage map + entity relationship diagrams).
+  - Developer guide: How to build a project.
+  - Tech stack (name + version).
+  - Data governance
 
 - **Connectors**
   - Add more connectors:
-  - PostgreSQL (implemented) ✔️  
-  - Oracle
-  - MySQL
-  - Salesforce
-  - MSSQL
-  - Snowflake
-  - Google BigQuery
-  - S3
+  - Relational databases (OLTP): PostgreSQL ✔️, MySQL, MSSQL, Oracle
+  - Cloud data warehouses (OLAP): Snowflake, Google BigQuery
+  - Time-series databases: kdb+
+  - Object storage (data lakes): S3 (AWS), Azure Blob Storage, GCS
+  - SaaS/API connectors: Salesforce, REST APIs (with requests)
+  - SFTP and local files (file based ingestion): SFTP (with pysftp/paramiko), pandas (for local files)
 
+- ***Streaming and event processing*
+  - Set up a message broker (Apache Kafka)
+  - Build producers and consumers
+  - Stream transformation (windowed aggregations and watermarking)
+  - Add idempotency checks
+  - Implement schema registry and dead letter queues (DLQ)
 ___
 ## 💻 Environment setup
 - **I. Create a virtual environment (Windows)**
-  - Go to your project folder -> cd C:\Users\Mihail\PycharmProjects\datawarehouse
-  - Create the environment -> python -m venv venv
+  - Go to your project folder (e.g., cd C:\Users\Mihail\PycharmProjects\datawarehouse)
+  - Create the environment → python -m venv venv
 
 - **II. Activate the virtual environment**
   - Activate the environment -> .\venv\Scripts\activate
-  - where python -> the first path should point to ...\datawarehouse\venv\Scripts\python.exe
+  - where python → the first path should point to ...\datawarehouse\venv\Scripts\python.exe
 - **III. Check locally installed dependencies**
   - pip list
 
@@ -275,4 +285,4 @@ ___
 
 - **V. Final check**
   - pip list
-  - where python -> the first path should point to ...\datawarehouse\venv\Scripts\python.exe
+  - where python → the first path should point to ...\datawarehouse\venv\Scripts\python.exe
