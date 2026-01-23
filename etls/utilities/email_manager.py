@@ -295,38 +295,38 @@ class EmailManager:
             smtplib.SMTPException: If there is an error during connection or authentication.
         """
 
+        # 1. Load the server credentials
         self.smtp_config = load_smtp_config()
 
         lg.info(f"Sending email to: {to}")
         lg.info(f"Subject: {subject}")
 
-        # Create a MIME email object with the given HTML body
+        # 2. Create a MIME email object with the given HTML body.
         # MIMEText handles proper encoding and marks the content type as HTML.
         msg = MIMEText(body, "html")
 
-        # Set the email subject header.
+        # 3. Set the email subject header.
         msg["Subject"] = subject
 
-        # Set the sender address that will appear in the email client.
-        # This must match the authenticated SMTP account for Gmail.
+        # 4. Set the sender address that will appear in the email client.
         msg["From"] = self.smtp_config['from_address']
 
-        # Join the list of recipient email addresses into a single comma-separated string.
+        # 5. Join the list of recipient email addresses into a single comma-separated string.
         # This is only for display in the email header; the actual delivery uses the 'to' list in sendmail() below
         msg["To"] = ", ".join(to)
 
-        # Establish a connection to the SMTP server (e.g., smtp.gmail.com:587)
+        # 6. Establish a connection to the SMTP server (e.g., smtp.gmail.com:587)
         with smtplib.SMTP(self.smtp_config['host'], self.smtp_config['port']) as server:
-            # Upgrade the connection to a secure encrypted TLS channel.
+            # 7. Upgrade the connection to a secure encrypted TLS channel.
             # Required by Gmail and most modern SMTP servers
             server.starttls()
 
-            # Authenticate using the SMTP username and password.
+            # 8. Authenticate using the SMTP username and password.
             # For Gmail: username = my Gmail address, password = App Password.
             server.login(self.smtp_config['username'],
                          self.smtp_config['password'])
 
-            # Send the email message over the authenticated, encrypted SMTP session.
+            # 9. Send the email message over the authenticated, encrypted SMTP session.
             server.sendmail(self.smtp_config['from_address'],  # Sender email address
                             to, 				               # List of recipient email addresses
                             msg.as_string()		               # Full MIME email (headers + HTML body)
