@@ -49,6 +49,13 @@ def main():
             # If a task is explicitly set to False, we log it and move to the next item.
             if not t_enabled:
                 lg.info(f"Skipping task '{t_name}': Status is DISABLED")
+
+                # include it in the e-mail as disabled
+                email_manager.add_task_result_to_email(task=task, status="DISABLED")
+
+                # include it in the log
+                email_manager.add_log_block_to_email(task_name=t_name, logs="Task is disabled in configuration.", task=task)
+
                 continue
 
             # 4. Dependency check.
@@ -62,10 +69,10 @@ def main():
                 email_manager.add_task_result_to_email(task=task, status="SKIPPED", error_msg=error_msg)
 
                 # Capture the error the log created for the `technical log details` section
-                email_manager.add_log_block_to_email(t_name, f"SKIPPED: {error_msg}")
+                email_manager.add_log_block_to_email(task_name=t_name, logs=f"SKIPPED: {error_msg}", task=task)
 
                 success = False
-                break
+                continue
 
             # 5. Execution and retry loop
             # Define a boolean variable to track the success of a task
@@ -116,7 +123,7 @@ def main():
             task_specific_logs = lg.get_logs_from_position(log_start_position)
 
             # Add the logs to the e-mail
-            email_manager.add_log_block_to_email(t_name, task_specific_logs)
+            email_manager.add_log_block_to_email(task_name=t_name, logs=task_specific_logs, task=task)
 
             # 6. Pipeline halt
             # If the task failed all retries, 'task_passed_finally' remains False.

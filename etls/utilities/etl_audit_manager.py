@@ -5,7 +5,7 @@ from datetime import timezone, timedelta
 
 # Custom libraries
 import utilities.logging_manager as lg
-from connectors.postgresql_connector import PostgresConnector
+from connectors.postgresql_connector import PostgresqlConnector
 
 class EtlAuditManager:
     """
@@ -76,15 +76,15 @@ class EtlAuditManager:
         self.credential_name = credential_name                                  # Name of credential connection
 
         # State tracking for the current ETL run
-        self.etl_runs_key: Optional[int] = None                                 # An ETL run key identifier
-        self.sdt: Optional[datetime.datetime] = None                            # Start Date Time
-        self.edt: Optional[datetime.datetime] = None                            # End Date Time
-        self.data_min_date: Optional[datetime.datetime] = None                  # Minimum timestamp of ETL batch
-        self.data_max_date: Optional[datetime.datetime] = None                  # Maximum timestamp of ETL batch
-        self.load_type: Optional[str] = None                                    # Increment (I) or full (F) load type
-        self.num_of_records: Optional[int] = None                               # Number of records extracted
-        self.prev_max_date: Optional[datetime.datetime] = None                  # Previous data max date
-        self.pg_connector = PostgresConnector(credential_name=credential_name)  # Initialize PostgresConnector
+        self.etl_runs_key: Optional[int] = None                                   # An ETL run key identifier
+        self.sdt: Optional[datetime.datetime] = None                              # Start Date Time
+        self.edt: Optional[datetime.datetime] = None                              # End Date Time
+        self.data_min_date: Optional[datetime.datetime] = None                    # Minimum timestamp of ETL batch
+        self.data_max_date: Optional[datetime.datetime] = None                    # Maximum timestamp of ETL batch
+        self.load_type: Optional[str] = None                                      # Increment (I) or full (F) load type
+        self.num_of_records: Optional[int] = None                                 # Number of records extracted
+        self.prev_max_date: Optional[datetime.datetime] = None                    # Previous data max date
+        self.pg_connector = PostgresqlConnector(credential_name=credential_name)  # Initialize PostgresConnector
         lg.info('Etl Audit Manager object is instantiated')
 
     @staticmethod
@@ -118,8 +118,8 @@ class EtlAuditManager:
                     script_execution_end_time       TIMESTAMPTZ,  
                     target_database                 TEXT,
                     target_table                    TEXT,
-                    created_at                      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP(0),
-                    modified_at                     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP(0) 
+                    created_at                      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                    modified_at                     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP 
                 );
                 """
 
@@ -300,9 +300,9 @@ class EtlAuditManager:
                 '{sources_string}', 
                 '{target_database}', 
                 '{target_table}', 
-                '{self.sdt.strftime("%Y-%m-%d %H:%M:%S")}', 
-                '{self.edt.strftime("%Y-%m-%d %H:%M:%S")}', 
-                CURRENT_TIMESTAMP(0), 
+                '{self.sdt.strftime('%Y-%m-%d %H:%M:%S.%f%z')}', 
+                '{self.edt.strftime('%Y-%m-%d %H:%M:%S.%f%z')}', 
+                CURRENT_TIMESTAMP, 
                 '{os.environ.get('MACHINE_SCRIPT_RUNNER_ENV')}', 
                 'In Progress', 
                 '{script_version}'
@@ -325,37 +325,38 @@ class EtlAuditManager:
         """
 
         # 1. Fetch the number of records in the df
-        # self.num_records = getattr(self.swc, 'num_of_records')
         self.num_of_records = self.swc.num_of_records
         lg.info(f"Final count pulled from script worker: {self.num_of_records}")
 
-        # Fetch data_min_date from Script Worker
-        self.data_min_date = self.swc.data_min_date
+        # 2. Fetch data_min_date and data_max_date from Script Worker if they exist (len(df) > 0)
+        # Otherwise, set sdt to data_min_date and data_max_date
+        if self.swc.data_min_date:
+            self.data_min_date = self.swc.data_min_date
         lg.info(f"Data min date pulled from script worker: {self.data_min_date}")
 
-        # Fetch data_min_date from Script Worker
-        self.data_max_date = self.swc.data_max_date
+        if self.swc.data_max_date:
+            self.data_max_date = self.swc.data_max_date
         lg.info(f"Data min date pulled from script worker: {self.data_max_date}")
 
-        # 2. Format dates for SQL
-        data_min_val = f"'{self.data_min_date.strftime('%Y-%m-%d %H:%M:%S')}'" if self.data_min_date is not None else "NULL"
-        data_max_val = f"'{self.data_max_date.strftime('%Y-%m-%d %H:%M:%S')}'" if self.data_max_date is not None else "NULL"
-        prev_date_val = f"'{self.prev_max_date.strftime('%Y-%m-%d %H:%M:%S')}'" if self.prev_max_date else "NULL"
+        # 3. Format dates for SQL
+        data_min_val = f"'{self.data_min_date.strftime('%Y-%m-%d %H:%M:%S.%f%z')}'" if self.data_min_date is not None else "NULL"
+        data_max_val = f"'{self.data_max_date.strftime('%Y-%m-%d %H:%M:%S.%f%z')}'" if self.data_max_date is not None else "NULL"
+        prev_date_val = f"'{self.prev_max_date.strftime('%Y-%m-%d %H:%M:%S.%f%z')}'" if self.prev_max_date else "NULL"
 
-        # 3. Update Query
+        # 4. Update Query
         update_query = f"""
             UPDATE audit.etl_runs 
             SET  
                 data_min_date = {data_min_val},
                 data_max_date = {data_max_val},
-                script_execution_end_time = CURRENT_TIMESTAMP(0),
+                script_execution_end_time = CURRENT_TIMESTAMP,
                 status = '{status}',
                 num_of_records = {self.num_of_records},
                 prev_max_date = {prev_date_val},
-                modified_at = CURRENT_TIMESTAMP(0)
+                modified_at = CURRENT_TIMESTAMP
             WHERE etl_runs_key = {self.etl_runs_key};
         """
 
-        # 4. Run the update query
+        # 5. Run the update query
         lg.info(f"Running the UPDATE query: {update_query}")
         self.pg_connector.run_query(query=update_query, commit=True, get_result=False)

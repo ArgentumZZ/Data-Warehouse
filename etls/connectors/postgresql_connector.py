@@ -8,14 +8,12 @@ import configparser, os
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 import utilities.logging_manager as lg
 
-class PostgresConnector:
+class PostgresqlConnector:
     """
     PostgreSQL Connector for managing connections, executing queries,
     and performing common ETL tasks.
 
-    Features:
-    ---------
-    1. Config Loader: Read DB credentials from .cfg/.ini files.
+    1. Config loader: Read DB credentials from .cfg/.ini files.
     2. Connection Factory: Return psycopg2 connection objects.
     3. Query Execution: Run SQL with optional results and commit.
     4. DDL Helpers: Create schemas and tables if not exists.
@@ -30,8 +28,8 @@ class PostgresConnector:
     # ---------------------------------------------------------
     # CONFIG LOADER
     # ---------------------------------------------------------
-    def load_db_config(self,
-                       credential_name: str) -> Dict[str, str]:
+    @staticmethod
+    def load_db_config(credential_name: str) -> Dict[str, str]:
         """
         Load a specific credential name from .cfg file.
 
@@ -50,7 +48,7 @@ class PostgresConnector:
 
         Example config file:
 
-            [postgres_prod]
+            [postgresql_prod]
             host=localhost
             port=5432
             database=mydb
@@ -81,7 +79,8 @@ class PostgresConnector:
     # ---------------------------------------------------------
     # CONNECTION FACTORY
     # ---------------------------------------------------------
-    def get_connection(self, cfg: Dict[str, str]) -> PGConnection:
+    @staticmethod
+    def get_connection(cfg: Dict[str, str]) -> PGConnection:
         """
         Create and return a new PostgreSQL connection.
 
@@ -137,44 +136,40 @@ class PostgresConnector:
             get_result: If True, fetch and return rows (empty if none).
             commit: If True, commit the transaction after execution.
 
-        Returns: A list of rows if get_result=True and the query returns data, otherwise an empty list.
+        Returns: A list of rows if get_result=True and the query returns data, otherwise an empty dataframe.
 
         COMMIT RULES (PostgreSQL):
 
-        CREATE SCHEMA
         ✅ COMMIT
-        Creates database structure
-        Rolled back otherwise
+        CREATE SCHEMA:
+        - Creates database structure
+        - Rolled back otherwise
 
-        CREATE TABLE / ALTER TABLE / DROP TABLE
-        ✅ COMMIT
-        Modifies schema
-        Rolled back otherwise
+        CREATE TABLE / ALTER TABLE / DROP TABLE:
+        - Modifies schema
+        - Rolled back otherwise
 
-        INSERT
-        ✅ COMMIT
-        Adds new rows
-        Rolled back otherwise
+        INSERT:
+        - Adds new rows
+        - Rolled back otherwise
 
-        UPDATE
-        ✅ COMMIT
-        Modifies existing rows
-        Rolled back otherwise
+        UPDATE:
+        - Modifies existing rows
+        - Rolled back otherwise
 
-        DELETE
-        ✅ COMMIT
-        Removes rows
-        Rolled back otherwise
+        DELETE:
+        - Removes rows
+        - Rolled back otherwise
 
-        SELECT
         ❌ DO NOT COMMIT
-        Read-only
-        Commit has no effect
+        SELECT:
+        - Read-only
+        - Commit has no effect
         """
 
         # 1. Open a new PostgreSQL database connection.
         try:
-            with self.get_connection(self.load_db_config(self.credential_name)) as conn:
+            with PostgresqlConnector.get_connection(PostgresqlConnector.load_db_config(self.credential_name)) as conn:
 
                 # 1.1. Create a cursor for executing SQL
                 with conn.cursor() as cur:
@@ -223,7 +218,7 @@ class PostgresConnector:
             schema: Name of the schema to create (e.g. 'shift', 'figment')
         """
 
-        # 1. Idempotent: does nothing if schema already exists
+        # 1. Idempotency: does nothing if schema already exists
         query = f"CREATE SCHEMA IF NOT EXISTS {schema};"
 
         # 2. Execute and commit
@@ -285,7 +280,7 @@ class PostgresConnector:
         """
 
         # 1. Open a database connection (the temporary table will live in this session)
-        with self.get_connection(self.load_db_config(self.credential_name)) as conn:
+        with PostgresqlConnector.get_connection(PostgresqlConnector.load_db_config(self.credential_name)) as conn:
             with conn.cursor() as cur:
 
                 # 2. Create a temporary table

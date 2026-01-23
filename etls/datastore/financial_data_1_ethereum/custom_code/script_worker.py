@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 # Import custom libraries
 import utilities.logging_manager as lg
 from utilities.etl_utils import EtlUtils
-from connectors.postgresql_connector import PostgresConnector
+from connectors.postgresql_connector import PostgresqlConnector
 from custom_code.sql_queries import sql_queries, source_columns_unique
 
 
@@ -19,7 +19,7 @@ class ScriptWorker:
         - saving and uploading
     """
 
-    def __init__(self, sfc: 'ScriptFactory'):
+    def __init__(self, sfc: 'ScriptFactory') -> None:
 
         self.sfc = sfc              # pointer to the script factory class
         self.num_of_records = None
@@ -39,12 +39,12 @@ class ScriptWorker:
         """
 
         # 1. Initialize the Postgres connector
-        pg_connector = PostgresConnector(credential_name='postgresql: development')
+        pg_connector = PostgresqlConnector(credential_name='postgresql: development')
 
         # 2. Format the query
         query = sql_queries['get_data'].format(
-                            sdt=self.sfc.etl_audit_manager.sdt.strftime('%Y-%m-%d %H:%M:%S'),
-                            edt=self.sfc.etl_audit_manager.edt.strftime('%Y-%m-%d %H:%M:%S'))
+                            sdt=self.sfc.etl_audit_manager.sdt.strftime('%Y-%m-%d %H:%M:%S.%f%z'),
+                            edt=self.sfc.etl_audit_manager.edt.strftime('%Y-%m-%d %H:%M:%S.%f%z'))
 
         lg.info(f"The query: {query}")
 
@@ -109,11 +109,8 @@ class ScriptWorker:
 
         else:
             # 4.7. No records are returned, then leave the min and max dates at the start date
+            # The next run will start from the same point
             self.num_of_records = 0
-            self.data_min_date = None
-            self.data_max_date = None
-
-            # 4.9. The next run will start from the same point
             self.sfc.etl_audit_manager.data_min_date = self.sfc.etl_audit_manager.sdt
             self.sfc.etl_audit_manager.data_max_date = self.sfc.etl_audit_manager.sdt
 
@@ -151,8 +148,13 @@ class ScriptWorker:
 
         # 1. Check if the file exists
         if not os.path.exists(file_path):
-            lg.info(f"No data to upload for {table}. Skipping this step.")
+            lg.info(f"No data to upload for {table}. Skipping upload step.")
+
+            # Mark run as complete
             self.status = 'Complete'
+
+            # Persist audit record
+            etl_audit_manager.update_etl_runs_table_record(status=self.status)
             return
 
         try:
