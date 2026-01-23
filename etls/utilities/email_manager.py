@@ -66,11 +66,21 @@ class EmailManager:
             # Use <br/> to ensure that each pair starts on a new line in the HTML table
             params_repr = "<br/>".join(f"{k}={v!r}" for k, v in func.keywords.items())
 
-        # 2. Determine row styling and status text based on outcome (green/red)
-        color = "#d4edda" if status == "SUCCESS" else "#f8d7da"
+        # 2. Determine row styling and status text based on outcome
+        color_map = {
+            "SUCCESS"   : "#8bcf94",  # dark green
+            "FAILED"    : "#ee6b6b",  # darker red
+            "DISABLED"  : "#fff3cd",  # yellow
+            "SKIPPED"   : "#fff3cd",  # yellow
+        }
+
+        color = color_map.get(status, "#ffffff")
 
         # If failed, add the 'FAILED' tag to the error message
-        status_text = status if status == "SUCCESS" else f"FAILED: {error_msg}"
+        if status == "FAILED":
+            status_text = f"FAILED: {error_msg}"
+        else:
+            status_text = status
 
         # 3. Append the formatted row to the instance variable self.html_tasks_rows
         self.html_tasks_rows += f"""
@@ -82,26 +92,39 @@ class EmailManager:
                 <td>{task.get("retries")}</td>
                 <td>{task.get("depends_on")}</td>
                 <td>{status_text}</td>
-                <td style="font-size: 10px;">{params_repr}</td>
             </tr>
         """
 
     def add_log_block_to_email(self,
                                task_name: str,
-                               logs: str) -> None:
+                               logs: str,
+                               task: dict = None) -> None:
         """
-        Append a formatted block of logs.
+        Append a formatted block of logs to the email. If a task is provided, add its parameters to the log block.
         """
+
+        # 1. Prepare task parameters if available
+        params_repr = ""
+        if task and hasattr(task["function"], "keywords") and task["function"].keywords:
+            params_repr = "<br/>".join(
+                f"{k}={v!r}" for k, v in task["function"].keywords.items()
+            )
+            # Wrap in a styled div for clarity
+            params_repr = f"""
+                <div style="background-color: #fff3cd; color: #856404; padding: 6px 12px; font-family: monospace; font-size: 12px; border-bottom: 1px solid #ffeeba;">
+                    <b>Task Parameters:</b><br>{params_repr}
+                </div>
+            """
 
         display_logs = logs.strip() if (logs and logs.strip()) else "No logs captured for this task."
 
-        # Keep the HTML tags for the container indented,
-        # but the content and its immediate parent MUST be at the start of the line.
+        # 2. Append the log block including parameters first
         self.html_logs_blocks += f"""
                 <div style="border: 1px solid #dddddd; border-bottom: none; overflow: hidden;">
                 <div style="background-color: #343a40; color: #ffffff; padding: 6px 12px; font-family: monospace; font-size: 13px; font-weight: bold;">
                 TASK {self.task_count}: {task_name}
                 </div>
+                {params_repr}  <!-- Insert parameters here -->
                 <div style="background-color: #f8f9fa; padding: 10px 15px; font-family: 'Consolas', monospace; white-space: pre-wrap; font-size: 12px; color: #333333;">{display_logs}</div>
                 </div>
                 """
@@ -148,7 +171,6 @@ class EmailManager:
             <th>Retries</th>
             <th>Depends on</th>
             <th>Status</th>
-            <th>Parameters</th>
         </tr>
         """
 
