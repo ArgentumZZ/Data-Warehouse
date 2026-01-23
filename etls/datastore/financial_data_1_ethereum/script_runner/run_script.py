@@ -146,7 +146,7 @@ def main():
 
         try:
             # 8. Prepare the mails
-            email_manager.prepare_mails()
+            email_manager.prepare_emails()
 
             # 9. Send the mails
             email_manager.send_mails(is_error=not success)

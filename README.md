@@ -208,7 +208,7 @@ ___
   - Add a `load_smtp_config` function to read e-mail credentials. ✔️ (moved to config_utils.py in utilities)
   - Add a `add_task_result_to_email` function to build task execution log incrementally. ✔️ 
   - Add a `add_log_block_to_email` function to build technical log details incrementally. ✔️
-  - Add a `prepare_mails` function to build e-mails based on general info, task execution log and technical log details. ✔️
+  - Add a `prepare_emails` function to build e-mails based on general info, task execution log and technical log details. ✔️
   - Add a `send_mails` function that sends the prepared e-mails. ✔️
   - Add a `smtp_send` function that executes the technical transmission of an email via SMTP. ✔️
 

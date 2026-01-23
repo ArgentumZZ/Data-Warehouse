@@ -93,7 +93,7 @@ class EmailManager:
         """
         1. Appends a formatted block of logs to the email. This method is called iteratively as each task completes.
         2. If a task is provided, add its parameters to the log block at the top.
-        3. The format of the log block is like:
+        3. The format of the log block:
              TASK <number>: <task_name>
              <task_parameters>
              <display_logs>
@@ -138,38 +138,38 @@ class EmailManager:
                 </div>
                 """
 
-    def prepare_mails(self, log_content: str = "") -> None:
+    def prepare_emails(self, log_content: str = "") -> None:
+
         """
-        1. Finalize the HTML structure and prepare email payloads for delivery.
+        1. Assembles the final the HTML structure:
 
-        2. This method aggregates the general script metadata and the accumulated
-        task execution rows into a single HTML document. It then stores
-        these as dictionaries in 'prepared_success_email' and 'prepared_error_email'.
+        General Script Information
+        Task Execution Log
+        Technical Log Details
 
-        3. Read the log content of the run and display it in the e-mail alert.
-        Raises:
-            KeyError: If 'script_name' is missing from factory.info.
+        2. Builds the general_script_information_html self.info in Script Factory.
+        3. Builds a task_execution_log_header plus technical_log_details_html based on the accumulated log blocks.
+        4. Uses the accumulated self.html_tasks_rows, combines all elements to build the final structure.
+        5. Read the log content of the run and display it in the e-mail alert.
         """
 
         lg.info("Finalizing email content structure")
         # 1. Access script metadata from the factory instance
         info = self.factory.info
 
-        # 1. Build the general info header table
-        # This section provides context (e.g., Environment, Start Time) at the top of the email
-        general_info_html = """
+        # 2. Build the general script information table (script_name, script_name, run_environment, script owners, etc.)
+        general_script_information_html = """
         <h2>General Script Information</h2>
         <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;">
         """
 
-        # With gray background
+        # 3. Add the columns (with gray background)
         for key, value in info.items():
-            general_info_html += f"<tr><td style='background-color: #f2f2f2; width: 30%;'><b>{key}</b></td><td>{value}</td></tr>"
-        general_info_html += "</table><br>"
+            general_script_information_html += f"<tr><td style='background-color: #f2f2f2; width: 30%;'><b>{key}</b></td><td>{value}</td></tr>"
+        general_script_information_html += "</table><br>"
 
-        # 2. Build the task table header
-        # Defines the column structure for the execution results appended during the run
-        task_table_header = """
+        # 4. Build the Task Execution Log header
+        task_execution_log_header = """
         <h2>Task Execution Log</h2>
         <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse; width: 100%;">
         <tr style="background-color: #f2f2f2;">
@@ -183,9 +183,8 @@ class EmailManager:
         </tr>
         """
 
-        # 3. Use the accumulated blocks instead of a single string
-        # Wrap the accumulated blocks in a div that adds the final bottom border
-        log_section_html = f"""
+        # 5. Use the accumulated log blocks to build the technical log details block
+        technical_log_details_html = f"""
                         <hr style="border: 1px solid #eee; margin: 30px 0;">
                         <h2>Technical Log Details</h2>
                         <div style="border-bottom: 1px solid #dddddd;"> 
@@ -193,36 +192,38 @@ class EmailManager:
                         </div>
                         """
 
-        # 4. Combine header + accumulated rows + table closing tags
-        # This creates the full HTML document string
+        # 6. Combine all elements into one full HTML document string
         html_body = f"""
         <html>
         <body>
-            {general_info_html}
-            {task_table_header}
+            {general_script_information_html}
+            {task_execution_log_header}
             {self.html_tasks_rows}
         </table>
         <br>
-            {log_section_html}
+            {technical_log_details_html}
         </body>
         </html>
         """
 
+        # 7. Calculate the run date
         today = datetime.now().strftime("%Y-%m-%d")
 
-        # 4. Store in payloads for the send_mails() method
-        # Success payload: Sent to Business recipients
+        # 8. Store in payloads for the send_mails() method
+        # Add the run date to the title of the e-mail
+
+        # Success payload: Sent to business recipients
         self.prepared_success_email = {
-            "to": self.recipients_business,
-            "subject": f"SUCCESS: {info['script_name']} - [{today}]",
-            "body": html_body
+            "to"        : self.recipients_business,
+            "subject"   : f"SUCCESS: {info['script_name']} - [{today}]",
+            "body"      : html_body
         }
 
-        # Error payload: Sent to Error recipients
+        # Error payload: Sent to error recipients
         self.prepared_error_email = {
-            "to": self.recipients_error,
-            "subject": f"ERROR: {info['script_name']} - [{today}]",
-            "body": html_body
+            "to"        : self.recipients_error,
+            "subject"   : f"ERROR: {info['script_name']} - [{today}]",
+            "body"      : html_body
         }
 
     def send_mails(self, is_error: bool = False) -> None:
@@ -243,7 +244,7 @@ class EmailManager:
 
         # Check that the HTML body has been constructed
         if email_payload is None:
-            lg.info("No prepared email found. Call prepare_mails() first.")
+            lg.info("No prepared email found. Call prepare_emails() first.")
             return
 
         # 2. Admin group
