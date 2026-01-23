@@ -40,7 +40,6 @@ class ScriptFactory:
             'script_version'         : settings.script_version,
             'run_environment'        : settings.environment,
             'machine_environment'    : settings.machine_env,
-            'script_execution_time'  : 'not implemented yet',
             'script_description'     : settings.script_description,
             'reference_page'         : "not implemented yet",
             'script_frequency'       : settings.script_frequency,

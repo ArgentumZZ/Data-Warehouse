@@ -9,6 +9,10 @@ from utilities.argument_parser import parse_arguments
 from utilities.email_manager import EmailManager
 
 def main():
+
+    # Capture start time
+    start_time = time.time()
+
     lg.info("Starting the ETL run")
     success = True
     # success_registry stores the 'task_name' of every task that finished without error.
@@ -138,15 +142,22 @@ def main():
         success = False
 
     finally:
-        # 7. Log the final status
+        # 7. Log the final status and calculate script time execution
         if success:
             lg.info("ETL run completed successfully.")
         else:
             lg.info("ETL run finished with errors.")
 
+        # Calculate the total duration of the script
+        duration_seconds = time.time() - start_time
+
+        # Reformat into HH:MM:SS
+        # time.gmtime() converts a number of seconds into a structured time object
+        duration_formatted = time.strftime("%H:%M:%S", time.gmtime(duration_seconds))
+
         try:
             # 8. Prepare the mails
-            email_manager.prepare_emails()
+            email_manager.prepare_emails(script_execution_time=duration_formatted)
 
             # 9. Send the mails
             email_manager.send_emails(is_error=not success)

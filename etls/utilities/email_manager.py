@@ -160,7 +160,7 @@ class EmailManager:
                 </div>
                 """
 
-    def prepare_emails(self, log_content: str = "") -> None:
+    def prepare_emails(self, script_execution_time: str, log_content: str = "") -> None:
 
         """
         1. Assembles the final the HTML structure:
@@ -178,6 +178,9 @@ class EmailManager:
         lg.info("Finalizing email content structure")
         # 1. Access script metadata from the factory instance
         info = self.factory.info
+
+        # Add the script execution time to the e-mail
+        info['script_execution_time'] = script_execution_time
 
         # 2. Build the general script information table (script_name, script_name, run_environment, script owners, etc.)
         general_script_information_html = """
