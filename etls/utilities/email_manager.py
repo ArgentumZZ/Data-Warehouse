@@ -12,6 +12,7 @@ class EmailManager:
 
     def __init__(self, factory: 'ScriptFactory') -> None:
 
+        # Initialize the Script Factory class
         self.factory = factory
 
         # Lists of recipients that change based on PROD/DEV environment.
@@ -34,7 +35,7 @@ class EmailManager:
         # Initialize the dynamic HTML content
         self.task_count = 0
         self.html_tasks_rows = ""
-        self.html_logs_blocks = ""  # Initialize the log block accumulator
+        self.html_logs_blocks = ""
 
 
     def add_task_result_to_email(self,
@@ -42,31 +43,24 @@ class EmailManager:
                                  status: str,
                                  error_msg: str = "") -> None:
         """
-        1. Appends a formatted HTML table row to the internal task log string.
+        1. Appends a formatted HTML table row to the Task Execution Log.
 
         2. This method is called iteratively as each task completes. It applies
-        conditional formatting (green for success, red for failure) and
-        extracts function parameters in the report.
+        conditional formatting (green for success, red for failure, yellow for skipped or disabled).
+        3. It extracts function parameters in the report (task name, description, enabled status, number of retries,
+        task dependency and current status).
 
         Args:
             task: The task configuration dictionary from ScriptFactory.
-            status: The execution outcome (e.g., 'SUCCESS', 'FAILED', 'SKIPPED').
+            status: The execution outcome (e.g., 'SUCCESS', 'FAILED', 'SKIPPED', 'DISABLED').
             error_msg: The exception message if the task failed. Defaults to "".
         """
 
-        # 1. Extract function keywords/parameters
-        func = task["function"]
-        params_repr = ""
-
-        # A number that will be displayed next to the task name, increment the counter
+        # 1. A number that will be displayed next to the task name,
+        # Increment the counter each time we call this method.
         self.task_count += 1
 
-        # Check if the function has 'keywords' attribute
-        if hasattr(func, "keywords") and func.keywords:
-            # Use <br/> to ensure that each pair starts on a new line in the HTML table
-            params_repr = "<br/>".join(f"{k}={v!r}" for k, v in func.keywords.items())
-
-        # 2. Determine row styling and status text based on outcome
+        # 2. Determine and get color based on outcome
         color_map = {
             "SUCCESS"   : "#8bcf94",  # dark green
             "FAILED"    : "#ee6b6b",  # darker red
@@ -76,13 +70,10 @@ class EmailManager:
 
         color = color_map.get(status, "#ffffff")
 
-        # If failed, add the 'FAILED' tag to the error message
-        if status == "FAILED":
-            status_text = f"FAILED: {error_msg}"
-        else:
-            status_text = status
+        # 3. Format status text
+        status_text = f"FAILED: {error_msg}" if status == 'FAILED' else status
 
-        # 3. Append the formatted row to the instance variable self.html_tasks_rows
+        # 4. Append the formatted row to the instance variable self.html_tasks_rows
         self.html_tasks_rows += f"""
             <tr style="background-color: {color};">
                 <td style="text-align: center;">{self.task_count}</td>
@@ -100,31 +91,49 @@ class EmailManager:
                                logs: str,
                                task: dict = None) -> None:
         """
-        Append a formatted block of logs to the email. If a task is provided, add its parameters to the log block.
+        1. Appends a formatted block of logs to the email. This method is called iteratively as each task completes.
+        2. If a task is provided, add its parameters to the log block at the top.
+        3. The format of the log block is like:
+             TASK <number>: <task_name>
+             <task_parameters>
+             <display_logs>
+
+
+        Args:
+            task_name: name of the task
+            logs: the log messages for that particular task
+            task: a dictionary with task metadata (as defined in script_factory.py)
         """
 
         # 1. Prepare task parameters if available
-        params_repr = ""
-        if task and hasattr(task["function"], "keywords") and task["function"].keywords:
-            params_repr = "<br/>".join(
-                f"{k}={v!r}" for k, v in task["function"].keywords.items()
-            )
+        task_parameters = ""
+        keywords = getattr(task.get("function"), "keywords", {}) if task else {}
+
+        # if the keywords exist, extract key-value pairs
+        if keywords:
+            # Use <br/> to ensure that each pair starts on a new line in the HTML table
+            items = "<br/>".join(f"{k}={v!r}" for k, v in keywords.items())
+
             # Wrap in a styled div for clarity
-            params_repr = f"""
+            task_parameters = f"""
                 <div style="background-color: #fff3cd; color: #856404; padding: 6px 12px; font-family: monospace; font-size: 12px; border-bottom: 1px solid #ffeeba;">
-                    <b>Task Parameters:</b><br>{params_repr}
+                    <b>Task Parameters:</b><br>{items}
                 </div>
             """
 
+        # 2. Strip whitespace if logs exist and aren't just whitespace; otherwise, use a fallback message.
         display_logs = logs.strip() if (logs and logs.strip()) else "No logs captured for this task."
 
-        # 2. Append the log block including parameters first
+        # 3. Append the log block including parameters first
+        # TASK <number>: <task_name>
+        # <task_parameters>
+        # <display_logs>
         self.html_logs_blocks += f"""
                 <div style="border: 1px solid #dddddd; border-bottom: none; overflow: hidden;">
                 <div style="background-color: #343a40; color: #ffffff; padding: 6px 12px; font-family: monospace; font-size: 13px; font-weight: bold;">
                 TASK {self.task_count}: {task_name}
                 </div>
-                {params_repr}  <!-- Insert parameters here -->
+                {task_parameters} 
                 <div style="background-color: #f8f9fa; padding: 10px 15px; font-family: 'Consolas', monospace; white-space: pre-wrap; font-size: 12px; color: #333333;">{display_logs}</div>
                 </div>
                 """
