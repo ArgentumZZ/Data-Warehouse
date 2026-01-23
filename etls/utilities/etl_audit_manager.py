@@ -5,7 +5,7 @@ from datetime import timezone, timedelta
 
 # Custom libraries
 import utilities.logging_manager as lg
-from connectors.postgresql_connector import PostgresConnector
+from connectors.postgresql_connector import PostgresqlConnector
 
 class EtlAuditManager:
     """
@@ -76,15 +76,15 @@ class EtlAuditManager:
         self.credential_name = credential_name                                  # Name of credential connection
 
         # State tracking for the current ETL run
-        self.etl_runs_key: Optional[int] = None                                 # An ETL run key identifier
-        self.sdt: Optional[datetime.datetime] = None                            # Start Date Time
-        self.edt: Optional[datetime.datetime] = None                            # End Date Time
-        self.data_min_date: Optional[datetime.datetime] = None                  # Minimum timestamp of ETL batch
-        self.data_max_date: Optional[datetime.datetime] = None                  # Maximum timestamp of ETL batch
-        self.load_type: Optional[str] = None                                    # Increment (I) or full (F) load type
-        self.num_of_records: Optional[int] = None                               # Number of records extracted
-        self.prev_max_date: Optional[datetime.datetime] = None                  # Previous data max date
-        self.pg_connector = PostgresConnector(credential_name=credential_name)  # Initialize PostgresConnector
+        self.etl_runs_key: Optional[int] = None                                   # An ETL run key identifier
+        self.sdt: Optional[datetime.datetime] = None                              # Start Date Time
+        self.edt: Optional[datetime.datetime] = None                              # End Date Time
+        self.data_min_date: Optional[datetime.datetime] = None                    # Minimum timestamp of ETL batch
+        self.data_max_date: Optional[datetime.datetime] = None                    # Maximum timestamp of ETL batch
+        self.load_type: Optional[str] = None                                      # Increment (I) or full (F) load type
+        self.num_of_records: Optional[int] = None                                 # Number of records extracted
+        self.prev_max_date: Optional[datetime.datetime] = None                    # Previous data max date
+        self.pg_connector = PostgresqlConnector(credential_name=credential_name)  # Initialize PostgresConnector
         lg.info('Etl Audit Manager object is instantiated')
 
     @staticmethod

@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 # Import custom libraries
 import utilities.logging_manager as lg
 from utilities.etl_utils import EtlUtils
-from connectors.postgresql_connector import PostgresConnector
+from connectors.postgresql_connector import PostgresqlConnector
 from custom_code.sql_queries import sql_queries, source_columns_unique
 
 
@@ -19,7 +19,7 @@ class ScriptWorker:
         - saving and uploading
     """
 
-    def __init__(self, sfc: 'ScriptFactory'):
+    def __init__(self, sfc: 'ScriptFactory') -> None:
 
         self.sfc = sfc              # pointer to the script factory class
         self.num_of_records = None
@@ -39,7 +39,7 @@ class ScriptWorker:
         """
 
         # 1. Initialize the Postgres connector
-        pg_connector = PostgresConnector(credential_name='postgresql: development')
+        pg_connector = PostgresqlConnector(credential_name='postgresql: development')
 
         # 2. Format the query
         query = sql_queries['get_data'].format(

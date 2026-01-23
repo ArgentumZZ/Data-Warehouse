@@ -8,14 +8,12 @@ import configparser, os
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 import utilities.logging_manager as lg
 
-class PostgresConnector:
+class PostgresqlConnector:
     """
     PostgreSQL Connector for managing connections, executing queries,
     and performing common ETL tasks.
 
-    Features:
-    ---------
-    1. Config Loader: Read DB credentials from .cfg/.ini files.
+    1. Config loader: Read DB credentials from .cfg/.ini files.
     2. Connection Factory: Return psycopg2 connection objects.
     3. Query Execution: Run SQL with optional results and commit.
     4. DDL Helpers: Create schemas and tables if not exists.
@@ -30,8 +28,8 @@ class PostgresConnector:
     # ---------------------------------------------------------
     # CONFIG LOADER
     # ---------------------------------------------------------
-    def load_db_config(self,
-                       credential_name: str) -> Dict[str, str]:
+    @staticmethod
+    def load_db_config(credential_name: str) -> Dict[str, str]:
         """
         Load a specific credential name from .cfg file.
 
@@ -50,7 +48,7 @@ class PostgresConnector:
 
         Example config file:
 
-            [postgres_prod]
+            [postgresql_prod]
             host=localhost
             port=5432
             database=mydb
@@ -81,7 +79,8 @@ class PostgresConnector:
     # ---------------------------------------------------------
     # CONNECTION FACTORY
     # ---------------------------------------------------------
-    def get_connection(self, cfg: Dict[str, str]) -> PGConnection:
+    @staticmethod
+    def get_connection(cfg: Dict[str, str]) -> PGConnection:
         """
         Create and return a new PostgreSQL connection.
 
@@ -170,7 +169,7 @@ class PostgresConnector:
 
         # 1. Open a new PostgreSQL database connection.
         try:
-            with self.get_connection(self.load_db_config(self.credential_name)) as conn:
+            with PostgresqlConnector.get_connection(PostgresqlConnector.load_db_config(self.credential_name)) as conn:
 
                 # 1.1. Create a cursor for executing SQL
                 with conn.cursor() as cur:
@@ -219,7 +218,7 @@ class PostgresConnector:
             schema: Name of the schema to create (e.g. 'shift', 'figment')
         """
 
-        # 1. Idempotent: does nothing if schema already exists
+        # 1. Idempotency: does nothing if schema already exists
         query = f"CREATE SCHEMA IF NOT EXISTS {schema};"
 
         # 2. Execute and commit
@@ -281,7 +280,7 @@ class PostgresConnector:
         """
 
         # 1. Open a database connection (the temporary table will live in this session)
-        with self.get_connection(self.load_db_config(self.credential_name)) as conn:
+        with PostgresqlConnector.get_connection(PostgresqlConnector.load_db_config(self.credential_name)) as conn:
             with conn.cursor() as cur:
 
                 # 2. Create a temporary table

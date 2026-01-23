@@ -13,7 +13,7 @@ from utilities.argument_parser import parse_arguments
 
 from custom_code.script_worker import ScriptWorker
 from custom_code.sql_queries import sql_queries
-from connectors.postgresql_connector import PostgresConnector
+from connectors.postgresql_connector import PostgresqlConnector
 
 
 class ScriptFactory:
@@ -39,6 +39,7 @@ class ScriptFactory:
             'script_name'            : settings.script_name,
             'script_version'         : settings.script_version,
             'run_environment'        : settings.environment,
+            'machine_environment'    : settings.machine_env,
             'script_execution_time'  : 'not implemented yet',
             'script_description'     : settings.script_description,
             'reference_page'         : "not implemented yet",
@@ -99,7 +100,7 @@ class ScriptFactory:
         self.etl_audit_manager = EtlAuditManager(self, self.script_worker, self.database)
 
         # Create an instance of the connector
-        self.pg_connector = PostgresConnector(credential_name=self.database)
+        self.pg_connector = PostgresqlConnector(credential_name=self.database)
 
         # 5. Create schema and table
         self.pg_connector.init_schema_and_table(query=sql_queries['create_table'],
