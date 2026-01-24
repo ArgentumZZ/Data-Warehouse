@@ -181,7 +181,7 @@ def main():
                     else:
                         lg.info(f"Task '{t_name}' exhausted all retry attempts.")
 
-                        # pass the traceback to the e-mail
+                        # Mark the task as failed
                         email_manager.add_task_result_to_email(task=task, status="FAILED", error_msg="See Technical Log Details below")
 
             # Read and return the log content from a specific byte offset to the end
