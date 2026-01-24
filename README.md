@@ -1,7 +1,11 @@
 ## 🛢️Data Warehouse
 
 - **Data Warehouse**
-  - Extract, transform and load data from different sources into a PostgresSQL database.
+  - A personal data warehouse ecosystem project that will implement modern data‑engineering patterns. 
+  - The goal is to build a scalable, maintainable platform for analytics.
+  - The project will include a modular ETL framework, Dockerized execution environment, Airflow orchestration, configuration‑based execution. 
+  - It will provide reusable connectors and utilities, a structured warehouse layer with dimensional and fact tables, views, email notifications, data quality checks, data warehouse process monitoring and backfilling for historical data recovery.
+  
 - **Main folders**
   - `dags` - DAG files for Airflow.
   - `connectors` - Connectors to different DB and non-DB sources.
@@ -70,8 +74,6 @@ datawarehouse/
 │   │   └── ... other DQC projects ...
 │   │
 │   ├── datastore/
-│   │   ├── alpaca_1_revenue/
-│   │   ├── crypto_1_transactions/
 │   │   ├── financial_data_1_ethereum/
 │   │   │       ├── custom_code/
 │   │   │       │      ├── alter_tables.sql
@@ -104,15 +106,19 @@ datawarehouse/
 │   │   │       │      ├── run_financial_data_1_ethereum.sh
 │   │   │       │      └── run_script.py
 │   │   │       └──  __init__.py
+│   │   ├── alpaca_1_revenue/
+│   │   ├── crypto_1_transactions/
 │   │   └── ... other datastore project folders ...
 │   │
 │   ├── tests/
 │   │   ├── __init__.py
 │   │   ├── test_connectors.py
-│   │   ├── test_utilspy
+│   │   ├── test_utils.py
 │   │   ├── test_worker.py
 │   │   └── ... other test .py files ...
+│   │
 │   ├── utilities/
+│   │   ├── __init__.py 
 │   │   ├── argument_parser.py
 │   │   ├── email_manager.py
 │   │   ├── etl_audit_manager.py
@@ -155,7 +161,7 @@ ___
   - Add custom ETL transformation functions. ✔️
   - Add a single `transform_dataframe` function that applies transformations. ✔️
   - Add a `process_dataframe_date_ranges` function to calculate `data_min_date` and `data_max_date`. ✔️
-  - Add a `check_source_date_range` function to determine freshness of the source.
+  - Add a `check_source_date_range` function to determine whether the source data is up to date.
   - Add a `run_data_quality_check` function to run custom data quality checks.
   - Add a `delete_target_dates` function for partition-based deletion for fact tables.
   - Add a `set_reference_page` function to create a link to the corresponding ETL reference page in Confluence. 
@@ -172,21 +178,20 @@ ___
   - Add a `get_current_log_size` function that acts as a pointer and returns the current log size. ✔️
 
 - **Utilities folder**
-  - Create utilities .py files for ETL processes.
-  - `argument_parser.py` (read the arguments from .bat <param_1> <param_2>)
-  - `config_utils.py` reads credentials in configuration files (.cfg) ✔️
-  - `db_utils.py` - database utilities
-  - `dq_utils.py` - data quality utilities
+  - `argument_parser.py` - Reads the arguments from .bat <param_1> <param_2> ... <param_n>. ✔️
+  - `config_utils.py` - Reads the credentials in configuration files (.cfg). ✔️
+  - `db_utils.py` - Database utilities.
+  - `dq_utils.py` - Data quality utilities.
   - `email_manager.py` - Create and send e-mails. ✔️
-  - `error_utils.py` - custom Class for error handling. ✔️
-  - `file_utils.py` - file path and folder utility functions
-  - `etl_audit_manager.py` - custom audit table. ✔️
-  - `etl_utils.py` - custom ETL transformations. ✔️
-  - `logging_manager.py` - custom logging handlers and formatters. ✔️
+  - `error_utils.py` - Custom classes for error handling. ✔️
+  - `file_utils.py` - File path and folder utility functions.
+  - `etl_audit_manager.py` - Custom audit table. ✔️
+  - `etl_utils.py` - Custom ETL transformations. ✔️
+  - `logging_manager.py` - Custom logging handlers and formatters. ✔️
 
 - **Output folder**
   - Create an `output/` folder to store generated files. ✔️
-  - Format `output/file_name_timestamp.csv`. ✔️
+  - Store output in format `output/file_name_timestamp.csv`. ✔️
   - Add a boolean operator to control whether the file will be deleted from the folder. ✔️
 
 - **Containerization**
@@ -203,13 +208,13 @@ ___
 - **Email Notifications (SMTP)**
   - Implement e-mail success/failure alerts after each project's run. ✔️
   - Include ETL run summary, logs and error details.
-  - Add business, admin and error recipients. 
+  - Add business, admin and error recipients. ✔️
   - Add a boolean operators to control whether the recipients should receive an e-mail. ✔️
   - Add a `load_smtp_config` function to read e-mail credentials. ✔️ (moved to config_utils.py in utilities)
   - Add a `add_task_result_to_email` function to build task execution log incrementally. ✔️ 
   - Add a `add_log_block_to_email` function to build technical log details incrementally. ✔️
-  - Add a `prepare_mails` function to build e-mails based on general info, task execution log and technical log details. ✔️
-  - Add a `send_mails` function that sends the prepared e-mails. ✔️
+  - Add a `prepare_emails` function to build e-mails based on general info, task execution log and technical log details. ✔️
+  - Add a `send_emails` function that sends the prepared e-mails. ✔️
   - Add a `smtp_send` function that executes the technical transmission of an email via SMTP. ✔️
 
 - **Backfill**
@@ -217,18 +222,18 @@ ___
   - Create a separate backfill project that accepts `project_name`, `start_date`, `end_date`, `load_days` to run a given project and load data incrementally.
 
 - **Fact and dimensional tables**
-  - Add staging and normal fact and dimensional tables (staging_dim → warehouse_dim → staging_fact → warehouse_fact). 
-  - Build a staging_dim table to extract data from the source and checks for null values, duplicates, missing data.
-  - In warehouse_dim, implement slowly changing dimensions (type 1 and type2) updates - close SCD2 rows, insert new SCD2 rows, apply SCD1 updates and insert new rows.
+  - Add staging and normal fact and dimensional tables (staging.dim → warehouse.dim → staging.fact → warehouse.fact). 
+  - Build a staging.dim table to truncate staging area, extract data from the source and add checks for null values, duplicates, missing data.
+  - In warehouse.dim, implement slowly changing dimensions - type 1 and type2 updates - close SCD2 rows, insert new SCD2 rows, apply SCD1 updates and insert new rows.
   - Add indices for SCD detection and ETL MERGE/UPDATEs, partial unique index, fast fact and point-in-time lookups, prevent SCD2 ranges overlapping.
-  - Implement staging_fact table to extract data from the source, correct fact grain and data quality checks.
-  - In warehouse_fact, enforce referential integrity to prevent orphaned surrogate keys, partition the table by date/date_key, add partition-based deletion and build an index strategy.
+  - Implement staging.fact table to truncate staging area, extract data from the source, build the correct fact grain and data quality checks.
+  - In warehouse.fact, enforce referential integrity to prevent orphaned surrogate keys, partition the table by date/date_key, add partition-based deletion and build an index strategy.
 
 - **Orchestration**
   - Implement orchestration with Airflow.
   - Add retries, SLA levels, backfilling.
   - Add parametrization for dynamic data handling ({{ ds }})
-  - Dependency management - Sensors/external task markers and branching.
+  - Dependency management - sensors/external task markers and branching.
   - Monitor and maintain with XComs, logs, alerts, and task groups.
   - Build DAGs for specific cases (daily, 30 min , weekly, monthly DAGs).
 
@@ -251,7 +256,8 @@ ___
   - Overall data architecture (data lineage map + entity relationship diagrams).
   - Developer guide: How to build a project.
   - Tech stack (name + version).
-  - Data governance
+  - ETL reference pages.
+  - Data governance.
 
 - **Connectors**
   - Add more connectors:
@@ -262,7 +268,7 @@ ___
   - SaaS/API connectors: Salesforce, REST APIs (with requests)
   - SFTP and local files (file based ingestion): SFTP (with pysftp/paramiko), pandas (for local files)
 
-- ***Streaming and event processing*
+- **Streaming and event processing**
   - Set up a message broker (Apache Kafka)
   - Build producers and consumers
   - Stream transformation (windowed aggregations and watermarking)

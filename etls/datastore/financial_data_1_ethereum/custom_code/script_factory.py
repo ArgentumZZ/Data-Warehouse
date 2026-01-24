@@ -18,19 +18,29 @@ from connectors.postgresql_connector import PostgresqlConnector
 
 class ScriptFactory:
     """
-    - Load/Read settings
-    - Determine environment
-    - Build a list of tasks (functions)
-    - Instantiate ScriptWorker, EtlUtils, EtlAuditManager
-    - Expose settings to them
-    - Upload CSV to PostgresSQL
+    Script Factory algorithm:
+
+    1. A central factory:
+        - import functions and setting to assemble project tasks.
+    2. Read settings:
+        - read script_parameters.py and load project settings.
+    3. Run environment to determine the values of the settings.
+    4. Initialize components:
+        - EtlAuditManager
+        - EtlUtils
+        - ScriptWorker
+        - PostgresqlConnector
+    5. Build a list of tasks:
+       - add tasks specific to this project along with their parameters
+       - assign task_name, add description, set retries, is_enabled status and task dependency
+       - return a list of the tasks
     """
 
     def __init__(self,
                  forced_sdt: str,
                  load_type: str,
                  max_days_to_load: int,
-                 settings: Any):
+                 settings: Any) -> None:
 
         lg.info("Initializing ScriptFactory")
 
@@ -40,7 +50,6 @@ class ScriptFactory:
             'script_version'         : settings.script_version,
             'run_environment'        : settings.environment,
             'machine_environment'    : settings.machine_env,
-            'script_execution_time'  : 'not implemented yet',
             'script_description'     : settings.script_description,
             'reference_page'         : "not implemented yet",
             'script_frequency'       : settings.script_frequency,
