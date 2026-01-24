@@ -9,7 +9,70 @@ from utilities.argument_parser import parse_arguments
 from utilities.email_manager import EmailManager
 
 def main():
+    """
+    Run script execution algorithm.
 
+    1. Script startup.
+        - execute the project via run_script.py.
+        - capture the start time of execution.
+        - initialize an overall success flag to track final pipeline status
+        - create a success_registry set to track tasks that completed successfully and for dependency validation.
+    2. Initialization:
+        - read command-line arguments using parse_arguments to override internal default settings.
+        - initialize the ScriptFactory class using the parsed arguments and configuration settings.
+        - initialize the EmailManager class using the factory instance.
+        - retrieve the list of task definitions from the factory.
+    3. Task iteration.
+        - iterate over the list of task dictionaries.
+        - for each task, extract the following attributes:
+            - task name
+            - execution function
+            - dependency
+            - enabled status
+            - number of retries
+            - task description
+    4, Enabled check.
+        - if a task is disabled:
+            - log the task as skipped.
+            - add the task result and reason to the e-mail report.
+            - continue the execution with the next task.
+    5. Dependency check.
+        - if a task has a dependency and the dependent task is not present in the success_registry set.
+            - mark the task as skipped.
+            - log dependency failure information and add it to the e-mail.
+            - set the overall success flag to False.
+            - continue execution with the next task.
+    6. Task execution with retries.
+        - initialize a task-level success flag.
+        - record a log pointer to capture task-specific logs.
+        - execute the task function inside a retry loop:
+            - on success:
+                - mark the task as successful
+                - add the task name to the success_registry set.
+                - add the success information to the e-mail.
+                - exit the retry loop early
+            - on failure:
+                - capture the exception traceback and log it.
+                - if retries remain, sleep for X seconds before trying again.
+                - if all retries are exhausted, mark the task as failed in the e-mail report.
+    7. Log collection.
+        - collect the generated logs after the task execution (successful or not)
+        - add task-specific logs to the e-mail report.
+    8. Halt pipeline on failure.
+        - if a task fails after all retries:
+            - set the overall success flag to False.
+            - log the pipeline halt message.
+            - terminate the main task loop to prevent downstream inconsistencies.
+    9. Global exception handling.
+        - log any unexcepted exception during pipeline execution
+        - set the overall success flag to False.
+    10. Final status.
+        - log the final pipeline status.
+        - calculate and format the total execution duration
+        - prepare and send the e-mails
+        - perform a log maintenance
+        - exit the script with 0 (=success) or 1 (=failure).
+    """
     # Capture start time
     start_time = time.time()
 
@@ -143,10 +206,7 @@ def main():
 
     finally:
         # 7. Log the final status and calculate script time execution
-        if success:
-            lg.info("ETL run completed successfully.")
-        else:
-            lg.info("ETL run finished with errors.")
+        lg.info("ETL run completed successfully.") if success else lg.info("ETL run finished with errors.")
 
         # Calculate the total duration of the script
         duration_seconds = time.time() - start_time
