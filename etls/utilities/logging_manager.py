@@ -217,35 +217,54 @@ def get_logs_from_position(position: int) -> str:
 
 def _log(func, *args, **kwargs):
     """
-    # Core helper that cleans up logging:
-    # - Adds exc_info automatically inside exception handlers
-    # - Ensures logs point to the real caller via stacklevel
-    # - Passes everything through to the underlying logging function
+    Core logging helper that cleans up logging:
+        - Automatically attaches traceback information when logging from inside an 'exception' block (adds exc_info)
+        - Ensures logs records point to the actual called (not this helper)
+        - Passes the call to the underlying logging method (logger.info, logger.error , etc.)
     """
 
-    # Detect whether we're currently inside an exception handler (except block). If so, include the error trace
-    # sys.exc_info()[0] is non‑None only when an exception
-    # is actively being handled. # If the caller did NOT explicitly pass exc_info=True, we set it automatically.
+    # 1. Detect whether we're currently inside an exception handler (except block). If so, include the error trace
+    # sys.exc_info()[0] is non‑None only when an exception is actively being handled.
+    # If the caller didn't explicitly pass exc_info=True (and we are inside an exception handler),
+    # then we set it automatically.
+
+    # This allows us to write:
+    #   lg.info("The task failed")
+    # instead of:
+    #   lg.info("The task failed", exc_info=True)
     if 'exc_info' not in kwargs and sys.exc_info()[0]:
         kwargs['exc_info'] = True
 
-    # Ensure correct file/line attribution in logs.
+
+    # 2. Without a stacklevel, logs would point to logging_manager.py instead of the real source of the log.
+    # We want to see run_script.py:160 instead of logging_manager.py:123
+
     # stacklevel=3 means:
-    # level 1 → inside logging module
-    # level 2 → inside this helper
-    # level 3 → the *real* caller (the user’s code)
-    # This prevents logs from pointing to this wrapper instead of the true source.
+    # level 1 → inside logging module (logger.info())
+    # level 2 → inside this helper (_log())
+    # level 3 → the real caller (lg.info())
+    # user code
+    #   → lg.info()
+    #       → _log()
+    #         → logger.info()
     kwargs.setdefault('stacklevel', 3)
 
-    # Call the actual logging function (e.g., logger.info, logger.error, etc.) with the modified arguments.
+    # 3. Call the actual logging function with the modified arguments.
+    # func is one of: logger.info, logger.warning, logger.error, logger.debug, logger.critical
     func(*args, **kwargs)
 
 
-# These are convenience wrappers around the real logger methods.
-# Each one forwards the message to `_log()`, which adds smart behavior:
-# - automatic exc_info when inside an exception handler
-# - correct stacklevel so logs point to the real caller
-# This let us write: lg.info("message") instead of logger.info(...)
+# These are convenience wrappers around the real Logging.logger methods.
+# Provide a clean, consistent interface (e.g., lg.info())
+# Route all logging calls though _log() to handle:
+#   - traceback behavior
+#   - fix caller file/line attribution via stacklevel
+
+# This allows us to write:
+#    lg.info("Starting ETL run")
+# instead of:
+#     logger.info("Starting ETL run", stacklevel=3, exc_info=True)
+
 def info(msg, *args, **kwargs):
     _log(logger.info, msg, *args, **kwargs)
 
@@ -262,6 +281,13 @@ def critical(msg, *args, **kwargs):
     _log(logger.critical, msg, *args, **kwargs)
 
 # Special case: logger.exception already forces exc_info=True,
-# so we call it directly without going through _log().
+# so we call it directly without going through _log() to avoid:
+#   - duplicated tracebacks
+#   - conflicting exc_info logic
+# This allows us to write:
+#   try:
+#       ...
+#   except Exception:
+#       lg.exception("Unexpected error")
 def exception(msg, *args, **kwargs):
     logger.exception(msg, *args, **kwargs)

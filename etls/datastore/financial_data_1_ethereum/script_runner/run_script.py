@@ -172,8 +172,6 @@ def main():
                     break
 
                 except Exception as e:
-                    # full traceback as string
-                    tb = traceback.format_exc()
                     lg.info(f"Attempt {attempt} failed for '{t_name}': {str(e)}")
 
                     # If there are still retries left, wait 5 second before trying again
@@ -181,7 +179,7 @@ def main():
                         lg.info("Waiting 5 seconds before next retry...")
                         time.sleep(5)
                     else:
-                        lg.info(f"Task '{t_name}' exhausted all retry attempts.\n{tb}")
+                        lg.info(f"Task '{t_name}' exhausted all retry attempts.")
 
                         # pass the traceback to the e-mail
                         email_manager.add_task_result_to_email(task=task, status="FAILED", error_msg="See Technical Log Details below")
