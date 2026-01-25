@@ -33,6 +33,16 @@ for %%I in ("%cd%\..") do set "SCRIPT_NAME=%%~nI"
 
 set "CURRENT_DIR=%cd%"
 
+:: Store the path to the config file in a variable and load the external environment config.
+:: Going up 4 levels to find config: script_runner -> project -> datastore -> etls -> datawarehouse
+set "ENV_PATH=%~dp0..\..\..\..\config\local\setenv.env"
+
+::  Verify that the file exists
+if not exist "%ENV_PATH%" (
+    echo [ERROR] Environment file not found at: %ENV_PATH%
+    exit /b 1
+    )
+
 :: 6. Print a unified header
 echo ============================================================
 echo RUNNING SCRIPT:  %~n0
@@ -70,7 +80,8 @@ echo.
 :: Inside the container, treat localhost as the host machine.
 :: It allows the container to access services running on Windows.
 echo Running the container...
-docker run --rm --add-host=localhost:host-gateway %SCRIPT_NAME% %*
+docker run --rm --env-file "%ENV_PATH%" --add-host=localhost:host-gateway %SCRIPT_NAME% %*
+::docker run --rm --add-host=localhost:host-gateway %SCRIPT_NAME% %*
 :: docker run --add-host=localhost:host-gateway %SCRIPT_NAME% "%~1" "%~2=%~3"
 
 :: 9. Capture exit code after Docker execution
