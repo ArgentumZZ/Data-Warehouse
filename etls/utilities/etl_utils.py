@@ -60,7 +60,7 @@ class EtlUtils:
 
         # 3. Rename the columns
         df = df.rename(columns=rename_columns_dict)
-        lg.info(f"Renaming the columns completed successfully.")
+        lg.info(f"Renaming the columns {rename_columns_dict} completed successfully.")
         return df
 
     @staticmethod
@@ -111,7 +111,7 @@ class EtlUtils:
             # Vectorized strip and replace
             df[col] = df[col].str.strip().replace('', np.nan)
 
-        lg.info("Stripping column values completed successfully.")
+        lg.info(f"Stripping column values in {columns_strip_list} completed successfully.")
         return df
 
     @staticmethod
@@ -124,6 +124,8 @@ class EtlUtils:
         2. Backslashes (\) are special characters in: JSON, CSV, SQL strings, Regex, File paths.
 
         Args:
+            df:
+                input dataframe to process
             columns_replace_backslash_list:
                 A list with column names for processing.
             replace_with:
@@ -149,7 +151,7 @@ class EtlUtils:
         for col in columns_replace_backslash_list:
             df[col] = df[col].astype(str).str.replace("\\", replace_with, regex=False)
 
-        lg.info("Backslash replacement completed successfully.")
+        lg.info(f"Backslash replacement in {columns_replace_backslash_list} completed successfully.")
         return df
 
     @staticmethod
@@ -162,6 +164,8 @@ class EtlUtils:
         3. Turn them into literal characters instead of letting them act as a control character.
 
         Args:
+            df:
+                input dataframe to process
             columns_escape_backslash_list:
                 A list with columns for processing.
 
@@ -185,7 +189,7 @@ class EtlUtils:
         for col in columns_escape_backslash_list:
             df[col] = df[col].astype(str).str.replace("\\", "\\\\", regex=False)
 
-        lg.info("Escaping backslash completed successfully.")
+        lg.info(f"Escaping backslash in {columns_escape_backslash_list} completed successfully.")
         return df
 
     @staticmethod
@@ -230,6 +234,7 @@ class EtlUtils:
             # This converts both back to a proper numpy NaN object.
             df[col] = df[col].replace(['', 'nan'], np.nan)
 
+        lg.info(f"Sanitizing columns {columns_sanitize_list} completed successfully.")
         return df
 
     @staticmethod
@@ -266,7 +271,7 @@ class EtlUtils:
         for col, date_format in columns_date_config_dict.items():
             df[col] = pd.to_datetime(df[col], format=date_format, errors='coerce')
 
-        lg.info("Formating date columns completed successfully.")
+        lg.info(f"Formating date columns {columns_date_config_dict} completed successfully.")
         return df
 
     @staticmethod
@@ -314,7 +319,7 @@ class EtlUtils:
             # 6. Convert to nullable Int64
             df[col] = numeric_series.astype('Int64')
 
-        lg.info("Conversion of columns to Int64 was successful.")
+        lg.info(f"Conversion of columns {columns_int_list} to Int64 was successful.")
         return df
 
     @staticmethod
@@ -361,11 +366,13 @@ class EtlUtils:
             # 3. Cast to nullable 'Float64'
             df[col] = pd.to_numeric(df[col], errors='raise').astype('Float64')
 
-        lg.info("Conversion of columns to Float64 was successful.")
+        lg.info(f"Conversion of columns {columns_numeric_list} to Float64 was successful.")
         return df
 
     @staticmethod
-    def serialize_json_columns(df: pd.DataFrame, columns_json_list: List[str] = None) -> pd.DataFrame:
+    def serialize_json_columns(df: pd.DataFrame,
+                               columns_json_list: List[str] = None
+                               ) -> pd.DataFrame:
         """
         Converts Python objects (dicts/lists) into valid JSON strings.
 
@@ -395,7 +402,7 @@ class EtlUtils:
             # - If x is None/NaN: Leave as is so Postgres sees it as NULL
             # - If x is a string: Skip to avoid "{\"nested\": \"quotes\"}"
 
-        lg.info("Serializing JSON columns completed successfully.")
+        lg.info(f"Serializing JSON columns {columns_json_list} completed successfully.")
         return df
 
     @staticmethod
@@ -430,7 +437,7 @@ class EtlUtils:
             if df[col].isnull().any():
                 raise ValueError(f"Data Quality Error: Column '{col}' contains null values.")
 
-        lg.info("Checking non null columns completed successfully.")
+        lg.info(f"Checking columns {columns_non_null_list} for null values completed successfully.")
         return df
 
     @staticmethod
@@ -477,7 +484,7 @@ class EtlUtils:
                 df = df.drop_duplicates(subset=columns_unique_list, keep='first')
             return df
 
-        lg.info("Handling duplicates completed successfully.")
+        lg.info(f"Check for handling duplicates in {columns_unique_list} completed successfully.")
         return df
 
     @staticmethod

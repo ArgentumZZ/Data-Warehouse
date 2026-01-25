@@ -67,7 +67,7 @@ class ScriptWorker:
                                                       'contract_addr_x': 'contract_address',
                                                       'f_is_vld_bool': 'is_valid'},
                                     columns_lowercase=True,
-                                    columns_strip_list=[],
+                                    columns_strip_list=['sender_address'],
                                     columns_replace_backslash_list=[],
                                     columns_escape_backslash_list=[],
                                     columns_sanitize_list=[],
