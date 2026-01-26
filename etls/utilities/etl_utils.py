@@ -9,17 +9,9 @@ import utilities.logging_manager as lg
 
 class EtlUtils:
     """
-    Comprehensive ETL utilities class.
-    Contains helpers for:
-    - DataFrame transformations
-    - File operations
-    - ETL metadata
-    - Data quality checks
-    - Testing helpers
-    - Credential helpers
-    - Database utilities
-    - Orchestration helpers
-    - Generic utilities
+    A Comprehensive ETL utilities class that contains helpers for:
+        - DataFrame transformations
+        - Generic ETL utilities
     """
 
     def __init__(self,
@@ -685,12 +677,6 @@ class EtlUtils:
         pass
 
     def run_data_quality_check(self):
-        pass
-
-    def get_command_line_parameters(self):
-        pass
-
-    def set_params_based_on_command_line(self):
         pass
 
     def delete_target_dates(self):

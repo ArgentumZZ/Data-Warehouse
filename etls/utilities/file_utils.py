@@ -1,6 +1,12 @@
-"""
-file_utils.py
+# import libraries
+import os, sys
+from datetime import datetime
 
+# import custom libraries
+import utilities.logging_manager as lg
+
+
+"""
 Purpose:
     Provide helpers for working with files and directories, including:
         - Creating nested folder structures
@@ -11,14 +17,6 @@ Purpose:
         - Removing files/directories
         - Listing directory contents
 """
-
-import os, sys
-import utilities.logging_manager as lg
-from datetime import datetime
-
-# ---------------------------------------------------------------------------
-# Existing functions
-# ---------------------------------------------------------------------------
 
 def build_output_file_path(table: str) -> str:
     """
