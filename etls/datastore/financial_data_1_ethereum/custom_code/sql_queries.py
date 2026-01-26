@@ -15,6 +15,11 @@ source_columns_create = '''
             metadata                JSONB,
             event_date              DATE,
             is_valid                BOOLEAN,
+            raw_id_str              TEXT,             
+            raw_value_float         TEXT,             
+            dirty_text              TEXT,            
+            unique_key_test         TEXT,            
+            required_field          TEXT,
             confirmed_at            TIMESTAMPTZ,
             source_created_at       TIMESTAMPTZ,
             source_updated_at       TIMESTAMPTZ,    
@@ -53,8 +58,13 @@ sql_queries['get_data'] = '''
                                 metadata,
                                 event_date,
                                 confirmed_at,
-                                f_is_vld_bool   
-                          FROM financial_data.ethereum
+                                f_is_vld_bool,
+                                raw_id_str,
+                                raw_value_float,
+                                dirty_text,
+                                unique_key_test,
+                                required_field
+                          FROM financial_data.ethereum_data
                           WHERE (source_created_at BETWEEN '{sdt}' AND '{edt}'
                             OR source_updated_at BETWEEN '{sdt}' AND '{edt}');
                           '''
@@ -70,7 +80,6 @@ sql_queries['set_comments'] = '''
 """
 SELECT obj_description('financial_data.ethereum'::regclass, 'pg_class') AS table_comment;
 """
-
 
 # 6.2. Use this to read column comments
 """SELECT

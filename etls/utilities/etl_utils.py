@@ -267,9 +267,17 @@ class EtlUtils:
             if col not in df.columns:
                 raise KeyError(f"Column '{col}' not found.")
 
-        # 3. Convert date/timestamp column to datetime object and the corresponding format
+        # 3. Convert date/timestamp column to datetime object,
+        # the corresponding format and replace empty strings with None
         for col, date_format in columns_date_config_dict.items():
-            df[col] = pd.to_datetime(df[col], format=date_format, errors='coerce')
+            # Convert to datetime object
+            df[col] = pd.to_datetime(df[col], errors='raise')
+
+            # Convert to the new format
+            df[col] = df[col].dt.strftime(date_format)
+
+            # 3. Replace empty strings with None, so Postgres sees NULLs instead of ""
+            df[col] = df[col].replace('', None)
 
         lg.info(f"Formating date columns {columns_date_config_dict} completed successfully.")
         return df
