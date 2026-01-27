@@ -92,6 +92,9 @@ COPY etls/connectors ${basedir}/connectors
 # Copy the specific project folder directly into app
 COPY etls/datastore/${project_name} ${basedir}/${project_name}
 
+# Copy env file
+COPY config/local/setenv.sh ${basedir}/config/setenv.sh
+
 # 12. Run the script
 
 # sh -> shell, command runner, expands variables
@@ -101,7 +104,8 @@ COPY etls/datastore/${project_name} ${basedir}/${project_name}
 
 # ENTRYPOINT python ${BASEDIR}/${PROJECT_NAME}/script_runner/run_script.py
 # ENTRYPOINT ["python", "/app/financial_data_1_ethereum/script_runner/run_script.py"]
-ENTRYPOINT ["sh", "-c", "python ${BASEDIR}/${PROJECT_NAME}/script_runner/run_script.py \"$@\"", "--"]
+# ENTRYPOINT ["sh", "-c", "python ${BASEDIR}/${PROJECT_NAME}/script_runner/run_script.py \"$@\"", "--"]
+ENTRYPOINT ["sh", "-c", ". ${BASEDIR}/config/setenv.sh && python ${BASEDIR}/${PROJECT_NAME}/script_runner/run_script.py \"$@\"", "--"]
 
 # Command to run the script
 # CMD ["python", "script_runner.py"]
