@@ -33,38 +33,33 @@ RUN python -m pip install --upgrade --no-cache-dir pip
 # name of the project
 ARG project_name=financial_data_1_ethereum
 
-# library versions
-ARG numpy_version=2.4.1
-
 # root directory inside the container
 # Python treats /app as the base for all imports
-ARG basedir=/app
+# ARG basedir=/app
 
 # 5. Runtime environment variables (ENV)
 
-# They exist inside the running container and are needed when the script needs to read values
-# They exist at runtime
+# They exist (at runtime) inside the running container and are needed when the script needs to read values
 # (e.g. mode, API keys, config, log level)
 # Python code can read ENV variables using os.getenv()
 # Can override them at runtime: docker run -e APP_ENV=dev my-image
 
-ENV PYTHONPATH="${basedir}:${basedir}/${project_name}"
-ENV CONFIG_DIR=${basedir}/config/db_config.cfg
+ENV PYTHONPATH="/app:/app/${project_name}"
+ENV CONFIG_DIR=/app/config/db_config.cfg
 
 # Will be used in ENTRYPOINT, because it needs runtime variables
 ENV BASEDIR=${basedir}
 ENV PROJECT_NAME=${project_name}
-# ENV DATA_DIR=${basedir}/data
 
 # 6. Create a working directory
-RUN mkdir -p ${basedir}
+RUN mkdir -p /app
 
 # Set the working directory inside the container (every command runs from there)
-WORKDIR ${basedir}
+WORKDIR /app
 
 # 7. Install individual libraries for the project
 RUN echo "Installing individual libraries"
-RUN pip install numpy==$numpy_version
+RUN pip install numpy==2.4.1
 
 # 8. Install dependencies
 # Libraries from point 7 shouldn't exist in the requirements.txt
@@ -77,23 +72,23 @@ RUN echo "Installing project dependencies"
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 9. Copy config file
-RUN mkdir -p ${basedir}/config
+RUN mkdir -p /app/config
 
 # COPY <file_path_1> to <file_path_2>
-COPY config/local/db_config.cfg ${basedir}/config/db_config.cfg
+COPY config/local/db_config.cfg /app/config/db_config.cfg
 
 # 10. Copy Shared Modules
 # Copy these so they are available at the same level as the project
 # COPY <file_path_1> to <file_path_2>
-COPY etls/utilities ${basedir}/utilities
-COPY etls/connectors ${basedir}/connectors
+COPY etls/utilities /app/utilities
+COPY etls/connectors /app/connectors
 
 # 11. Copy Project Files
 # Copy the specific project folder directly into app
-COPY etls/datastore/${project_name} ${basedir}/${project_name}
+COPY etls/datastore/${project_name} /app/${project_name}
 
 # Copy env file
-COPY config/local/setenv.sh ${basedir}/config/setenv.sh
+COPY config/local/setenv.sh /app/config/setenv.sh
 
 # 12. Run the script
 
