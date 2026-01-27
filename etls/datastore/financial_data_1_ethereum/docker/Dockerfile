@@ -45,10 +45,8 @@ ARG project_name=financial_data_1_ethereum
 # Can override them at runtime: docker run -e APP_ENV=dev my-image
 
 ENV PYTHONPATH="/app:/app/${project_name}"
-ENV CONFIG_DIR=/app/config/db_config.cfg
 
 # Will be used in ENTRYPOINT, because it needs runtime variables
-ENV BASEDIR=${basedir}
 ENV PROJECT_NAME=${project_name}
 
 # 6. Create a working directory
@@ -77,17 +75,12 @@ RUN mkdir -p /app/config
 # COPY <file_path_1> to <file_path_2>
 COPY config/local/db_config.cfg /app/config/db_config.cfg
 
-# 10. Copy Shared Modules
+# 10. Copy the shared modules, project files and environment file
 # Copy these so they are available at the same level as the project
 # COPY <file_path_1> to <file_path_2>
 COPY etls/utilities /app/utilities
 COPY etls/connectors /app/connectors
-
-# 11. Copy Project Files
-# Copy the specific project folder directly into app
 COPY etls/datastore/${project_name} /app/${project_name}
-
-# Copy env file
 COPY config/local/setenv.sh /app/config/setenv.sh
 
 # 12. Run the script
@@ -100,7 +93,7 @@ COPY config/local/setenv.sh /app/config/setenv.sh
 # ENTRYPOINT python ${BASEDIR}/${PROJECT_NAME}/script_runner/run_script.py
 # ENTRYPOINT ["python", "/app/financial_data_1_ethereum/script_runner/run_script.py"]
 # ENTRYPOINT ["sh", "-c", "python ${BASEDIR}/${PROJECT_NAME}/script_runner/run_script.py \"$@\"", "--"]
-ENTRYPOINT ["sh", "-c", ". ${BASEDIR}/config/setenv.sh && python ${BASEDIR}/${PROJECT_NAME}/script_runner/run_script.py \"$@\"", "--"]
+ENTRYPOINT ["sh", "-c", ". /app/config/setenv.sh && python /app/${PROJECT_NAME}/script_runner/run_script.py \"$@\"", "--"]
 
 # Command to run the script
 # CMD ["python", "script_runner.py"]
