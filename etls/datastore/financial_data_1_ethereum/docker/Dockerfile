@@ -8,96 +8,65 @@ RUN \
     apt-get update && \
     # Install system-level build tools and headers needed to compile Python C extensions
     apt-get install -y \
-        # C compiler required for building Python packages with C extensions
-        gcc \
-        # Core build tools: make, g++, dpkg-dev, etc.
-        build-essential \
-        # Foreign Function Interface headers (needed for cffi, cryptography)
-        libffi-dev \
-        # PostgreSQL client headers (required for psycopg2)
-        libpq-dev \
-        # Python headers needed to compile Python C extensions
-        python3-dev \
+    # avoid installing unnecessary "suggested" packages
+    --no-install-recommends \
+    # C compiler required for building Python packages with C extensions
+    gcc \
+    # Core build tools: make, g++, dpkg-dev, etc.
+    build-essential \
+    # Foreign Function Interface headers (needed for cffi, cryptography)
+    libffi-dev \
+    # PostgreSQL client headers (required for psycopg2)
+    libpq-dev \
+    # Python headers needed to compile Python C extensions
+    python3-dev \
     # Remove cached package lists to keep the image size smaller
     && rm -rf /var/lib/apt/lists/*
 
-# 3. Upgrade pip
+# 3. Environment Setup
+# - Build-time arguments (ARG) do not exist at runtime.
+# - Can override them at build time: docker build --build-arg basedir=/custom/path -t my-image .
+
+# - Runtime environment variables (ENV)  inside the running container and are needed when the script needs to read values.
+# - Python code can read ENV variables using os.getenv()
+# - Can override them at runtime: docker run -e APP_ENV=dev my-image
+
+# PYTHONDONTWRITEBYTECODE: Prevents Python from writing .pyc files (saves space/noise)
+# PYTHONUNBUFFERED: Ensures logs are sent straight to the terminal without buffering
+# PROJECT_NAME will be used in ENTRYPOINT, because it needs runtime variables
+ARG project_name=financial_data_1_ethereum
+ENV PROJECT_NAME=${project_name} \
+    PYTHONPATH="/app:/app/${project_name}" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# 4. Create a working directory inside the container (even if it doesn't exist, every command runs from there)
+# Python treats /app as the base for all imports
+WORKDIR /app
+
+# 5. Dependency installations
 # python -m pip ensures that pip is updated for the correct interpreter.
 # --no-cache-dir keeps the image smaller
 RUN python -m pip install --upgrade --no-cache-dir pip
 
-# 4. Build-time arguments (ARG)
-# ARG values do not exist at runtime
-# Can override them at build time: docker build --build-arg basedir=/custom/path -t my-image .
+# Copy only requirements first so code changes don't trigger a full reinstall.
+COPY etls/datastore/${PROJECT_NAME}/docker/requirements.txt ./requirements.txt
 
-# name of the project
-ARG project_name=financial_data_1_ethereum
+# Install individual libraries for the project, they shouldn't exist in the requirements.txt
+RUN pip install --no-cache-dir numpy==2.4.1 -r requirements.txt
 
-# root directory inside the container
-# Python treats /app as the base for all imports
-# ARG basedir=/app
-
-# 5. Runtime environment variables (ENV)
-
-# They exist (at runtime) inside the running container and are needed when the script needs to read values
-# (e.g. mode, API keys, config, log level)
-# Python code can read ENV variables using os.getenv()
-# Can override them at runtime: docker run -e APP_ENV=dev my-image
-
-ENV PYTHONPATH="/app:/app/${project_name}"
-
-# Will be used in ENTRYPOINT, because it needs runtime variables
-ENV PROJECT_NAME=${project_name}
-
-# 6. Create a working directory
-RUN mkdir -p /app
-
-# Set the working directory inside the container (every command runs from there)
-WORKDIR /app
-
-# 7. Install individual libraries for the project
-RUN echo "Installing individual libraries"
-RUN pip install numpy==2.4.1
-
-# 8. Install dependencies
-# Libraries from point 7 shouldn't exist in the requirements.txt
-
-# Copy dependency list first
-COPY etls/datastore/${project_name}/docker/requirements.txt .
-
-# Install dependencies
-RUN echo "Installing project dependencies"
-RUN pip install --no-cache-dir -r requirements.txt
-
-# 9. Copy config file
-RUN mkdir -p /app/config
-
-# COPY <file_path_1> to <file_path_2>
+# 6. Copy application files (e.g., config, shared modules, project files and environment file)
+# COPY <file_path_1> <file_path_2>
 COPY config/local/db_config.cfg /app/config/db_config.cfg
-
-# 10. Copy the shared modules, project files and environment file
-# Copy these so they are available at the same level as the project
-# COPY <file_path_1> to <file_path_2>
+COPY config/local/setenv.sh /app/config/setenv.sh
 COPY etls/utilities /app/utilities
 COPY etls/connectors /app/connectors
-COPY etls/datastore/${project_name} /app/${project_name}
-COPY config/local/setenv.sh /app/config/setenv.sh
+COPY etls/datastore/${PROJECT_NAME} /app/${PROJECT_NAME}
 
-# 12. Run the script
+# 7. Run the script
 
 # sh -> shell, command runner, expands variables
 # -c -> execute the following string as a shell command
 # $@ -> forward all arguments
 # -- -> prevent arguments from being interpreted as options to sh
-
-# ENTRYPOINT python ${BASEDIR}/${PROJECT_NAME}/script_runner/run_script.py
-# ENTRYPOINT ["python", "/app/financial_data_1_ethereum/script_runner/run_script.py"]
-# ENTRYPOINT ["sh", "-c", "python ${BASEDIR}/${PROJECT_NAME}/script_runner/run_script.py \"$@\"", "--"]
 ENTRYPOINT ["sh", "-c", ". /app/config/setenv.sh && python /app/${PROJECT_NAME}/script_runner/run_script.py \"$@\"", "--"]
-
-# Command to run the script
-# CMD ["python", "script_runner.py"]
-
-# In the terminal:
-# docker build -t my-python-test .
-# docker run --rm my-python-test
