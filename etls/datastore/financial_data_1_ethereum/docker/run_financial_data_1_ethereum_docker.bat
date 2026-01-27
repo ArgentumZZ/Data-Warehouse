@@ -77,12 +77,13 @@ echo.
 :: 8. Run the container
 :: --rm -> delete the container automatically after it exits
 :: --add-host=localhost:host-gateway:
-:: Inside the container, treat localhost as the host machine.
-:: It allows the container to access services running on Windows.
+::      - inside the container, treat localhost as the host machine).
+::      - it allows the container to access services running on Windows.
+:: local postgresql settings updated to liten to Docker
 echo Running the container...
-docker run --rm --env-file "%ENV_PATH%" --add-host=localhost:host-gateway %SCRIPT_NAME% %*
+docker run --rm --env-file "%ENV_PATH%" %SCRIPT_NAME% %*
 ::docker run --rm --add-host=localhost:host-gateway %SCRIPT_NAME% %*
-:: docker run --add-host=localhost:host-gateway %SCRIPT_NAME% "%~1" "%~2=%~3"
+:: docker run --rm --env-file "%ENV_PATH%" --add-host=localhost:host-gateway %SCRIPT_NAME% %*
 
 :: 9. Capture exit code after Docker execution
 set "EXIT_CODE=%ERRORLEVEL%"

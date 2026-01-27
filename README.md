@@ -41,15 +41,27 @@ datawarehouse/
 ├── venv/
 ├── requirements_python_3_14.txt
 │
+├── orchestration
+│   ├── logs/
+│   │     ├── dag_id = dwh_main_dag
+│   │     │     ├── run_id=manual__2026-01-27T092954.691723+0000
+│   │     │     └── other run_ids ...
+│   │     ├── dag_processor_manager
+│   │     └── scheduler
+│   ├── plugins/
+│   ├── .env
+│   ├── docker_compose.yaml
+│   └── requirements.txt
+│
 ├── config/
-│   ├── local/
-│   │   ├── db_config.cfg
-│   │   ├── keyfile_1.pem
-│   │   ├── keyfile_2.pkk
-│   │   ├── api_credentials.json
-│   │   ├── setenv.bat
-│   │   ├── setenv.sh
-│   │   └── ... other credential files ...
+│   └── local/
+│       ├── db_config.cfg
+│       ├── keyfile_1.pem
+│       ├── keyfile_2.pkk
+│       ├── api_credentials.json
+│       ├── setenv.bat
+│       ├── setenv.sh
+│       └── ... other credential files ...
 │
 ├── dags/
 │   ├── dwh_main_dag.py

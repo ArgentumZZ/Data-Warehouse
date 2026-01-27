@@ -276,7 +276,7 @@ class EtlUtils:
 
     @staticmethod
     def convert_columns_to_int(df: pd.DataFrame,
-                               columns_int_list: list[str] = None,
+                               columns_int_list: List[str] = None,
                                ) -> pd.DataFrame:
         """
         1. Convert all columns in the given list to nullable Int64. Enforce early data corruption detection.
