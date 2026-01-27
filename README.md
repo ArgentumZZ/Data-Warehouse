@@ -242,7 +242,8 @@ ___
   - In warehouse.fact, enforce referential integrity to prevent orphaned surrogate keys, partition the table by date/date_key, add partition-based deletion and build an index strategy.
 
 - **Orchestration**
-  - Implement orchestration with Airflow.
+  - Add an `orchestration` folder with `logs` and `plugins` folders, `.env`, `docker-compose.yaml` and `requirements.txt`
+  - Implement orchestration with Airflow and document the steps. ✔️
   - Add retries, SLA levels, backfilling.
   - Add parametrization for dynamic data handling ({{ ds }})
   - Dependency management - sensors/external task markers and branching.

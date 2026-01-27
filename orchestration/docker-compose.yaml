@@ -47,30 +47,51 @@ x-airflow-common: &airflow-common
 
 # 'services' define the actual running containers.
 services:
+
+  # This service handles the User Interface (the website accessed in the web-browser).
   airflow-webserver:
     # '<<: *airflow-common' pastes all settings from the anchor at the top.
     # That is, it inherits all the settings from the 'common' block above
     <<: *airflow-common
+
+    # 'command' specifies the specific Airflow component this container should run.
+    # In this case, it starts the UI server.
     command: webserver
+
+    # 'ports' creates a tunnel between the computer and the container.
     ports:
       # Maps the computer's port 8080 to the container's 8080
       - "8080:8080"
 
     # Limit the size of Docker's internal hidden log files.
     logging:
+      # 'driver: "json-file"' is the standard Docker logging format
       driver: "json-file"
+      # 'options' sets the physical limits for the log files
       options:
+        # 'max-size' caps a single log file at 10 Megabytes.
         max-size: "10m"
+        # 'max-file' tells Docker to keep only the 3 most recent files, deleting the oldest.
         max-file: "3"
 
+    # 'healthcheck' allows Docker to monitor if the application inside is actually working.
     healthcheck:
+      # 'test' runs a command inside the container to check for a valid response.
+      # 'curl' to see if the webserver homepage returns a success code.
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      # 'interval' defines how often to run the check (every 10 seconds)
       interval: 10s
+      # 'timeout' specifies how long to wait for the check to respond before failing.
       timeout: 10s
+      # 'retries' - the number of consecutive failures needed to mark the container as "unhealthy".
       retries: 5
 
+  # The 'airflow-scheduler' service monitors DAGs and triggers tasks when their schedule is due
   airflow-scheduler:
+    # '<<: *airflow-common' inherits all shared settings from the common template defined at the top of the file.
     <<: *airflow-common
+
+    # Tells this specific container to start the Scheduler process (instead of a Webserver or Worker)
     command: scheduler
 
     # Limits the size of Docker's internal hidden log files.
