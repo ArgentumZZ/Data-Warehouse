@@ -2,6 +2,9 @@
 **/config/
 **/logs/
 **/output/
+orchestration/logs/
+orchestration/plugins/
+orchestration/airflow.env
 __pycache__/
 *.pyc
 *.exe

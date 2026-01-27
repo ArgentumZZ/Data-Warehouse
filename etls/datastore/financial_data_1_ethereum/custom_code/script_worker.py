@@ -61,22 +61,22 @@ class ScriptWorker:
             df = self.sfc.etl_utils.transform_dataframe(
                                     df=df,
                                     # Pass source columns in lowercase
-                                    columns_str_dict={'tx_hash': 'tax_hash',
-                                                      'blck_nbr_raw_val': 'raw_number_value',
-                                                      'eth_amt_001': 'ethereum_amount',
-                                                      'contract_addr_x': 'contract_address',
-                                                      'f_is_vld_bool': 'is_valid'},
+                                    columns_str_dict={'tx_hash'             : 'tax_hash',
+                                                      'blck_nbr_raw_val'    : 'raw_number_value',
+                                                      'eth_amt_001'         : 'ethereum_amount',
+                                                      'contract_addr_x'     : 'contract_address',
+                                                      'f_is_vld_bool'       : 'is_valid'},
                                     columns_lowercase=True,
-                                    columns_strip_list=[],
-                                    columns_replace_backslash_list=[],
+                                    columns_strip_list=['sender_address'],
+                                    columns_replace_backslash_list=['input_data'],
                                     columns_escape_backslash_list=[],
-                                    columns_sanitize_list=[],
-                                    columns_date_config_dict={},
-                                    columns_int_list=['raw_number_value', 'transaction_index'],
-                                    columns_numeric_list=[],
+                                    columns_sanitize_list=['dirty_text'],
+                                    columns_date_config_dict={'event_date': '%Y-%m-%d'},
+                                    columns_int_list=['raw_number_value', 'transaction_index', 'raw_id_str'],
+                                    columns_numeric_list=['raw_value_float'],
                                     columns_json_list=['metadata'],
-                                    columns_non_null_list=[],
-                                    columns_unique_list=[]
+                                    columns_non_null_list=[],  # 'required_field'
+                                    columns_unique_list=[]     # 'unique_key_test'
                                     )
 
             # 4.3. Process the date ranges

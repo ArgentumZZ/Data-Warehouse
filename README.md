@@ -41,15 +41,27 @@ datawarehouse/
 ├── venv/
 ├── requirements_python_3_14.txt
 │
+├── orchestration
+│   ├── logs/
+│   │     ├── dag_id = dwh_main_dag
+│   │     │     ├── run_id=manual__2026-01-27T092954.691723+0000
+│   │     │     └── other run_ids ...
+│   │     ├── dag_processor_manager
+│   │     └── scheduler
+│   ├── plugins/
+│   ├── .env
+│   ├── docker_compose.yaml
+│   └── requirements.txt
+│
 ├── config/
-│   ├── local/
-│   │   ├── db_config.cfg
-│   │   ├── keyfile_1.pem
-│   │   ├── keyfile_2.pkk
-│   │   ├── api_credentials.json
-│   │   ├── setenv.bat
-│   │   ├── setenv.sh
-│   │   └── ... other credential files ...
+│   └── local/
+│       ├── db_config.cfg
+│       ├── keyfile_1.pem
+│       ├── keyfile_2.pkk
+│       ├── api_credentials.json
+│       ├── setenv.bat
+│       ├── setenv.sh
+│       └── ... other credential files ...
 │
 ├── dags/
 │   ├── dwh_main_dag.py
@@ -143,21 +155,21 @@ datawarehouse/
 ___
 ## 📝 Project To‑Do Plan
 
-- **Partial Task Functions**
+- **Partial task functions**
   - Add parameter‑accepting partial functions inside `script_factory.py`. ✔️
   - Improve modularity and reusability of task definitions. ✔️
   - Add task name, description, retries, is_enabled and dependency parameters. ✔️
   - Add retry, enabled and dependency checks in `run_script.py`. ✔️
 
-- **ETL Audit Manager**
+- **ETL audit manager**
   - Create an audit table to track project's run metadata. ✔️
   - Capture `start/end_load_date`, `start/end_script_execution_time`,` data_min/max_dates`, `status`, `number_of_records`, `environment`, `script_version`, `load_type`, `previous_max_date`, `target_database`, `target_table`. ✔️ 
   - Create a `create_etl_runs_table` function. ✔️
-  - Create a `_calculate_etl_window` internal function to calculate sdt and edt.
+  - Create a `_calculate_etl_window` internal function to calculate sdt and edt. ✔️
   - Create an `insert_etl_runs_record` function. ✔️
   - Create an `update_etl_runs_record` function. ✔️
   
-- **ETL Utilities**
+- **ETL utilities**
   - Add custom ETL transformation functions. ✔️
   - Add a single `transform_dataframe` function that applies transformations. ✔️
   - Add a `process_dataframe_date_ranges` function to calculate `data_min_date` and `data_max_date`. ✔️
@@ -167,7 +179,7 @@ ___
   - Add a `set_reference_page` function to create a link to the corresponding ETL reference page in Confluence. 
   
 - **Incremental and full Load**
-  - Implement logic for both incremental (I) and full (F) load modes. ✔️
+  - Implement logic for incremental (I) and full (F) load modes. ✔️
   - Override internal defaults with values from `.bat file.` ✔️
 
 - **Logging**
@@ -179,15 +191,15 @@ ___
 
 - **Utilities folder**
   - `argument_parser.py` - Reads the arguments from .bat <param_1> <param_2> ... <param_n>. ✔️
-  - `config_utils.py` - Reads the credentials in configuration files (.cfg). ✔️
+  - `config_utils.py` - Reads the credentials in configuration files (e.g., _.cfg). ✔️
   - `db_utils.py` - Database utilities.
   - `dq_utils.py` - Data quality utilities.
   - `email_manager.py` - Create and send e-mails. ✔️
   - `error_utils.py` - Custom classes for error handling. ✔️
-  - `file_utils.py` - File path and folder utility functions.
+  - `file_utils.py` - File path and folder utility functions. ✔️
   - `etl_audit_manager.py` - Custom audit table. ✔️
   - `etl_utils.py` - Custom ETL transformations. ✔️
-  - `logging_manager.py` - Custom logging handlers and formatters. ✔️
+  - `logging_manager.py` - Custom logging handlers, formatters, traceback and stack level. ✔️
 
 - **Output folder**
   - Create an `output/` folder to store generated files. ✔️
@@ -205,12 +217,12 @@ ___
   - Add parameter parsing and variable definitions. ✔️
   - Add echoes and error handling. ✔️
 
-- **Email Notifications (SMTP)**
+- **Email notifications**
   - Implement e-mail success/failure alerts after each project's run. ✔️
   - Include ETL run summary, logs and error details.
   - Add business, admin and error recipients. ✔️
   - Add a boolean operators to control whether the recipients should receive an e-mail. ✔️
-  - Add a `load_smtp_config` function to read e-mail credentials. ✔️ (moved to config_utils.py in utilities)
+  - Add a `load_smtp_config` function to read e-mail credentials (moved to config_utils.py in utilities). ✔️ 
   - Add a `add_task_result_to_email` function to build task execution log incrementally. ✔️ 
   - Add a `add_log_block_to_email` function to build technical log details incrementally. ✔️
   - Add a `prepare_emails` function to build e-mails based on general info, task execution log and technical log details. ✔️
@@ -230,7 +242,8 @@ ___
   - In warehouse.fact, enforce referential integrity to prevent orphaned surrogate keys, partition the table by date/date_key, add partition-based deletion and build an index strategy.
 
 - **Orchestration**
-  - Implement orchestration with Airflow.
+  - Add an `orchestration` folder with `logs` and `plugins` folders, `.env`, `docker-compose.yaml` and `requirements.txt`
+  - Implement orchestration with Airflow and document the steps. ✔️
   - Add retries, SLA levels, backfilling.
   - Add parametrization for dynamic data handling ({{ ds }})
   - Dependency management - sensors/external task markers and branching.
@@ -268,12 +281,10 @@ ___
   - SaaS/API connectors: Salesforce, REST APIs (with requests)
   - SFTP and local files (file based ingestion): SFTP (with pysftp/paramiko), pandas (for local files)
 
-- **Streaming and event processing**
-  - Set up a message broker (Apache Kafka)
-  - Build producers and consumers
-  - Stream transformation (windowed aggregations and watermarking)
-  - Add idempotency checks
-  - Implement schema registry and dead letter queues (DLQ)
+- **Other**
+  - Apache Spark - distributed processing system used for big data workloads.
+  - Apache Kafka - streaming and event processing.
+  - DBT - SQL-based transformation framework that automates the building, testing, and documenting of modular data pipelines.
 ___
 ## 💻 Environment setup
 - **I. Create a virtual environment (Windows)**

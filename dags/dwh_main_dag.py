@@ -1,51 +1,50 @@
-# Template DAG (in progress)
-
-from datetime import timedelta
+# import libraries
+from datetime import datetime, timedelta
 from airflow import DAG
-from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.dummy_operator import EmptyOperator
 from airflow.operators.bash_operator import BashOperator
 from airflow.utils.dates import days_ago
 
 version = 1.0
 
 default_args = {
-    'owner' 			: 'dsa',
-    'depends_on_pt'     : False,
-    'start_date' 	    : days_ago(1),
-    'email' 			: ['***@gmail.com'],
+    'owner' 			: 'Mihail',
+    'start_date' 	    : datetime(2026, 1, 1),
+    'email' 			: ['liahim13@gmail.com'],
     'email_on_failre'   : True,
     'email_on_re'       : False,
     'sla'               : timedelta(minutes=20),
     'retries' 		    : 3,
-    'retry_delay' 	    : timedelta(minutes=5),
+    'retry_delay' 	    : timedelta(minutes=1),
     'execution_timeout' : timedelta(hours=1)  # Global timeout for all tasks
 }
 
 dag = DAG(
     'dwh_main_dag',
-    defaultgs	    = default_args,
-    descrin		    = 'Data Warehouse Main ETL DAG',
-    schedule_intral = '0 09 * * *',  # min hour day_of_month month day_of_week
-    max_activens	= 1,
+    default_args	  = default_args,
+    description       = 'Data Warehouse Main ETL DAG',
+    schedule_interval = '*/1 * * * *',  # min hour day_of_month month day_of_week
+    max_active_runs	  = 1,
+    catchup           = False
 )
 
-start_crypto     		= DummyOperator(task_id='start_crypto', dag=dag)
-start_alpaca	  	  	= DummyOperator(task_id='start_alpaca', dag=dag)
+start_crypto     		= EmptyOperator(task_id='start_crypto', dag=dag)
+# start_alpaca	  	  	= DummyOperator(task_id='start_alpaca', dag=dag)
 
-script_name 	 = 'crypto_1_ethereum'
+script_name 	 = 'financial_data_1_ethereum'
 crypto_1		 = BashOperator(
     task_id		 = script_name,
-    bash_commad  = 'source /opt/datawarehouse/etls/datastore/' + script_name + '/run_' + script_name + '_docker.sh {{ ds }}  ',
+    bash_command = 'source /opt/airflow/etls/datastore/' + script_name + '/docker' + '/run_' + script_name + '_docker.sh {{ ds }}',
     dag			 = dag)
 
-script_name 	 = 'alpaca_1_transactions'
-alpaca_1		 = BashOperator(
-    task_id		 = script_name,
-    bash_commad  = 'source /opt/datawarehouse/etls/datastore/' + script_name + '/run_' + script_name + '_docker.sh {{ ds }}  ',
-    dag			 = dag)
+# script_name 	 = 'alpaca_1_transactions'
+# alpaca_1		 = BashOperator(
+#    task_id		 = script_name,
+#    bash_commad  = 'source /opt/airflow/etls/datastore/' + script_name + '/run_' + script_name + '_docker.sh {{ ds }}  ',
+#    dag			 = dag)
 
 start_crypto >> [crypto_1]
-start_alpaca >> [alpaca_1]
+# start_alpaca >> [alpaca_1]
 
 # ds2.doc_md = """\
 # #### Task Documentation

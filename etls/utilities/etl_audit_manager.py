@@ -61,7 +61,7 @@ class EtlAuditManager:
     def __init__(self,
                  sfc: "ScriptFactory",
                  swc: "ScriptWorker",
-                 credential_name: str):
+                 credential_name: str) -> None:
         """
         Initializes the audit manager with script factory, script worker and database credential names.
 
@@ -169,12 +169,16 @@ class EtlAuditManager:
         if not result_data_max_date.empty:
             # Assign it to a variable, .iat[0, 0] retrieves the first row, first column
             value = result_data_max_date.iat[0, 0]
+            lg.info(f"The _calculate_etl_window value: {value}")
             if value is not None:
                 self.prev_max_date = value
+                lg.info(f"The _calculate_etl_window prev_max_date: {self.prev_max_date}")
             else:
                 self.prev_max_date = None
+                lg.info(f"The _calculate_etl_window prev_max_date: {self.prev_max_date}")
         else:
             self.prev_max_date = None
+            lg.info(f"The _calculate_etl_window prev_max_date: {self.prev_max_date}")
 
         # 3. Generate a current reference timestamp
         now_utc = datetime.datetime.now(timezone.utc)
@@ -209,11 +213,13 @@ class EtlAuditManager:
 
             # 7. Determine EDT (incremental cannot load future data)
             max_window_end = self.sdt + timedelta(days=max_days_to_load)
+            lg.info(f"The _calculate_etl_window max_window_end: {max_window_end}")
 
             # 8. EDT becomes the minimum of now_utc and max_window_end
             self.edt = min(now_utc, max_window_end)
             lg.info(f"The edt (I mode): {self.edt}")
 
+        lg.info(f"The final _calculate_etl_window self.sdt and self.edt values: {self.sdt} {self.edt}")
         return self.sdt, self.edt
 
     def insert_audit_etl_runs_record(
@@ -269,6 +275,8 @@ class EtlAuditManager:
 
         # 1. If running for a first time, create the schema and the table
         self.pg_connector.create_schema(schema='audit')
+
+        lg.info(f"Running the create_audit_etl_runs_table query: {EtlAuditManager.create_audit_etl_runs_table()}")
         self.pg_connector.run_query(query=EtlAuditManager.create_audit_etl_runs_table())
 
         # 2. Process some of the variables

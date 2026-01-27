@@ -1,0 +1,102 @@
+# 'x-airflow-common' is a custom extension field. It acts as a master template.
+# '&airflow-common' is a YAML anchor that allows us to 'copy' this whole block later.
+x-airflow-common: &airflow-common
+
+  # The Docker Image provided by Apache. Includes Airflow 2.7.3 and Python 3.11.
+  image: apache/airflow:2.7.3-python3.11
+
+  # 'environment' defines variables that will be available inside the containers.
+  environment:
+    &airflow-common-env
+    # Determines how tasks are run. LocalExecutor runs them on the same node as the scheduler.
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+
+    # Connection string to the external Postgres database.
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@192.168.0.103:5432/postgres
+
+    # Security key for encrypting connection passwords in the UI.
+    AIRFLOW__CORE__FERNET_KEY: ''
+
+    # Set to false so we don't load default example DAGS.
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+
+    # New DAGs won't start running immediately when they are detected.
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+
+    # Tells Airflow to install the libraries listed in the file during startup.
+    _PIP_ADDITIONAL_REQUIREMENTS: "-r /requirements.txt"
+
+    # A custom variable the script uses to find its database credentials.
+    CONFIG_DIR: "/opt/airflow/config/local/db_config.cfg"
+
+    # Control the retention period of logs
+    AIRFLOW__LOGGING__LOG_RETENTION_DAYS: '1'
+
+  # 'volumes' maps folders on the computer to folders inside the container.
+  volumes:
+    # Syntax: [Local Path on Windows] : [Virtual Path in Container]
+    - ../dags:/opt/airflow/dags
+    - ../etls:/opt/airflow/etls
+    - ../config:/opt/airflow/config
+    - ./logs:/opt/airflow/logs
+    - ./plugins:/opt/airflow/plugins
+    - ./requirements.txt:/requirements.txt
+
+  # Run as a specific user (50000) to avoid permission issues with local folders.
+  user: "${AIRFLOW_UID:-50000}:0"
+
+# 'services' define the actual running containers.
+services:
+
+  # This service handles the User Interface (the website accessed in the web-browser).
+  airflow-webserver:
+    # '<<: *airflow-common' pastes all settings from the anchor at the top.
+    # That is, it inherits all the settings from the 'common' block above
+    <<: *airflow-common
+
+    # 'command' specifies the specific Airflow component this container should run.
+    # In this case, it starts the UI server.
+    command: webserver
+
+    # 'ports' creates a tunnel between the computer and the container.
+    ports:
+      # Maps the computer's port 8080 to the container's 8080
+      - "8080:8080"
+
+    # Limit the size of Docker's internal hidden log files.
+    logging:
+      # 'driver: "json-file"' is the standard Docker logging format
+      driver: "json-file"
+      # 'options' sets the physical limits for the log files
+      options:
+        # 'max-size' caps a single log file at 10 Megabytes.
+        max-size: "10m"
+        # 'max-file' tells Docker to keep only the 3 most recent files, deleting the oldest.
+        max-file: "3"
+
+    # 'healthcheck' allows Docker to monitor if the application inside is actually working.
+    healthcheck:
+      # 'test' runs a command inside the container to check for a valid response.
+      # 'curl' to see if the webserver homepage returns a success code.
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      # 'interval' defines how often to run the check (every 10 seconds)
+      interval: 10s
+      # 'timeout' specifies how long to wait for the check to respond before failing.
+      timeout: 10s
+      # 'retries' - the number of consecutive failures needed to mark the container as "unhealthy".
+      retries: 5
+
+  # The 'airflow-scheduler' service monitors DAGs and triggers tasks when their schedule is due
+  airflow-scheduler:
+    # '<<: *airflow-common' inherits all shared settings from the common template defined at the top of the file.
+    <<: *airflow-common
+
+    # Tells this specific container to start the Scheduler process (instead of a Webserver or Worker)
+    command: scheduler
+
+    # Limits the size of Docker's internal hidden log files.
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
