@@ -20,7 +20,6 @@
   - `views` - Custom views.
   - `data_quality_checks` - Custom data quality checks (record discrepancies, stale projects, missing keys, null values, duplicates).
   - `aggregations` - Data aggregations - windowing (time-based), dimensional grouping (bucketing), change detection (delta aggregations), cumulative sum (running totals).
-  - `docker` - Dockerfile, requirements.txt and .sh run files.
   - `custom_code` - Custom code (.py files) for each project.
   - `sript_factory` - A central assembly factory that builds the tasks for execution.
   - `script_runner` - Files (`.bat / .sh`), `Dockerfile`, requirements.txt, `_docker.bat` and `_docker.sh` files that run `run_script.py`.
@@ -42,7 +41,7 @@ datawarehouse/
 ├── .gitignore
 ├── README.md
 ├── venv/
-├── requirements_python_3_14.txt
+├── requirements_python_3_11.txt
 │
 ├── orchestration
 │   ├── logs/
@@ -211,12 +210,12 @@ ___
 
 - **Containerization**
   - Add a `Dockerfile` for containerized execution. ✔️
-  - Update `_docker.bat` to run the container. ✔️
-  - Update `_docker.sh` to run the container.
+  - Add a `_docker.bat` to run the container. ✔️
+  - Add a `_docker.sh` to run the container.
   - Ensure compatibility with Windows/Linux.
 
 - **Launcher scripts**
-  - Update `.bat` ✔️, `_docker.bat` ✔️, `.sh`, `_docker.sh`.
+  - Update `.bat` ✔️, `_docker.bat` ✔️, `.sh` ✔️, `_docker.sh`.
   - Add parameter parsing and variable definitions. ✔️
   - Add echoes and error handling. ✔️
 
@@ -296,7 +295,7 @@ ___
   - Create the environment → python -m venv venv
 
 - **II. Activate the virtual environment**
-  - Activate the environment -> .\venv\Scripts\activate (the terminal should display (venv) C:\Users\Mihail\PycharmProjects\datawarehouse>)
+  - Activate the environment → .\venv\Scripts\activate (the terminal should display (venv) C:\Users\Mihail\PycharmProjects\datawarehouse>)
   - where python → the first path should point to ...\datawarehouse\venv\Scripts\python.exe
 - **III. Check locally installed dependencies**
   - pip list
