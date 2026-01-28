@@ -244,8 +244,8 @@ ___
   - Implement staging.fact table to truncate staging area, extract data from the source, build the correct fact grain and data quality checks.
   - In warehouse.fact, enforce referential integrity to prevent orphaned surrogate keys, partition the table by date/date_key, add partition-based deletion and build an index strategy.
 
-- **Orchestration** <img alt="img_3.png" height="20" src="img_3.png" width="20"/>
-  - Add an `orchestration` folder with `logs` and `plugins` folders, `.env`, `docker-compose.yaml` and `requirements.txt`
+- **Orchestration**
+  - Add an `orchestration` folder with `logs` and `plugins` folders, `.env`, `docker-compose.yaml` and `requirements.txt`. ✔️
   - Implement orchestration with Airflow and document the steps. ✔️
   - Add retries, SLA levels, backfilling.
   - Add parametrization for dynamic data handling ({{ ds }})
@@ -296,14 +296,15 @@ ___
   - Create the environment → python -m venv venv
 
 - **II. Activate the virtual environment**
-  - Activate the environment -> .\venv\Scripts\activate
+  - Activate the environment -> .\venv\Scripts\activate (the terminal should display (venv) C:\Users\Mihail\PycharmProjects\datawarehouse>)
   - where python → the first path should point to ...\datawarehouse\venv\Scripts\python.exe
 - **III. Check locally installed dependencies**
   - pip list
 
 - **IV. Install the dependencies**
+  - python -m pip install --upgrade pip
   - pip install -r <file_path>\requirements.txt
 
 - **V. Final check**
-  - pip list
+  - pip list → you should see the libraries from the requirements.txt file.
   - where python → the first path should point to ...\datawarehouse\venv\Scripts\python.exe
