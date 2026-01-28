@@ -9,8 +9,77 @@
   - The goal is to build a scalable, maintainable platform for analytics.
   - The project will include a modular ETL framework, Dockerized execution environment, Airflow orchestration, configuration‑based execution. 
   - It will provide reusable connectors and utilities, a structured warehouse layer with dimensional and fact tables, views, email notifications, data quality checks, data warehouse process monitoring and backfilling for historical data recovery.
-  
-- **Main folders**
+___
+## 🧩 Data Architecture
+```mermaid
+graph TB
+
+    %% DATA SOURCES
+    subgraph Data_Sources [Data sources]
+        DBs[(Databases)]
+        CDWH[(Cloud)]
+        DL[(Data lakes)]
+        API[(APIs)]
+        FTP[(FTP)]
+        ES[(External)]
+    end
+
+    %% ============================
+    %%        DWH SERVER
+    %% ============================
+
+    subgraph DWH_Server [DWH Server]
+        
+        %% Docker runs Airflow + Data Stores
+        subgraph Docker [Docker]
+            AF[Airflow]
+            DS[Data stores tables]
+        end
+        
+        STG_DIM[Staging dim tables]
+        DIM[Dim Tables]
+        STG_FACT[Staging fact tables]
+        FACT[Fact tables]
+        LCB[Local code]
+        DWH[(PostgreSQL DWH)]
+    end
+    
+    %% GitHub Integration
+    GH[(GitHub Repository)] -- Pull updates --> LCB
+    LCB -- Sync updates --> DWH
+    
+    %% DWH Users
+    subgraph DWH_USERS [DWH users]
+        DWHE[Engineers]
+        AN[Analysts]
+    end
+    REP[(Reporting/monitoring tools)]
+    
+    %% Data Sources → Airflow
+    DBs --> AF
+    CDWH --> AF
+    DL --> AF
+    API --> AF
+    FTP --> AF
+    ES -- Proxy Server --> AF
+
+    %% Airflow → Data Store → DWH
+    AF -- Run ETL DAGs --> DS
+
+    DS -- Truncate, load, transform, run checks --> STG_DIM
+    STG_DIM -- SCD updates, load, index --> DIM
+    DIM -- Truncate, load, transform, run checks --> STG_FACT
+    STG_FACT -- Check sources, load, partition, index --> FACT
+    %% ============================
+    %%        ANALYTICS LAYER
+    %% ============================
+    
+    DWH -- Queries --> REP
+    DWH_USERS -- Push code --> GH
+    REP -- Visualization + alerts --> DWH_USERS
+```  
+
+## 🗄️ **Main folders**
   - `dags` - DAG files for Airflow.
   - `connectors` - Connectors to different DB and non-DB sources.
   - `utilities` - Utilities files.
@@ -24,7 +93,9 @@
   - `custom_code` - Custom code (.py files) for each project.
   - `sript_factory` - A central assembly factory that builds the tasks for execution.
   - `script_runner` - Files (`.bat / .sh`), `Dockerfile`, requirements.txt, `_docker.bat` and `_docker.sh` files that run `run_script.py`.
-- **Main files**
+
+---
+## 🧱 **Main files**
   - `etl_audit_manager.py` - An audit table that keeps track of project's run metadata.
   - `etl_utils.py` - ETL transformation functions.
   - `script_worker.py` - Custom functions for a given project. 
