@@ -50,6 +50,8 @@ services:
 
   # This service handles the User Interface (the website accessed in the web-browser).
   airflow-webserver:
+    # Docker will try to restart the container automatically whenever Docker starts
+    restart: always
     # '<<: *airflow-common' pastes all settings from the anchor at the top.
     # That is, it inherits all the settings from the 'common' block above
     <<: *airflow-common
@@ -88,6 +90,8 @@ services:
 
   # The 'airflow-scheduler' service monitors DAGs and triggers tasks when their schedule is due
   airflow-scheduler:
+    # Docker will try to restart the container automatically whenever Docker starts
+    restart: always
     # '<<: *airflow-common' inherits all shared settings from the common template defined at the top of the file.
     <<: *airflow-common
 

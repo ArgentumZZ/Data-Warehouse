@@ -33,6 +33,14 @@ for %%I in ("%cd%\..") do set "SCRIPT_NAME=%%~nI"
 
 set "CURRENT_DIR=%cd%"
 
+:: Set BASEDIR to the parent folder of this _docker.bat
+set "BASE_DIR=%cd%\..\..\..\.."
+
+if "%BASE_DIR%"=="" (
+    echo ERROR: BASE_DIR is not set!
+    exit /b 1
+)
+
 :: 6. Print a unified header
 echo ============================================================
 echo RUNNING SCRIPT:  %~n0
@@ -45,6 +53,7 @@ echo.
 echo [INFRASTRUCTURE]
 echo  SCRIPT_NAME:       %SCRIPT_NAME%
 echo  CURRENT_DIR:       %CURRENT_DIR%
+echo  BASE_DIR:          %BASE_DIR%
 echo ============================================================
 echo.
 
@@ -61,7 +70,7 @@ echo.
 ::                    Dockerfile
 echo.
 echo "Building Docker image..."
-docker build -f Dockerfile -t %SCRIPT_NAME% ..\..\..\..
+docker build -f Dockerfile -t %SCRIPT_NAME%:v1 ..\..\..\..
 echo.
 
 :: Don't run if the build fails
@@ -77,10 +86,16 @@ if %ERRORLEVEL% NEQ 0 (
 ::      - inside the container, treat localhost as the host machine).
 ::      - it allows the container to access services running on Windows.
 :: local postgresql settings updated to liten to Docker
-echo "Running the container..."
-docker run --rm %SCRIPT_NAME% %*
+:: If we build with version :v1, it will overwrite v1, no additional images are accumulated (use in docker build and run)
+echo "Running the Docker container..."
+docker run --rm %SCRIPT_NAME%:v1 %*
 ::docker run --rm --add-host=localhost:host-gateway %SCRIPT_NAME% %*
 :: docker run --rm --env-file "%ENV_PATH%" --add-host=localhost:host-gateway %SCRIPT_NAME% %*
+
+:: Remove dangling images, they have <none> as their repository name and tag
+:: and are not referenced by any container
+echo "Pruning the Docker images..."
+docker image prune -f
 
 :: 9. Capture exit code after Docker execution
 set "EXIT_CODE=%ERRORLEVEL%"
