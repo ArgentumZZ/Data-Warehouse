@@ -64,6 +64,13 @@ echo "Building Docker image..."
 docker build -f Dockerfile -t %SCRIPT_NAME% ..\..\..\..
 echo.
 
+:: Don't run if the build fails
+if %ERRORLEVEL% NEQ 0 (
+    echo Docker build failed. Aborting run.
+    exit /b %ERRORLEVEL%
+)
+
+
 :: 8. Run the container
 :: --rm -> delete the container automatically after it exits
 :: --add-host=localhost:host-gateway:

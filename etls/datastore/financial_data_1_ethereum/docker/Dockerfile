@@ -1,5 +1,5 @@
 # 1. Use an official Python base image
-FROM python:3.12-slim-bookworm
+FROM python:3.11-slim-bookworm
 
 # 2. Update package lists and install system dependencies required
 # for building Python packages that compile C extensions
