@@ -33,15 +33,13 @@ for %%I in ("%cd%\..") do set "SCRIPT_NAME=%%~nI"
 
 set "CURRENT_DIR=%cd%"
 
-:: Store the path to the config file in a variable and load the external environment config.
-:: Going up 4 levels to find config: script_runner -> project -> datastore -> etls -> datawarehouse
-set "ENV_PATH=%~dp0..\..\..\..\config\local\setenv.env"
+:: Set BASEDIR to the parent folder of this _docker.bat
+set "BASE_DIR=%cd%\..\..\..\.."
 
-::  Verify that the file exists
-if not exist "%ENV_PATH%" (
-    echo [ERROR] Environment file not found at: %ENV_PATH%
+if "%BASE_DIR%"=="" (
+    echo ERROR: BASE_DIR is not set!
     exit /b 1
-    )
+)
 
 :: 6. Print a unified header
 echo ============================================================
@@ -55,6 +53,7 @@ echo.
 echo [INFRASTRUCTURE]
 echo  SCRIPT_NAME:       %SCRIPT_NAME%
 echo  CURRENT_DIR:       %CURRENT_DIR%
+echo  BASE_DIR:          %BASE_DIR%
 echo ============================================================
 echo.
 
@@ -70,9 +69,16 @@ echo.
 ::                    _docker.bat
 ::                    Dockerfile
 echo.
-echo Building Docker image...
-docker build -f Dockerfile -t %SCRIPT_NAME% ..\..\..\..
+echo "Building Docker image..."
+docker build -f Dockerfile -t %SCRIPT_NAME%:v1 ..\..\..\..
 echo.
+
+:: Don't run if the build fails
+if %ERRORLEVEL% NEQ 0 (
+    echo Docker build failed. Aborting run.
+    exit /b %ERRORLEVEL%
+)
+
 
 :: 8. Run the container
 :: --rm -> delete the container automatically after it exits
@@ -80,10 +86,16 @@ echo.
 ::      - inside the container, treat localhost as the host machine).
 ::      - it allows the container to access services running on Windows.
 :: local postgresql settings updated to liten to Docker
-echo Running the container...
-docker run --rm --env-file "%ENV_PATH%" %SCRIPT_NAME% %*
+:: If we build with version :v1, it will overwrite v1, no additional images are accumulated (use in docker build and run)
+echo "Running the Docker container..."
+docker run --rm %SCRIPT_NAME%:v1 %*
 ::docker run --rm --add-host=localhost:host-gateway %SCRIPT_NAME% %*
 :: docker run --rm --env-file "%ENV_PATH%" --add-host=localhost:host-gateway %SCRIPT_NAME% %*
+
+:: Remove dangling images, they have <none> as their repository name and tag
+:: and are not referenced by any container
+echo "Pruning the Docker images..."
+docker image prune -f
 
 :: 9. Capture exit code after Docker execution
 set "EXIT_CODE=%ERRORLEVEL%"

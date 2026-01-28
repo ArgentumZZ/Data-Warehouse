@@ -11,8 +11,8 @@ default_args = {
     'owner' 			: 'Mihail',
     'start_date' 	    : datetime(2026, 1, 1),
     'email' 			: ['liahim13@gmail.com'],
-    'email_on_failre'   : True,
-    'email_on_re'       : False,
+    'email_on_failure'  : True,
+    'email_on_retry'    : False,
     'sla'               : timedelta(minutes=20),
     'retries' 		    : 3,
     'retry_delay' 	    : timedelta(minutes=1),
@@ -31,10 +31,12 @@ dag = DAG(
 start_crypto     		= EmptyOperator(task_id='start_crypto', dag=dag)
 # start_alpaca	  	  	= DummyOperator(task_id='start_alpaca', dag=dag)
 
+# Add a space at the very end of the bash_command string. This tells Airflow that this is a command to execute,
+# not a template file to load.
 script_name 	 = 'financial_data_1_ethereum'
 crypto_1		 = BashOperator(
     task_id		 = script_name,
-    bash_command = 'source /opt/airflow/etls/datastore/' + script_name + '/docker' + '/run_' + script_name + '_docker.sh {{ ds }}',
+    bash_command = 'source /opt/airflow/etls/datastore/' + script_name + '/script_runner' + '/run_' + script_name + '.sh ',
     dag			 = dag)
 
 # script_name 	 = 'alpaca_1_transactions'
