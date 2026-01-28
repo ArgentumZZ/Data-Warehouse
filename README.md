@@ -1,7 +1,7 @@
 ## 🛢️Data Warehouse
 
 - **Data Warehouse**
-  - [![Python](https://img.shields.io/badge/Python-3.14-orange?labelColor=white&logo=python&logoColor=3776AB)](#)
+  - [![Python](https://img.shields.io/badge/Python-3.11-orange?labelColor=white&logo=python&logoColor=3776AB)](#)
   - [![Airflow](https://img.shields.io/badge/Airflow-2.7.3-green?labelColor=white&logo=apacheairflow&logoColor=black)](#) 
   - ![Docker](https://img.shields.io/badge/Docker-4.57.0-blue?labelColor=white&logo=docker&logoColor=2496ED)
   - A personal data warehouse ecosystem project that will implement modern data‑engineering patterns. 
