@@ -1,6 +1,9 @@
 ## 🛢️Data Warehouse
 
 - **Data Warehouse**
+  - [![Python](https://img.shields.io/badge/Python-3.14-orange?labelColor=white&logo=python&logoColor=3776AB)](#)
+  - [![Airflow](https://img.shields.io/badge/Airflow-2.7.3-green?labelColor=white&logo=apacheairflow&logoColor=black)](#) 
+  - ![Docker](https://img.shields.io/badge/Docker-4.57.0-blue?labelColor=white&logo=docker&logoColor=2496ED)
   - A personal data warehouse ecosystem project that will implement modern data‑engineering patterns. 
   - The goal is to build a scalable, maintainable platform for analytics.
   - The project will include a modular ETL framework, Dockerized execution environment, Airflow orchestration, configuration‑based execution. 
@@ -241,7 +244,7 @@ ___
   - Implement staging.fact table to truncate staging area, extract data from the source, build the correct fact grain and data quality checks.
   - In warehouse.fact, enforce referential integrity to prevent orphaned surrogate keys, partition the table by date/date_key, add partition-based deletion and build an index strategy.
 
-- **Orchestration**
+- **Orchestration** <img alt="img_3.png" height="20" src="img_3.png" width="20"/>
   - Add an `orchestration` folder with `logs` and `plugins` folders, `.env`, `docker-compose.yaml` and `requirements.txt`
   - Implement orchestration with Airflow and document the steps. ✔️
   - Add retries, SLA levels, backfilling.
@@ -274,12 +277,13 @@ ___
 
 - **Connectors**
   - Add more connectors:
+  - Add a db_connector.py that will combine two or more connectors in a single location. Select a connector based on a parameter (e.g. engine = 1, Postgresql, engine = 2, MySQL)
   - Relational databases (OLTP): PostgreSQL ✔️, MySQL, MSSQL, Oracle
   - Cloud data warehouses (OLAP): Snowflake, Google BigQuery
   - Time-series databases: kdb+
   - Object storage (data lakes): S3 (AWS), Azure Blob Storage, GCS
   - SaaS/API connectors: Salesforce, REST APIs (with requests)
-  - SFTP and local files (file based ingestion): SFTP (with pysftp/paramiko), pandas (for local files)
+  - SFTP and local files (file based ingestion): SFTP (with pysftp/paramiko), pandas or other (for local files)
 
 - **Other**
   - Apache Spark - distributed processing system used for big data workloads.
