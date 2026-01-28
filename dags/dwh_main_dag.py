@@ -34,7 +34,7 @@ start_crypto     		= EmptyOperator(task_id='start_crypto', dag=dag)
 script_name 	 = 'financial_data_1_ethereum'
 crypto_1		 = BashOperator(
     task_id		 = script_name,
-    bash_command = 'source /opt/airflow/etls/datastore/' + script_name + '/docker' + '/run_' + script_name + '_docker.sh {{ ds }}',
+    bash_command = 'source /opt/airflow/etls/datastore/' + script_name + '/script_runner' + '/run_' + script_name + '.sh {{ ds }}',
     dag			 = dag)
 
 # script_name 	 = 'alpaca_1_transactions'
