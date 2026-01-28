@@ -34,6 +34,8 @@ RUN \
 # PYTHONDONTWRITEBYTECODE: Prevents Python from writing .pyc files (saves space/noise)
 # PYTHONUNBUFFERED: Ensures logs are sent straight to the terminal without buffering
 # PROJECT_NAME will be used in ENTRYPOINT, because it needs runtime variables
+# PYTHONPATH is an environment variable that tells the interpreter where to look for modules and packages
+# when we use the import statement.
 ARG project_name=financial_data_1_ethereum
 ENV PROJECT_NAME=${project_name} \
     PYTHONPATH="/app:/app/${project_name}" \
@@ -50,7 +52,7 @@ WORKDIR /app
 RUN python -m pip install --upgrade --no-cache-dir pip
 
 # Copy only requirements first so code changes don't trigger a full reinstall.
-COPY etls/datastore/${PROJECT_NAME}/docker/requirements.txt ./requirements.txt
+COPY etls/datastore/${PROJECT_NAME}/script_runner/requirements.txt ./requirements.txt
 
 # Install individual libraries for the project, they shouldn't exist in the requirements.txt
 RUN pip install --no-cache-dir numpy==2.4.1 -r requirements.txt

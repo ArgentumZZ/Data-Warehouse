@@ -23,7 +23,7 @@
   - `docker` - Dockerfile, requirements.txt and .sh run files.
   - `custom_code` - Custom code (.py files) for each project.
   - `sript_factory` - A central assembly factory that builds the tasks for execution.
-  - `script_runner` - Files (`.bat / .sh`) that run `run_script.py`.
+  - `script_runner` - Files (`.bat / .sh`), `Dockerfile`, requirements.txt, `_docker.bat` and `_docker.sh` files that run `run_script.py`.
 - **Main files**
   - `etl_audit_manager.py` - An audit table that keeps track of project's run metadata.
   - `etl_utils.py` - ETL transformation functions.
@@ -33,7 +33,7 @@
   - `script_factory.py` - Assemble the tasks for the project.
   - `script_parameters.py` - Custom project parameters (script_name, version, load type, etc.)
   - `run_script.py` - Runs the tasks in `script_factory.py`.
-  - `.bat/.sh` - Files used to run `run_script.py`.
+  - `.bat/.sh/_docker.bat/_docker.sh` - Files used to run `run_script.py`.
   - `Dockerfile` + `_docker.bat`/`_docker.sh`  - Defines the docker metadata, builds an image and runs the container. 
 -------------------------------
 ## 📁 Folder structure
@@ -96,11 +96,7 @@ datawarehouse/
 │   │   │       │      ├── script_parameters.py
 │   │   │       │      ├── script_worker.py
 │   │   │       │      └── sql_queries.py
-│   │   │       ├── docker/
-│   │   │       │      ├── Dockerfile
-│   │   │       │      ├── requirements.txt
-│   │   │       │      ├── run_financial_data_1_ethereum_docker.bat
-│   │   │       │      └── run_financial_data_1_ethereum_docker.sh
+│   │   │       │ 
 │   │   │       ├── metadata/
 │   │   │       │      ├── logs/
 │   │   │       │      │      ├── 2026-01-18_11-36-19_etl.log
@@ -119,6 +115,10 @@ datawarehouse/
 │   │   │       │      ├── __init__.py
 │   │   │       │      ├── run_financial_data_1_ethereum.bat
 │   │   │       │      ├── run_financial_data_1_ethereum.sh
+│   │   │       │      ├── Dockerfile
+│   │   │       │      ├── requirements.txt
+│   │   │       │      ├── run_financial_data_1_ethereum_docker.bat
+│   │   │       │      └── run_financial_data_1_ethereum_docker.sh
 │   │   │       │      └── run_script.py
 │   │   │       └──  __init__.py
 │   │   ├── alpaca_1_revenue/

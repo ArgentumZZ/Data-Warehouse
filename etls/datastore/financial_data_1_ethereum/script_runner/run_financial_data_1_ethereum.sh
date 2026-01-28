@@ -27,9 +27,12 @@ echo "ETL_ROOT set to: $ETL_ROOT"
 echo "CONFIG_DIR set to: $CONFIG_DIR"
 echo "PYTHONPATH set to: $PYTHONPATH"
 
-# 5. Run the Python script.
+# 5. Run the script and forward all arguments using "$@".
+# Echo all passed parameters ($@) to the console for logging/debugging
+echo "Parameters passed to script: $@"
+
 echo "Launching run_script.py from script_runner folder"
-python3 run_script.py
+python3 run_script.py "$@"
 
 # 6. Return the Python exit code to Airflow so the DAG task reflects success/failure.
 # - '$?' captures the exit status of the python3 command.
