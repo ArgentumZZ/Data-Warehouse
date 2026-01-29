@@ -40,6 +40,7 @@ graph TB
         DIM[Dim projects]
         STG_FACT[Staging fact projects]
         FACT[Fact projects]
+        DQ[Data quality checks]
         DWH[(PostgreSQL DWH)]
     end
     
@@ -52,7 +53,7 @@ graph TB
         DWHE[Engineers]
         AN[Analysts]
     end
-    REP[(Reporting/monitoring tools)]
+    REP[Reporting/monitoring tools]
     
     %% Data Sources → Airflow
     DBs --> AF
@@ -63,12 +64,13 @@ graph TB
     ES -- Proxy Server --> AF
 
     %% Airflow → Data Store → DWH
-    AF -- Run ETL DAGs - data store, dim, fact --> DS
+    AF -- Run ETL DAGs - data store, dim, fact, checks --> DS
 
     DS -- Truncate, load, transform, run checks --> STG_DIM
     STG_DIM -- SCD updates, load, index --> DIM
     DIM -- Truncate, load, transform, run checks --> STG_FACT
     STG_FACT -- Check sources, load, partition, index --> FACT
+    FACT -- Run overall checks after daily load --> DQ
     %% ============================
     %%        ANALYTICS LAYER
     %% ============================
@@ -76,6 +78,7 @@ graph TB
     DWH -- Queries --> REP
     DWH_USERS -- Push code --> GH
     REP -- Visualization + alerts --> DWH_USERS
+    Data_Sources -- Source data exploration --> DWH_USERS
 ```  
 
 ## 🗄️ **Main folders**
