@@ -20,8 +20,8 @@ graph TB
         CDWH[(Cloud)]
         DL[(Data lakes)]
         API[(APIs)]
-        FTP[(FTP)]
-        ES[(External)]
+        FTP[(FTPs)]
+        ES[(External sources)]
     end
 
     %% ============================
@@ -33,20 +33,19 @@ graph TB
         %% Docker runs Airflow + Data Stores
         subgraph Docker [Docker]
             AF[Airflow]
-            DS[Data stores tables]
+            DS[Data stores projects]
         end
         
-        STG_DIM[Staging dim tables]
-        DIM[Dim Tables]
-        STG_FACT[Staging fact tables]
-        FACT[Fact tables]
-        LCB[Local code]
+        STG_DIM[Staging dim projects]
+        DIM[Dim projects]
+        STG_FACT[Staging fact projects]
+        FACT[Fact projects]
         DWH[(PostgreSQL DWH)]
     end
     
     %% GitHub Integration
-    GH[(GitHub Repository)] -- Pull updates --> LCB
-    LCB -- Sync updates --> DWH
+    GH[(GitHub Repository)] -- Pull updates and sync with local code --> DWH
+
     
     %% DWH Users
     subgraph DWH_USERS [DWH users]
@@ -64,7 +63,7 @@ graph TB
     ES -- Proxy Server --> AF
 
     %% Airflow → Data Store → DWH
-    AF -- Run ETL DAGs --> DS
+    AF -- Run ETL DAGs - data store, dim, fact --> DS
 
     DS -- Truncate, load, transform, run checks --> STG_DIM
     STG_DIM -- SCD updates, load, index --> DIM
